@@ -25,12 +25,17 @@ real character attached to K.
 2. ζ_K(s) = ζ(s)·L(s, χ).
 3. The Chowla–Selberg formula continues ½ Σ′ Q^{−s} past Re s = 1: it equals ζ(2s) + 2^{2s−1}√π Γ(s − ½)/Γ(s) d^{½−s} ζ(2s − 1),
    plus a K-Bessel series of size about e^{−π√d}.
-4. At s = 7/8 the main part is ζ(7/4) + C·d^{−3/8}·ζ(3/4) with ζ(3/4) < 0, so it increases with d. It is negative at d = 652 and
-   positive for every d ≥ 655; its zero is at d* = 653.98763….
-5. ζ(7/8) < 0, so for large d, L(7/8, χ) = ζ_K(7/8)/ζ(7/8) < 0. But L(σ, χ) > 0 for σ > 1, and by the theorem that no Dirichlet
-   L-function vanishes when Re s > 7/8, L cannot change sign on (7/8, 1]. That is a contradiction, so **d ≤ 652**.
+4. At s = 7/8 the main part is ζ(7/4) + C·d^{−3/8}·ζ(3/4), where C = 2^{3/4}√π Γ(3/8)/Γ(7/8) ≈ 6.4847, and ζ(3/4) < 0, so it
+   increases with d. It is negative at d = 652 and positive for every d ≥ 655; its zero is at d* = 653.98763…. *(Status: certified
+   numerically in ball arithmetic, see `computations/`; not yet proved in Lean, and the Bessel remainder is bounded there using a
+   standard inequality not yet proved here.)*
+5. ζ(7/8) < 0, so for large d, L(7/8, χ) = ζ_K(7/8)/ζ(7/8) < 0. But L(σ, χ) > 0 for σ > 1. By the theorem that no Dirichlet
+   L-function vanishes when Re s > 7/8 (apart from the pole of the trivial character at s = 1), L has no zero on (7/8, 1], so by
+   continuity L(7/8, χ) ≥ 0. That is a contradiction, so **d ≤ 652**. *(Status: the argument is standard; the conclusion rests on
+   step 4, so it is not yet proved here.)*
 6. The finite range: if some prime p < (d + 1)/4 splits in K, a prime ideal of norm p would be principal, forcing Q(x, y) = p, which
-   is impossible for such a small p. So K does not have class number one. Every non-Heegner field in range has such a witness prime.
+   is impossible for such a small p. So K does not have class number one. *(Status: a computation finds such a witness prime for
+   every non-Heegner field in range; it is not yet in `certificates/` or checked by the kernel.)*
 
 ## What is done today
 
@@ -54,18 +59,26 @@ dependency closure will be audited for any class-number-one input.
 
 ## Trust base
 
-The deep analytic input is the theorem that every Dirichlet L-function is non-zero for Re s > 7/8, from
-[openai/math](https://github.com/openai/math) (family 003, Apache-2.0). Its Lean proof sits inside the checked dependency closure,
-so it is not something a reader has to trust. We replayed its Comparator challenge with both kernels on 7 October 2026. What a
-reader does have to trust is the statement (and the Mathlib definitions it uses), the kernels, and the three standard axioms.
+The deep analytic input is the theorem that every Dirichlet L-function is non-zero for Re s > 7/8 (apart from the pole at s = 1),
+from [openai/math](https://github.com/openai/math) (family 003, Apache-2.0). It is an unrefereed preprint, with a Lean proof. Once
+our formalization exists, that proof will sit inside its checked dependency closure, so it will not be something a reader has to
+trust. We replayed its Comparator challenge with both kernels (Lean's and nanoda) on 7 October 2026, locally and without
+Comparator's sandbox. What a reader does have to trust is the statement (and the Mathlib definitions it uses), the kernels, and the
+three standard axioms.
 
 ## Why Telperion
 
 [Telperion](telperion/README.md) turns untrusted input (numbers, enclosures, witnesses and proof drafts, very often produced by a
 language model) into Lean 4 certificates, which only the Lean kernel accepts or rejects. A hallucinated bound does not become a
-theorem: it fails to check. Our negative controls are part of the pipeline, and they have caught real mistakes in our own work
-before. We think this is one practical answer to the question Tao and others have been raising: how to get the benefit of AI
-assistance in mathematics without trusting what the AI says.
+theorem: it fails to check. What remains is the risk that the *statement* says the wrong thing, which is why the statement comes
+first and is reviewed before any proof is built on it. Negative controls (deliberately wrong inputs that must be rejected) are part
+of the pipeline. Independent audits, including known-answer tests, have caught real soundness bugs in our own tools, which were
+fixed and disclosed (Arda #739, #740). We think this is one practical answer to the question Tao and others have been raising:
+how to get the benefit of AI assistance in mathematics without trusting what the AI says.
+
+*Note on the vendored copy:* `telperion/` is the same v0.1.6 snapshot that ships with our Brualdi–Goldwasser repository, and it
+**predates those fixes**: its `arb_dh` winding-number routine samples the boundary rather than certifying it, and the
+`emit_baez_duarte` emitter is still present. This project uses neither component. A newer snapshot will replace it.
 
 ## Credits
 
@@ -79,7 +92,8 @@ assistance in mathematics without trusting what the AI says.
 ## AI use
 
 This work is done with extensive use of AI assistance (Anthropic's Claude), in several separate sessions: one does the work and
-another independently reviews it. Every claim in this repository is either machine-checked or labelled with how it was obtained.
+another independently reviews it. Our aim is that every claim here is either machine-checked or labelled with how it was obtained;
+while the work is in progress, the labels on steps 4–6 above say what is and is not yet checked.
 
 ## Licensing
 
