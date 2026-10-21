@@ -1,0 +1,9 @@
+{
+  "family": "Bernoulli",
+  "input_hash": "c06e444ab3afb0bc32d43a32b6cc41692b548fe32b50a0703492d2560ac633f6",
+  "tool_version": "0.1.6",
+  "files": [
+    "Bernoulli.lean"
+  ],
+  "n_theorems": 5
+}

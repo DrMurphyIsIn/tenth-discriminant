@@ -1,0 +1,113 @@
+# Telperion Missions Registry — Quick Start
+
+The missions registry tracks proof campaigns (BG, RH) as directed graphs of nodes with status, artifact links, claims, and work history. This HOWTO covers the essentials for picking up work in an active campaign.
+
+## Status Machine
+
+Every node flows through statuses enforced by the kernel:
+
+```
+draft ──(read-back recorded)──────────────> open
+open ──(verified artifact linked)─────────> proved | refuted
+any ──(with deprecated_reason)────────────> deprecated
+```
+
+**Key rule:** `proved` and `refuted` are **granted only by the kernel** via `mission grant` (which checks artifact existence and normalized statement containment — a syntactic, local gate). A node may link an artifact, but until the gate verifies the statement match, the status stays unchanged. The KERNEL authority for whether the artifact's Lean proof actually elaborates is the artifact's home package's own CI (e.g. proof-lean for BG; the home island for RH cross-island nodes); `mission grant` does not re-run that build. Pass `--deep-lean` to `mission verify` to lake-build the campaign's statement package (statements elaborate; proofs are not re-checked here). For reductions (proofs that import sorry-statements of other open nodes), the flag `closure_clean: false` until the entire import closure is sorry-free.
+
+## Claims & the Claim Protocol
+
+A claim reserves a node for one session for a TTL (default: 24 hours). Claims are **advisory, not locks** — they coordinate work but don't block other sessions. An expired claim can be claimed-over; the new claim records that it superseded the old one.
+
+- **Claim:** `telperion mission claim <node-slug> --session <your-session-name> [--ttl 24] [--note "intent"]`
+- **Release:** `telperion mission release <node-slug> --session <your-session-name>`
+- **Check status:** `telperion mission open-leaves` (hides claimed nodes by default; use `--all` to show them)
+
+## The Verbs
+
+| Verb | Purpose |
+|------|---------|
+| `status [campaign]` | Print one-glance tree: all nodes with status, closure_clean flags, who claimed them |
+| `open-leaves [campaign] [--all]` | List nodes ready to work on: open, all dependencies proved, not freshly claimed (or include them with `--all`) |
+| `claim <slug> --session S` | Claim a node; TTL default 24h |
+| `release <slug> --session S` | Release a claim |
+| `add <campaign> <name> --session S` | Scaffold a new node (creates both .toml and statement file in draft status) and record you as its author (`[author]`: git email + session; both required) |
+| `audit <slug> --text "..." --session S` | Record an INDEPENDENT read-back and promote draft → open. Refused if your session or git identity is the node's author, if the text is under 120 characters, or if it only repeats the title. `--auditor` is a display label only |
+| `link <slug> --artifact P --kind K --via V` | Attach a proof/disproof artifact (K: `lean_module` or `frozen_cert`; V: `direct` or `reduction`) |
+| `attempt <slug> --session S --route R --verdict V --detail D` | Log a work attempt; verdict: `Proved`, `Refuted`, `NoGo`, `Stalled` |
+| `grant <slug> --session S` | **Gate verb:** run the verify gate and flip `proved`/`refuted` (only verb that changes status); writes `[grant]` with the artifact/statement digests, gate version and who ran it |
+| `provenance-report [campaign]` | Proved nodes whose read-back is not known-independent and that no passing Comparator run covers |
+| `comparator-record <slug> --run-id N --theorem T` | Record a PASSING `missions-comparator` run on a proved node (sidecar; never a status change) |
+| `ci-record <slug> --workflow W --job J --run-id N` | Record a run of a named non-required CI job on the node's CURRENT artifact (head sha + conclusion from `gh run view`, or `--head-sha`/`--conclusion`). A node with `requires_ci_job = "W:J"` cannot be granted, and fails `verify` once proved, without a `success` record on the current artifact digest |
+| `verify [campaign]` | Run the shallow coherence battery locally (node schema, DAG acyclicity, artifact existence, normalized statement containment) — read-only; add `--deep-lean` to also lake-build the campaign's statement package |
+| `graph [campaign]` | Emit DOT export of the dependency DAG with node statuses |
+
+## Five-Minute Quickstart
+
+1. **Check the frontier:**
+   ```bash
+   telperion mission status demo
+   telperion mission open-leaves demo
+   ```
+
+2. **Claim work:**
+   ```bash
+   telperion mission claim node_slug --session your-session-id
+   ```
+
+3. **Do the math.** Edit your local branch, write Lean, build, verify kernel checks.
+
+4. **Log the attempt (always):**
+   ```bash
+   telperion mission attempt node_slug --session your-session-id \
+     --route "emitter_name or tactic_approach" \
+     --verdict Proved --detail "artifact path or summary"
+   ```
+
+5. **Link the artifact (if proved/refuted):**
+   ```bash
+   telperion mission link node_slug --artifact path/to/proof.lean \
+     --kind lean_module --via direct
+   ```
+
+6. **Grant the status (invoke the gate):**
+   ```bash
+   telperion mission grant node_slug
+   ```
+   The gate checks: artifact exists and its normalized content contains the registry statement (syntactic, local — no Lean build). If both pass, status flips to `proved` (or `refuted` for disproofs). The KERNEL authority for the proof's elaboration is the artifact's home package CI, not this gate. If closure_clean was false (reduction), it's recomputed.
+
+7. **Release the claim:**
+   ```bash
+   telperion mission release node_slug --session your-session-id
+   ```
+
+## MCP Tools (for Claude Code / agents)
+
+Two read-only tools in the Telperion MCP server:
+
+- **`mission_status(campaign="")`** — Return a status tree (all campaigns if `campaign` is empty).
+- **`mission_open_leaves(campaign="", include_claimed=False)`** — Return the live frontier. Pass `include_claimed=True` to show claimed nodes.
+
+## Key Discipline
+
+- **Always log attempts** (even NoGo / Stalled), so future sessions don't re-walk dead paths.
+- **Read-back before open, and NOT BY THE AUTHOR:** A `draft` node needs a human-language
+  `audit` (prose or Lean statement rendering) before it can move to `open`. This catches
+  "formalized the wrong statement" early. **The renderer must not be the statement's
+  author** — an independent session, or the operator (`MISSIONS_DESIGN_2026-09-11.md` §8).
+  **A subagent you spawn is you**: same session, same git identity. Since 2026-09-23 the CLI
+  enforces this (`AUDIT_INDEPENDENCE_2026-09-23.md`): `add` records `[author]`, `audit`
+  refuses the author's session or identity, a text under 120 characters, or a text that
+  only repeats the title, and `verify` fails a proved node whose read-back is a self-audit.
+  The rule: a read-back is independent only if (i) different session AND different identity,
+  or (ii) the `missions-comparator` job passed on the node and was recorded. Every read-back
+  recorded before 2026-09-23 is `independence = "unverified"`; `mission provenance-report`
+  lists the proved nodes nobody independent has vouched for. It is the only thing standing
+  between a wrong or vacuous statement and a `proved` node, because `grant` is containment
+  against the very statement the author wrote. If no independent session is available,
+  leave the node in `draft`; a draft is honest.
+- **The kernel is the sole authority:** No manual status edits. Only `mission grant` (with CI verification) flips `proved`/`refuted`.
+- **Claims are soft:** Respect TTL and claim-over etiquette, but don't block other sessions.
+
+## For Parallel Sessions
+
+The registry is git-backed: one file per node, one append-only attempts ledger. Claim files are committed; git merge handles the rest. Collision-guard conventions continue to protect races.

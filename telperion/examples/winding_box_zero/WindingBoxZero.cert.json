@@ -1,0 +1,30 @@
+[
+  {
+    "box": {
+      "im0": "0",
+      "im1": "1",
+      "re0": "0",
+      "re1": "1"
+    },
+    "edge_samples": 128,
+    "kind": "winding_box_zero",
+    "n_per_side": 32,
+    "prec": 64,
+    "trust_class": "arb",
+    "winding": 1
+  },
+  {
+    "box": {
+      "im0": "1",
+      "im1": "2",
+      "re0": "1",
+      "re1": "2"
+    },
+    "edge_samples": 128,
+    "kind": "winding_box_zero",
+    "n_per_side": 32,
+    "prec": 64,
+    "trust_class": "arb",
+    "winding": 0
+  }
+]

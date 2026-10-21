@@ -1,0 +1,9 @@
+{
+  "family": "ExpBracket",
+  "input_hash": "8d58acf983f0eff70566bac358b9324133c2588b7ad1f86eb47a46f5fcb375c3",
+  "tool_version": "0.1.6",
+  "files": [
+    "ExpBracket.lean"
+  ],
+  "n_theorems": 6
+}

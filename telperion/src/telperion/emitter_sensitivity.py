@@ -1,0 +1,1342 @@
+"""Emitter-wide certificate-sensitivity registry — Telperion pointed at its own
+emitter set (Vector 2a of the self-application program).
+
+`nonvacuity.assert_certificate_sensitive` proves an emitted identity is
+LOAD-BEARING: corrupt the certificate and the claim must break.  It is the
+semantic complement to the structural reflexive-statement check.  Today only the
+WZ emitter invokes it — yet many emitters carry a corruptible identity
+certificate (`linear_combination`/`ring` shapes: cone, Putinar, Handelman,
+Nullstellensatz, consequence, …).
+
+This module makes each emitter's stance EXPLICIT and ENFORCED, so the property
+"every emitter has declared whether its certificate is load-bearing" becomes a
+standing CI gate rather than tribal knowledge:
+
+  * CERTIFICATE_SENSITIVE   — carries an identity certificate whose corruption
+                              must break the claim; `assert_certificate_sensitive`
+                              is the right guard.  `checked_in` names the module
+                              that actually invokes it (truthfully verified), or
+                              is None for "declared-but-not-yet-wired" — naming
+                              the gap honestly instead of papering over it.
+  * STRUCTURALLY_NONVACUOUS — a positivity / decidable / finite-cover / glue /
+                              adapter shape with no separately-supplied
+                              corruptible identity; the structural reflexive check
+                              plus the kernel suffice.
+
+No emitter file is modified: this is an additive meta-layer.  A newly-added
+Emitter subclass fails `test_certificate_sensitivity` until its stance is
+declared here.
+"""
+from __future__ import annotations
+
+import importlib
+
+from dataclasses import dataclass
+from pathlib import Path
+
+from .workflow import Emitter
+
+CERTIFICATE_SENSITIVE = "certificate_sensitive"
+STRUCTURALLY_NONVACUOUS = "structurally_nonvacuous"
+
+# Negative-control declaration (the AXLE `disprove` layer): every emitter must
+# declare whether it carries a Lean-backed generic negative control (an ADAPTER
+# in negative_control_harness.ADAPTERS) or is NOT_APPLICABLE with a reason.
+NEG_CONTROL_ADAPTER = "adapter"
+NEG_CONTROL_NOT_APPLICABLE = "not_applicable"
+# A CERTIFICATE_SENSITIVE emitter whose kernel-gated adapter has NOT been built
+# yet.  The honest analogue of ``checked_in=None`` for the semantic wiring: the
+# emitter is falsifiable in principle (a forged cert would be kernel-rejected),
+# but no adapter exists in ``negative_control_harness.ADAPTERS`` — we NAME that gap
+# rather than lie by claiming an adapter or mislabelling it not_applicable.
+NEG_CONTROL_DECLARED_UNWIRED = "declared_unwired"
+
+_NEG_CONTROL_KINDS = frozenset(
+    {NEG_CONTROL_ADAPTER, NEG_CONTROL_NOT_APPLICABLE, NEG_CONTROL_DECLARED_UNWIRED}
+)
+
+
+@dataclass(frozen=True)
+class NegControlStance:
+    """One emitter's declared negative-control stance.
+
+    ``kind`` is one of:
+
+    * ``NEG_CONTROL_ADAPTER`` — a two-sided kernel control exists, keyed by the
+      emitter name in ``negative_control_harness.ADAPTERS``;
+    * ``NEG_CONTROL_NOT_APPLICABLE`` — no independent corruptible witness to
+      falsify at the emission layer (a positivity/decidable/finite/glue shape);
+    * ``NEG_CONTROL_DECLARED_UNWIRED`` — certificate-sensitive, so an adapter is
+      POSSIBLE, but none is built yet (the honestly-named gap).
+
+    ``reason`` is required for the not-applicable and declared-unwired cases.
+    """
+
+    kind: str
+    reason: str = ""
+
+
+@dataclass(frozen=True)
+class SensitivityStance:
+    """One emitter's declared certificate-sensitivity stance.
+
+    ``checked_in`` is the module basename (e.g. ``emit_wz``) that invokes
+    ``assert_certificate_sensitive`` for this emitter, or None when the semantic
+    check is not (yet) wired through the generic primitive.
+
+    ``neg_control`` is the negative-control declaration; when left None it is
+    DERIVED from ``stance`` after the registry is built (see ``_derive_neg_control``):
+    CERTIFICATE_SENSITIVE emitters carry an adapter, STRUCTURALLY_NONVACUOUS ones
+    are not-applicable (their own ``reason`` is the not-applicable reason).
+    """
+
+    stance: str
+    reason: str
+    checked_in: str | None = None
+    neg_control: "NegControlStance | None" = None
+
+
+_S = SensitivityStance
+
+# The 30 emitters and their stances.  CERTIFICATE_SENSITIVE = carries a
+# corruptible identity certificate; STRUCTURALLY_NONVACUOUS = positivity /
+# decidable / finite / glue / adapter shape.
+REGISTRY: dict[str, SensitivityStance] = {
+    # --- identity-carrying: a corrupted certificate must break the claim ---
+    "WZEmitter": _S(CERTIFICATE_SENSITIVE,
+                    "hypergeometric identity Σ_k F = rhs via a WZ mate; the mate "
+                    "is load-bearing", checked_in="emit_wz"),
+    "SOSEmitter": _S(CERTIFICATE_SENSITIVE,
+                     "p = Σ dᵢ·ℓᵢ² ring identity; a corrupted Gram/multiplier "
+                     "breaks the identity"),
+    "ConeFarkasEmitter": _S(CERTIFICATE_SENSITIVE,
+                            "target = Σ λᵢ·bᵢ Farkas combination; corrupt a λ and "
+                            "the ring identity fails"),
+    "ConstrainedSOSEmitter": _S(CERTIFICATE_SENSITIVE,
+                                "Putinar p = σ₀ + Σ σᵢ·gᵢ; the SOS multipliers are "
+                                "the corruptible certificate"),
+    "HandelmanEmitter": _S(CERTIFICATE_SENSITIVE,
+                           "p = Σ c_α ∏ ℓᵢ^{αᵢ} nonnegative product combination; "
+                           "the coefficients are load-bearing"),
+    "ZeroFreeCosineEmitter": _S(CERTIFICATE_SENSITIVE,
+                                "same shape as HandelmanEmitter: p = Σ c_α ∏ ℓ^α "
+                                "Fejér–Riesz/Handelman witness closed by `ring`; a "
+                                "corrupted coefficient breaks the identity",
+                                checked_in="emit_zero_free_cosine"),
+    "NullstellensatzEmitter": _S(CERTIFICATE_SENSITIVE,
+                                 "p = Σ hᵢ·gᵢ ideal-membership cofactors; a "
+                                 "corrupted cofactor breaks linear_combination"),
+    "InfeasibilityEmitter": _S(CERTIFICATE_SENSITIVE,
+                               "1 = Σ λⱼ·gⱼ refutation; the multipliers are the "
+                               "certificate of non-existence"),
+    "ConsequenceEmitter": _S(CERTIFICATE_SENSITIVE,
+                             "lhs−rhs = Σ cᵢ·(hyp_i) cofactors; corrupt a cofactor "
+                             "and the consequence no longer follows"),
+    "SOSRefutationEmitter": _S(CERTIFICATE_SENSITIVE,
+                               "−1 = σ₀ + Σ σᵢ·gᵢ + Σ λⱼ·hⱼ; the multipliers are "
+                               "the corruptible refutation certificate"),
+    "RealNullstellensatzEmitter": _S(CERTIFICATE_SENSITIVE,
+                                     "p^{2m} + s ∈ ⟨gₖ⟩ with SOS s; cofactors and "
+                                     "SOS terms are load-bearing"),
+    "CGRoundEmitter": _S(CERTIFICATE_SENSITIVE,
+                         "Chvátal–Gomory derivation; carries a bespoke "
+                         "rounding-sensitivity self-check in emit_cg_round "
+                         "(disarming every round must fail to dominate the goal)"),
+    "TelescopingPotentialEmitter": _S(CERTIFICATE_SENSITIVE,
+                                      "Σ local(v) ≤ P(root) from a per-node "
+                                      "super-solution; the potential P is the "
+                                      "load-bearing certificate"),
+    "IdentityEmitter": _S(CERTIFICATE_SENSITIVE,
+                          "concrete rational/integer identity; a corrupted side "
+                          "breaks ring/norm_num (may opt reflexive via "
+                          "LeanProfile for reference identities)"),
+    "ExactFactEmitter": _S(CERTIFICATE_SENSITIVE,
+                           "concrete exact fact/power; corruption breaks norm_num"),
+    # --- structurally non-vacuous: positivity / decidable / finite / glue ---
+    "DirectPolyaEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                             "0 ≤ f via positivity on an all-nonneg form; the "
+                             "reflexive-statement check + positivity suffice"),
+    "TwoMomentCountEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                "(2−κ)N − err ≤ count from two moment-bound "
+                                "hypotheses via nlinarith off Real.sqrt_le_sqrt; the "
+                                "moment bounds are the analytic trust seam, the "
+                                "arithmetic implication carries no corruptible identity",
+                                # Structural, yet a statement-level kernel control exists:
+                                # the Davenport–Heilbronn over-claim (concluded proportion
+                                # inflated past what the moments support) is genuinely
+                                # false and kernel-rejected.  See
+                                # negctrl_adapters/adapter_two_moment_count.py.
+                                neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "RankTraceScalarEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                 "integrality atom 2c·x−c² ≤ x² = (x−c)²≥0 via "
+                                 "nlinarith [sq_nonneg]; a pure square-positivity fact"),
+    "LiPositivityLadderEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                    "0 ≤ (taylorCoeff riemannXi n).re from a certified "
+                                    "positive lower bound (hypothesis hlo = the Arb enclosure, "
+                                    "the trust seam) via le_trans; positivity, no corruptible identity",
+                                    # Structural, yet a kernel control exists: the in-proof
+                                    # norm_num gate 0 ≤ lo makes a sign-corrupted lower bound
+                                    # kernel-rejected.  See negctrl_adapters/adapter_li_positivity.py.
+                                    neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "UnitModulusSOSEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                "0 ≤ (2 − u^m − conj(u^m)).re for |u|=1 via the manifest Hermitian "
+                                "square ‖1 − u^m‖² (Complex.mul_conj + Complex.normSq_nonneg); the "
+                                "|u|=1 side condition is a hypothesis, positivity is by structure with "
+                                "no separately-supplied corruptible identity (the degenerate power "
+                                "m<1 is refused at certify time — the negative control)"),
+    "WindowFormFloorEmitter": _S(CERTIFICATE_SENSITIVE,
+                                "Zhu arXiv:2608.24827 Thm 1.1 window-floor bundle "
+                                "(L, T#, A_L, beta*, lam0, eps_d, eps_b, N) closing on "
+                                "0 < min(lam0, beta* - eps_d) - eps_b.  The certificate is "
+                                "IDENTITY-CARRYING: A_L is re-derived by exact von Mangoldt "
+                                "summation over log n < 2L and beta* from (T#, A_L), so a "
+                                "corrupted constant breaks the re-derivation and the instance is "
+                                "refused -- this is the guard that catches the paper's own "
+                                "retracted support-2.38 claim (A_eff substituted for A_L, Remark "
+                                "3.3).  lam0 / eps_d / eps_b are Arb (python-flint) or mpmath "
+                                "enclosures -- the documented non-kernel trust seam; the four "
+                                "analytic inputs of Thm 1.1 (eq. 2, Lemma 3.1, eqs. 6 and 12, and "
+                                "the block floor) are NAMED, UNDISCHARGED Lean hypotheses.  "
+                                "Finite category-b; the route is closed by Thm 1.4 at doubly "
+                                "exponential cost (conjecture1_proved = False)",
+                                # The semantic assert_certificate_sensitive primitive is not wired
+                                # for this emitter; the kernel-gated adapter
+                                # (negctrl_adapters/adapter_window_form_floor.py) IS, and so is the
+                                # certificate-layer control that refuses the paper's retracted
+                                # A_eff-for-A_L instance.  Both are stronger than the generic check.
+                                checked_in=None),
+    "BraggFloorEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                            "Route P Brick D3 diffraction rung floorHi ≤ braggLo − tailHi: a concrete "
+                            "rational inequality discharged by norm_num (the truncated von Mangoldt "
+                            "Bragg amplitude net of its certified tail clears the explicit archimedean "
+                            "floor).  braggLo/tailHi/floorHi are Arb (python-flint) enclosures — the "
+                            "documented trust seam; certify REFUSES a non-positive margin, so no "
+                            "vacuous/false inequality ships.  Finite category-b; the passage to the "
+                            "companion coefficient is the conditional RH-hard exhaustion seam, never "
+                            "discharged (conjecture1_proved = False)",
+                            # Structural, yet a kernel control exists: a sign/value-corrupted literal
+                            # making floorHi ≤ braggLo − tailHi FALSE is kernel-rejected by norm_num.
+                            # See negctrl_adapters/adapter_bragg_floor.py.
+                            neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "IntervalGramInertiaEmitter": _S(
+        CERTIFICATE_SENSITIVE,
+        "interval inertia (posIndex hG = p, defect hG = q) for EVERY Hermitian G in a rational "
+        "box: the load-bearing certificate is the exact congruence data -- the witness bases X, Y, "
+        "the compressed diagonals cx, cy, the half-width w and the column constants S = p, q.  "
+        "Corrupt a pivot, a basis column, or the width and the compressed-form margin "
+        "cx_k > w*S becomes FALSE: nlinarith cannot close it and the kernel rejects the proof.  "
+        "certify REFUSES a singular midpoint, an asymmetric/empty box, a definite box, and any "
+        "box wider than the pivot margin, so no false or vacuous signature ships.  Island-pinned "
+        "to the ported RHLinalg block (v4.32.0); real-symmetric only (conjecture1_proved = False)",
+        # The semantic assert_certificate_sensitive primitive is not wired for this emitter; the
+        # kernel-gated adapter (negctrl_adapters/adapter_interval_gram_inertia.py) IS, and it is
+        # the stronger of the two checks.
+        checked_in=None),
+    "WeilFormEnclosureEmitter": _S(CERTIFICATE_SENSITIVE,
+                                  "E8 Weil pairing enclosure: the Arb box [lo, hi] for "
+                                  "Re weilForm (crossCorr g g') is a separately-supplied, "
+                                  "corruptible numeric certificate; the emitted theorem is only "
+                                  "its kernel consequence (box_pos / box_minor_pos), whose side "
+                                  "goals 0 < lo and max(c0^2, c1^2) < lo_a * lo_b are decided by "
+                                  "norm_num.  Corrupt a literal so the box no longer implies the "
+                                  "consequence and the kernel REJECTS the proof.  Arb is the "
+                                  "documented non-kernel trust seam; certify REFUSES a "
+                                  "non-compactly-supported test (the PNT growth trap), an "
+                                  "over-wide box, a Hermitian-inconsistent mirror, and a "
+                                  "non-positive margin.  Finite category-b "
+                                  "(conjecture1_proved = False)",
+                                  # See negctrl_adapters/adapter_weil_form_enclosure.py.
+                                  neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "ExpEnclosureEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                             "rational bracket lo <= Real.exp x <= hi (and the deficit "
+                             "e^x + e^-x - 2 / cosh faces) at a rational x with |x| <= 1: the "
+                             "bracket IS the statement, re-derived in the kernel from Mathlib's "
+                             "Real.exp_bound at the certified Taylor order by norm_num "
+                             "[Nat.factorial] + linarith -- no separately-supplied identity to "
+                             "corrupt, so the shape is structural.  certify REFUSES a bracket the "
+                             "exact rational Taylor box does not imply (and |x| > 1, order < 1 or "
+                             "> 64, inverted brackets, non-positive deficit displacement, "
+                             "non-rational input), so no widened or false enclosure ships.  A "
+                             "finite arithmetic fact about a transcendental constant at one "
+                             "rational point; it discharges the Arb hexp hypothesis of "
+                             "BraggDefect.bragg_defect_witness and says nothing about RH "
+                             "(conjecture1_proved = False)",
+                             # Structural, yet a kernel control exists: a hand-minted bracket
+                             # NARROWER than the Taylor box (which Layer 1 refuses) makes the
+                             # emitted linarith unprovable, so the kernel rejects it.
+                             # See negctrl_adapters/adapter_exp_enclosure.py.
+                             neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "ExpThresholdEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                             "threshold-to-exponential domination via `1 + t <= e^t` "
+                             "(Real.add_one_le_exp): a bundle reads a nested-max threshold "
+                             "hypothesis (the eventual_threshold witness, with the `max 1` guard "
+                             "folded in as a conjunct) and returns each exponential consequence "
+                             "Q <= K exp(s lam a) -- linear mode (div_le_iff0 + add_one_le_exp + "
+                             "linarith) or log mode (exp_log (lt_max_of_lt_left one_pos) + "
+                             "exp_le_exp) -- plus the product (y e^-y <= 1), inverse "
+                             "(e^-x <= 1/x) and affine shifted-rate atoms.  The mode, scale, "
+                             "strictness, arity and guard ARE the statement, re-derived in the "
+                             "kernel; a rational instance also pins the exact threshold and the "
+                             "signs of a, K, s, which the kernel re-decides (positivity / "
+                             "norm_num).  No separately-supplied identity to corrupt, so the "
+                             "shape is structural.  certify REFUSES a rational a <= 0 or K <= 0, "
+                             "a non-positive scale, a declared threshold that does not match the "
+                             "exact recomputation Q/(s a K) or log(max 1 (Q/K))/(s a), strict in "
+                             "log mode, bundling an atom, an inverse bound below 1/x0, a "
+                             "shifted-rate r' >= r or a constant below max(c0, c1/(r-r'), 0), and "
+                             "floats anywhere.  Regenerates E6Bridge7.lean:575-590 (hexpeta, "
+                             "hexpM) and E6Bridge14.lean:78-86 (le_exp_of_log_le); elementary "
+                             "real inequalities, nothing about RH (conjecture1_proved = False)",
+                             # Structural, yet a kernel control exists: a hand-minted rational
+                             # instance with a = -1 (which Layer 1 refuses) states a FALSE
+                             # implication (at lam = 0) and the emitted `positivity` step cannot
+                             # prove 0 < 2 * (-1), so the kernel rejects it.
+                             # See negctrl_adapters/adapter_exp_threshold.py.
+                             neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "AffineHullDominanceEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                     "exact maximum over all trees on n vertices (n = 2..N) of "
+                                     "a positive multilinear tree recursion with vector "
+                                     "states, by convex-hull pruning: the Lean checker "
+                                     "enumerates every candidate of every class itself and "
+                                     "decides, in exact rational arithmetic, a supplied "
+                                     "witness for each (a kept index, or convex weights with "
+                                     "componentwise domination strict somewhere); one generic "
+                                     "exchange induction (dual-form domination) turns that "
+                                     "into the upper bound, and an explicit attaining tree "
+                                     "gives equality.  The kept tables, witnesses and claimed "
+                                     "values ARE the statement's hypotheses, all decided; "
+                                     "no separately-supplied identity to corrupt.  certify "
+                                     "REFUSES floats, shape errors, any failing sign "
+                                     "condition (negative coefficient, z0 entry not "
+                                     "positive, an invisible coordinate), a non-strict root "
+                                     "covector with maximizers requested, N outside [2, 16], "
+                                     "and an oversized class.  Nothing about any open "
+                                     "problem (conjecture1_proved = False)",
+                                     # Structural, yet a kernel control exists: the matching-
+                                     # sum certificate at N = 6 with the maximizing root
+                                     # bundle removed and a forged dominance witness in its
+                                     # place claims the second-best value as M_6 (false);
+                                     # the decided checker rejects the witness.
+                                     # See negctrl_adapters/adapter_affine_hull_dominance.py.
+                                     neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "AnchoredMonotoneExtensionEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                          "anchored monotone extension of a parametric "
+                                          "recursion on finite rooted trees (T_b = prod T_c * "
+                                          "g(lam, A), y_b = h(lam, A), A = prod or sum of the "
+                                          "children's messages): the generic derivative prelude "
+                                          "proves T_b differentiable with the explicit "
+                                          "log-derivative recursion D_b, a two-row inductive "
+                                          "invariant gives lam D_b <= n_b c(lam) on [lam0, oo), "
+                                          "so T_b / psi^(rho n_b) is antitone and an anchor "
+                                          "(a node check or a passed-through hypothesis) bounds "
+                                          "the half-line.  The per-node obligations ARE the "
+                                          "statements (positivity, weight window, one cleared "
+                                          "residual per row), each a polynomial inequality in "
+                                          "(lam, A[, k]) closed by linarith from product-basis "
+                                          "facts; no separately-supplied identity to corrupt.  "
+                                          "certify REFUSES floats, foreign symbols, lam0 < 0, "
+                                          "rho <= 0, an anchor below lam0, any obligation "
+                                          "without a nonnegative product-basis certificate down "
+                                          "to the subdivision limit (a too-small normalizer is "
+                                          "refused here, with a located exact violation), a "
+                                          "failed anchor node check, degree caps.  Dogfood: the "
+                                          "hard-core recursion, Z_b <= (1+lam)^n_b, and a "
+                                          "synthetic matching-type sum recursion on [1, oo); "
+                                          "nothing about any open problem "
+                                          "(conjecture1_proved = False)",
+                                          # Structural, yet a kernel control exists: the hard-core
+                                          # recursion against the too-small normalizer
+                                          # (1 + 3 lam/4)^n (false at a single vertex); the row-0
+                                          # residual cell carries a negative coefficient and its
+                                          # linarith cannot close, so the kernel rejects it.
+                                          # See negctrl_adapters/
+                                          # adapter_anchored_monotone_extension.py.
+                                          neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "ConcavePooledInductionEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                       "bound l(b) + alpha |b| <= U(y_b) on every finite rooted "
+                                       "tree (or every tree of child count <= M) for a rational "
+                                       "branching recursion, by induction with a concave "
+                                       "piecewise-linear witness U represented as the MINIMUM of "
+                                       "its affine pieces (Jensen at the pooled mean is then a "
+                                       "sum-of-minima inequality, proved generically): the "
+                                       "per-(cell, piece) obligations ARE the statements, each a "
+                                       "one-variable polynomial inequality closed by linarith "
+                                       "from Bernstein / Taylor product facts on its cell; no "
+                                       "separately-supplied identity to corrupt.  certify "
+                                       "REFUSES a non-concave witness (slopes not strictly "
+                                       "decreasing), a failing base, y_leaf outside I, a "
+                                       "denominator not certified positive, any cell obligation "
+                                       "without nonnegative Bernstein coefficients down to the "
+                                       "subdivision limit, a tail with m-dependent h/g, lo < 0, "
+                                       "hi <= 0 or no piece with b_j <= 0, a non-covering cell "
+                                       "layout, degree > 12, and floats.  Method: "
+                                       "concave-witness induction.  "
+                                       "Dogfood: the matching "
+                                       "message, sum_u y_u >= (3/5)|T|; nothing about BG or RH "
+                                       "(conjecture1_proved = False)",
+                                       # Structural, yet a kernel control exists: the bounded-
+                                       # degree dogfood (paths) at alpha = 13/20 > 1/phi, which
+                                       # Layer 1 refuses, is FALSE, and its forged cells carry a
+                                       # negative Bernstein coefficient the emitted linarith
+                                       # cannot absorb, so the kernel rejects it.
+                                       # See negctrl_adapters/adapter_concave_pooled_induction.py.
+                                       neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "EnclosureTreeEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                              "rational two-sided enclosure lo <= E <= hi (per side `<` when "
+                              "the exact fold has slack or an open endpoint) of an expression "
+                              "tree over {+, -, *, /, ^, sqrt, log, exp, pi, arctan, rationals}: "
+                              "the brackets ARE the statements, re-derived in the kernel from "
+                              "one Mathlib fact per atom (Real.pi_gt_dN / pi_lt_dN, "
+                              "log_two_gt_d9, abs_log_sub_add_sum_range_le + the backwards "
+                              "Real.log_mul fold, Real.exp_bound, Real.sq_sqrt, |arctan t| <= "
+                              "|t|) and closed by linarith over the four McCormick corner facts "
+                              "/ le_div_iff0 / pow_le_pow_left0 (nlinarith only at a sqrt "
+                              "node, as the hand proofs do); the pi-face rate corollary n <= "
+                              "cap -> (n + 1 : R) <= E and the log/sqrt face "
+                              "log (y + a) <= c sqrt y ride along.  No separately-supplied "
+                              "identity to corrupt, so the shape is structural.  certify "
+                              "REFUSES a claimed bracket the exact interval fold does not imply "
+                              "at ANY node (the forge case), a strict side without slack or an "
+                              "open endpoint, a radicand not >= 0, a denominator interval "
+                              "containing 0 or negative, log r <= 0 or r = 1, |1 - r| >= 1 "
+                              "without a factorisation, a fold not multiplying to r, Taylor "
+                              "orders outside 1..64, exp at |x| > 1, a negative base under a "
+                              "power, a pi rung off Mathlib's ladder, a rate cap the lower "
+                              "bound does not reach, rational-only trees and floats.  "
+                              "Regenerates LiLadderHeight / LiLadderSharp's pi-face rate steps "
+                              "and LeakageDictionary's nine bracket lemmas; finite arithmetic "
+                              "facts about real constants, nothing about RH "
+                              "(conjecture1_proved = False)",
+                              # Structural, yet a kernel control exists: the dogfood rate
+                              # instance hand-minted one past the truth (root lower bound 18850,
+                              # cap 18849; 6000 pi = 18849.55...), which Layer 1 refuses, states
+                              # a FALSE enclosure and the emitted linarith cannot reach it, so
+                              # the kernel rejects it.
+                              # See negctrl_adapters/adapter_enclosure_tree.py.
+                              neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "PreorderingMultiplierEmitter": _S(CERTIFICATE_SENSITIVE,
+                                      "0 <= p on {g_i >= 0} for POLYNOMIAL generators via a "
+                                      "positive multiplier M = kappa g_j^e and the exact "
+                                      "constant-coefficient preordering identity "
+                                      "M p = sum c_alpha prod g_i^alpha_i (c_alpha >= 0), closed "
+                                      "by `ring` + a `positivity` fold, with the zero set of a "
+                                      "non-constant M certified as ONE point (g_j an exact "
+                                      "positive-weight sum of squared coordinate offsets; "
+                                      "`nlinarith only` pins it, `norm_num` closes p there).  "
+                                      "The coefficients c_alpha ARE the load-bearing "
+                                      "certificate: a corrupted coefficient breaks the `ring` "
+                                      "identity, a negative one breaks the `positivity` fold "
+                                      "(certify also runs assert_certificate_sensitive).  "
+                                      "certify REFUSES the LP infeasible up to the degree cap "
+                                      "(OBSTRUCTED_AND_LOCATED with an exact negative witness "
+                                      "when the scan finds one, e.g. Li Re Q_6 at (4/5, -2/5)), "
+                                      "any c_alpha < 0, a hyp generator that is not literally a "
+                                      "hypothesis, a structural generator positivity cannot "
+                                      "close, a multiplier with an uncertified zero locus, a "
+                                      "multiplier not in the cone, floats and name collisions.  "
+                                      "Regenerates LiBoxRungs re_Q1..re_Q5_nonneg; finite real "
+                                      "polynomial inequalities, nothing about RH "
+                                      "(conjecture1_proved = False)",
+                                      checked_in="emit_preordering_multiplier",
+                                      # A hand-minted FALSE instance (p = d - B on the Li disk,
+                                      # exact identity, coefficient -1 on B, false at
+                                      # (1/2, 1/2)) that Layer 1 refuses: the emitted
+                                      # `positivity` fold cannot prove 0 <= d - B, so the kernel
+                                      # rejects it; the true twin p = d + B compiles.
+                                      # See negctrl_adapters/adapter_preordering_multiplier.py.
+                                      neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "ComplexReImSplitEmitter": _S(
+        CERTIFICATE_SENSITIVE,
+        "real/imaginary-part split of a complex polynomial expression (shapes-audit rank 4, "
+        "B N3 / B D7 / C 2.10 / D 2.2): `(p : C).re = P_re`, `(p : C).im = P_im`, "
+        "`||p||^2 = P_re^2 + P_im^2`, `||exp p|| = exp P_re`, and the B D7 cast face "
+        "`(p : C) = ((P : R) : C)` / its `.re` for a real-valued p over real and natural-number "
+        "atoms.  The claimed real polynomial IS the statement's right-hand side and is the "
+        "corruptible certificate: the emitted proof is the frozen `simp only [Complex.add_re, "
+        "mul_re, ..., natCast_re, I_re, I_im, re_ofNat, pow_succ, pow_zero, one_mul]; all_goals "
+        "ring` of the hand proofs (cast face: `push_cast; all_goals ring`, then "
+        "`Complex.ofReal_re`), so a corrupted claim leaves `ring` a false identity and the kernel "
+        "rejects the file.  certify computes the split with sympy re/im at z = x + i y and "
+        "RE-VERIFIES it three ways (symbolic identity, as_real_imag, an independent exact "
+        "Fraction evaluator at seeded rational points), then REFUSES a supplied claim not "
+        "ring-equal to it (the B N3 forge case), a non-polynomial p (division, transcendental, "
+        "conj/re/im/Abs, a symbolic exponent -- the declared-denominator face is a documented "
+        "follow-on), the cast face on a p with z or I, undeclared, non-real or mis-declared "
+        "natural atoms, floats, degree above the cap, a degenerate bare variable / atom / "
+        "constant, a tie_to that is not a Lean identifier and reserved binder names; "
+        "assert_certificate_sensitive is wired (checked_in).  Finite polynomial "
+        "bookkeeping; nothing about RH (conjecture1_proved = False)",
+        checked_in="emit_complex_re_im_split",
+        # A hand-minted FALSE claim Re((a + b i)^2) = a^2 + b^2 (which Layer 1 refuses)
+        # leaves `ring` an unprovable identity after `simp only`, so the kernel rejects it.
+        # See negctrl_adapters/adapter_complex_re_im_split.py.
+        neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "ZeroSumMajorantEmitter": _S(CERTIFICATE_SENSITIVE,
+                                 "zero-sum majorant (SHAPES_AUDIT_48H section 2 rank 2; C 3.1 + "
+                                 "B N5): the per-instance certificate is the strip inequality "
+                                 "N/D <= C/(1 + |gamma_rho|^2) on |Im rho - a| >= h, cleared to the "
+                                 "EXACT nonnegative combination C*D - N*(1 + |gamma|^2) = "
+                                 "sum c_alpha x^i (1-x)^j ((w-a)^2 - h^2)^k p^2e S^2m (Bernstein / "
+                                 "Polya after w^2 -> h^2 + t), emitted as `key` and closed by "
+                                 "`ring`, so every coefficient is load-bearing (corrupt one and "
+                                 "`ring` fails); certify runs assert_certificate_sensitive on that "
+                                 "identity.  The majorant / summable faces compose it with the "
+                                 "island atom RvMBridgeXi.zeroBoundAt (finite ordinate window + "
+                                 "local-count tail).  certify REFUSES C < 0 or a non-positivity "
+                                 "C / N, a failed Polya check (FALSE with a located rational "
+                                 "witness -- the h = 0 / 1/|rho|^2 phantom -- or OBSTRUCTED), h "
+                                 "outside {0,1,2}, a non-ordinate window, a conditional support "
+                                 "fact, ordinate_sq with h = 0, a term list that is not the "
+                                 "residual, P >= 0 / E < 0 on the tail faces, and floats.  "
+                                 "Regenerates E6Bridge19 zbound, E6Bridge18 polBound, E6Bridge15 "
+                                 "liBound and E6Bridge12 tail_bound_window; nothing about RH "
+                                 "(conjecture1_proved = False)",
+                                 checked_in="emit_zero_sum_majorant",
+                                 # Kernel control: the 9/4 strip instance forged to C = 1 (false at
+                                 # every point of the strip) -- the emitted `ring` identity fails;
+                                 # the true twin C = 9/4 compiles.  See
+                                 # negctrl_adapters/adapter_zero_sum_majorant.py.
+                                 neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "MobiusTangentCellEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                   "F(x) = a + b x + sum kappa_i log(alpha_i + beta_i x) + "
+                                   "sigma/(B + A x) <= 0 on [P, Q] by tangent-line cells: "
+                                   "per cell the concave logs are replaced by their tangents "
+                                   "at a rational t (Real.log_le_sub_one_of_pos, with a "
+                                   "rational H >= log u from abs_log_sub_add_sum_range_le + "
+                                   "Real.log_two_{lt,gt}_d9), the Mobius term is kept (sigma "
+                                   ">= 0, convex endpoint lemma) or replaced by its tangent "
+                                   "(sigma < 0), and the majorant is checked at the two cell "
+                                   "endpoints by norm_num; the union over [P, Q] is a "
+                                   "le_or_gt chain the kernel checks for gaps.  The stated F "
+                                   "IS the claim; no separately-supplied identity to "
+                                   "corrupt.  certify REFUSES kappa <= 0, a log argument or "
+                                   "Mobius denominator not positive at both endpoints, "
+                                   "floats, a tiling with a gap or overlap, log bounds or "
+                                   "majorant data not matching their exact recomputation, a "
+                                   "positive majorant endpoint value, and (bisection cap) a "
+                                   "false claim or one tight to order >= 2.  Elementary "
+                                   "one-variable inequalities, nothing about RH "
+                                   "(conjecture1_proved = False)",
+                                   # Structural, yet a kernel control exists: the log-mean
+                                   # cell with its constant raised -2 -> -19/10 is FALSE at
+                                   # x = 1/2 and the cell's linarith cannot close it.
+                                   # See negctrl_adapters/adapter_mobius_tangent_cell.py.
+                                   neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "TypedCavityInductionEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                      "a finite TYPE TABLE (degree groups x message-sum bins, "
+                                      "per-type bound B and message interval) is an inductive "
+                                      "invariant of a rational tree recursion y = h(m, R), "
+                                      "l = sum l + g(m, R) (kind typed_cavity_induction): one "
+                                      "generic structural induction (typed_induction_core) "
+                                      "consumes the step; the enumerated steps are point "
+                                      "norm_num checks or Bernstein-cell linarith per child-"
+                                      "type multiset (step_of_counts reduces assignments to "
+                                      "count vectors, dispatched by interval_cases), the band "
+                                      "is a separable tangent bound per degree, the tail one "
+                                      "two-variable certificate uniform in m.  The table and "
+                                      "the claimed bounds ARE the statement; no separately-"
+                                      "supplied identity to corrupt, so the shape is "
+                                      "structural.  certify REFUSES a table some step "
+                                      "violates (reported with the exact point), a failing "
+                                      "base, non-partitioning degree groups or bins, a tail "
+                                      "with mu_T > 0 or ymin < 0, a denominator not certified "
+                                      "positive, floats.  Dogfood: the Balister-Bollobas-Gerke "
+                                      "half-tree recursion for R_{-1} at the published "
+                                      "beta_3 = 7/27 and beta_4 = 139/528 plus a synthetic "
+                                      "band/tail instance; nothing about RH "
+                                      "(conjecture1_proved = False)",
+                                      # Structural, yet a kernel control exists: beta_3 lowered
+                                      # by 1/1000 (table recomputed) makes the degree-3 step
+                                      # with two degree-3 children false by 3/500; that point
+                                      # cell's norm_num cannot close and the main theorem does
+                                      # not elaborate.  See
+                                      # negctrl_adapters/adapter_typed_cavity_induction.py.
+                                      neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "SingleCrossingLadderEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                      "single crossing of consecutive members of a parametric "
+                                      "log-sum family F_j(x) = sum kappa(j) log(1 + beta(j) x) "
+                                      "(kind single_crossing_ladder): D' * P = N is re-derived "
+                                      "in the kernel (field_simp; ring), N's one sign change "
+                                      "+ -> - is the conjunction of Bernstein / Taylor cell "
+                                      "lemmas (linarith) and a crossing cell with N' < 0, the "
+                                      "bracket values D(lo) > 0 > D(hi) are linarith over "
+                                      "enclosure_tree log atoms, and generic cores (mean value "
+                                      "+ intermediate value, Nat induction for the ladder) do "
+                                      "the rest.  The claimed brackets and signs ARE the "
+                                      "statements; no separately-supplied identity to "
+                                      "corrupt, so the shape is structural.  certify REFUSES a "
+                                      "wrong breakpoint bracket (the fold does not imply the "
+                                      "sign), a double crossing (N with two sign changes on "
+                                      "S), a dominated pair after a crossing pair, "
+                                      "overlapping brackets, a log argument not positive on "
+                                      "S, N(0) = 0, identical members, floats.  Dogfood: the "
+                                      "arm ladder of the matching sum; nothing about RH "
+                                      "(conjecture1_proved = False)",
+                                      # Structural, yet a kernel control exists: the A_3/A_4
+                                      # bracket shifted to (0.43052, 0.43053) misses
+                                      # lambda_3 = 0.43050..., D(lo) > 0 is FALSE and the
+                                      # value theorem's linarith cannot close it.  A second
+                                      # control (a double crossing claimed single on [0, oo))
+                                      # runs in the tests.  See
+                                      # negctrl_adapters/adapter_single_crossing_ladder.py.
+                                      neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "FactoredEndpointEnclosureEmitter": _S(CERTIFICATE_SENSITIVE,
+                                           "0 <= F on closed boxes touching a singular "
+                                           "endpoint l = s (kind "
+                                           "factored_endpoint_enclosure): the certificate "
+                                           "carries the factorization identity Q = "
+                                           "(sigma (l - s))^k * H with a supplied cofactor "
+                                           "H, re-checked by ring in the kernel, plus the "
+                                           "Taylor lower bound Q <= D F (log atoms through "
+                                           "the generic signed-remainder lemmas log_le_T / "
+                                           "T_le_log, D F = N by field_simp; ring) and one "
+                                           "box sign lemma 0 <= H per box (linarith over "
+                                           "Bernstein products); the generic "
+                                           "factored_endpoint_core assembles them, endpoint "
+                                           "included.  A corrupted H or k breaks ring, a "
+                                           "false box claim breaks linarith.  certify "
+                                           "REFUSES floats, non-log functions, a log not "
+                                           "linear in the cleared numerator, an endpoint "
+                                           "inside the domain, a wrong k (no exact "
+                                           "division), a wrong-parity Taylor order, a "
+                                           "sign-changing log coefficient, a non-positive "
+                                           "denominator factor, a supplied H that does not "
+                                           "match, and an H not certified >= 0 (FALSE with "
+                                           "a located point when F < 0 on the sample grid).  "
+                                           "Dogfood: classical log / rational / Pade bounds "
+                                           "near 0 and a synthetic two-variable F; nothing "
+                                           "about RH (conjecture1_proved = False)",
+                                           # Kernel control: l - log(1+l) >= (47/100) l^2
+                                           # on [0, 1/10] is FALSE by ~1/1000 at l = 1/10;
+                                           # the forged box lemma 0 <= H cannot close.  The
+                                           # true twin 117/250 compiles.  A two-variable
+                                           # pair (margin -+ 1/1000) runs in the tests.  See
+                                           # negctrl_adapters/adapter_factored_endpoint_enclosure.py.
+                                           neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "GapBudgetMultiplicityEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                       "tangent-price GAP BUDGET pruning of a multiset "
+                                       "optimisation (kind gap_budget_multiplicity): from a "
+                                       "separable or c * log (c >= 0) concave model, "
+                                       "sum gamma(k) <= theta <= theta_hi is re-derived in the "
+                                       "kernel (Multiset sums + the log tangent lemma), the "
+                                       "rational gap lower bounds and theta_hi are enclosure_tree "
+                                       "statements, and the caps / exclusions / tail / decided "
+                                       "knapsack follow by gapBudget_nat_cap and decide.  The "
+                                       "claimed bounds ARE the statements; no separately-"
+                                       "supplied identity to corrupt, so the shape is "
+                                       "structural.  certify REFUSES a gap bound or theta_hi the "
+                                       "fold does not imply, a negative or unprovable gap, a "
+                                       "convex / non-log concave part, a non-uniform theta, a "
+                                       "tail without certified monotonicity, a benchmark that "
+                                       "violates its own consequences, floats.  Classical "
+                                       "max-product dogfood; nothing about RH "
+                                       "(conjecture1_proved = False)",
+                                       # Structural, yet a kernel control exists: gamma(2) >= 1/20
+                                       # forged in the N = 3t + 2 max-product budget claims
+                                       # count 2 = 0, refuted by the benchmark {2} + 3^t; the
+                                       # kernel rejects it.  See
+                                       # negctrl_adapters/adapter_gap_budget_multiplicity.py.
+                                       neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "EnclosureIntervalFoldEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                       "integer near-CUE row-band check rowsOK…=true by decide; "
+                                       "the Arb enclosures are the input trust seam, the kernel "
+                                       "decides only the ℤ band membership"),
+    "ReflectionHalvingEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                   "finite symmetry-fold Σw ≤ 2·Σlarge by decide; a concrete ℤ "
+                                   "inequality (true iff small≤large, which certify enforces)"),
+    "SpacingTailBoundEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                  "concrete separated-config Σ δ/(gap)² ≤ 9/δ_s by norm_num; an "
+                                  "exact-rational inequality, refused unless it holds"),
+    "AutocorrSupportEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                 "concrete (v⋆v)(y) ≤ (2M−|y|)₊ support-geometry bound by "
+                                 "norm_num; exact-rational, no corruptible identity"),
+    "RayleighGramEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                              "cᵀJc − θ·cᵀIc > 0 with BOTH Gram contractions spelled out "
+                              "entry-wise and re-done by norm_num; certify refuses a failing "
+                              "or degenerate (cᵀIc≤0) instance — no vacuous inequality ships"),
+    "PolytopeMomentEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                "Σ coeff·simplexMoment(R,m,es) = q re-executed by norm_num "
+                                "over the in-Lean closed form; integral semantics + "
+                                "triangulation validity are the documented generator seam"),
+    "AdmissibleTupleEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                 "admissibility re-decided over a non-empty derived prime list "
+                                 "(p=2 always present) + concrete diameter equality, both by "
+                                 "kernel decide; inadmissible tuples ({0,2,4} control) refused"),
+    "LeeYangStablePairEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                   "Schur–Cohn/Jury chain positivity recomputed from coefficient "
+                                   "literals by norm_num; certify cross-checks numeric roots and "
+                                   "refuses borderline/mismatched verdicts — no knife-edge certs"),
+    "EndpointGeomCapEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                 "geometric cap (R+z)/(R−z)² ≤ (R+1)/(R−1)² on the "
+                                 "disk: an endpoint-maximum monotonicity bound, no "
+                                 "separately-supplied corruptible identity (pre-existing "
+                                 "origin/main gap; classified here to green the gate)"),
+    "BilinearBoxEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                             "before ≤ after via 4 Pólya corner positivity certs "
+                             "+ assembly; no separate corruptible identity"),
+    "IntervalBracketEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                 "rigorous two-sided rational enclosure; the "
+                                 "bracket facts are decided by norm_num"),
+    "PadicValuationEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                "v_p(n)=k as decidable divisibility by norm_num"),
+    "InterlacingEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                             "Newton inequalities decided by norm_num on exact "
+                             "rational coefficients"),
+    "UnimodalMaxEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                             "integer max at the ratio crossing s*; monotone-ratio "
+                             "positivity + crossing norm_num facts"),
+    "LogConcaveSinglePointEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                       "max reduced to a single point k* by "
+                                       "log-concavity; per-step norm_num facts"),
+    "MonotoneRatioTailEmitter": _S(CERTIFICATE_SENSITIVE,
+                                   "two faces. Ratio face: b(s) ≤ B via a nonincreasing "
+                                   "tail (tail-step positivity + base norm_num + "
+                                   "induction). Piecewise-linear node-condition face "
+                                   "(2026-09-29): the threshold M and the node values are "
+                                   "baked into linarith node facts, so a forged M is "
+                                   "kernel-rejected",
+                                   neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "LatticeBoxEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                            "f ≤ B on ℤ^d_{≥0}: finite base box + per-axis "
+                            "monotone tail; no corruptible identity"),
+    "TailNatEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                         "∀ K ≥ K₀ tail: finite table + one uniform certificate, "
+                         "induction-free structural discharge"),
+    "CaseDispatchAssemblyEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                      "finite interval_cases dispatch; sensitivity "
+                                      "is inherited from the leaf certificates"),
+    "SubdivisionGlueEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                 "le_total case-split glue of subdivided leaves; "
+                                 "no independent identity"),
+    "DichotomyGlueEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                               "le_total classification over declared thresholds"),
+    "ReparamAdapterEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                "Nat.cast_sub cast-rewrite adapter over an "
+                                "underlying certificate; no new identity"),
+    "VarMapAdapterEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                               "MapSpec-driven substitution rewrite in the "
+                               "original variables; no new identity"),
+    "CustomAssemblyEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                "hand-designed escape-hatch skeleton; "
+                                "load-bearingness is the author's responsibility "
+                                "and covered by the structural reflexive check"),
+    "TangentSumEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                            "convex-polynomial (any even degree) tangent-line bound "
+                            "B ≤ Σf(xᵢ); the per-term surplus is an exact rational "
+                            "SOS (ring+positivity) assembled by linarith, no "
+                            "corruptible identity certificate"),
+    "CauchySchwarzEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                               "(Σwᵢxᵢ)² ≤ (Σwᵢ)(Σwᵢxᵢ²) via the pairwise-difference "
+                               "SOS Σwᵢwⱼ(xᵢ−xⱼ)² (ring+positivity+linarith); "
+                               "positivity by structure, no corruptible identity"),
+    "PSDFormEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                         "0 ≤ xᵀMx for a positive-semidefinite M via the exact "
+                         "completing-the-square congruence xᵀMx = Σ cᵢ·baseᵢ² (ring+positivity); "
+                         "positivity by structure, no corruptible identity"),
+    "Xor3MomentPSDEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                               "3-XOR moment matrix PSD via GF(2) block-rank-one SOS "
+                               "xᵀMx = Σ_class(Σ σ_S x_S)² (ring+positivity); positivity "
+                               "by structure, no corruptible identity"),
+    # --- emitters merged from main (runway + knapsack_sos arc) ---
+    "FwdTelescopeEmitter": _S(CERTIFICATE_SENSITIVE,
+                              "forward telescoping Σ = Π (SumEqProd); the "
+                              "telescoping mate is the load-bearing identity"),
+    "RationalIdentityEmitter": _S(CERTIFICATE_SENSITIVE,
+                                  "an exact rational identity (Gram-bridge shape); "
+                                  "a corrupted side breaks ring/norm_num"),
+    "RationalSOSEmitter": _S(CERTIFICATE_SENSITIVE,
+                             "Artin: q·p is SOS for nonneg-but-not-SOS p; the "
+                             "denominator q and the SOS of q·p are load-bearing"),
+    "BernsteinEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                           "interval positivity via nonnegative Bernstein "
+                           "coefficients; positivity by structure"),
+    "FiniteDecideEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                              "a finite proposition discharged by the Lean kernel "
+                              "`decide` — decidable, no corruptible certificate"),
+    "PolyaZerosEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                            "Castle–Powers–Reznick Pólya-with-zeros homogeneous "
+                            "lift; positivity (zeros allowed on faces)"),
+    "SturmPositiveEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                               "strict-interval positivity with a Sturm sequence "
+                               "as the exact decision oracle (root exclusion)"),
+    # --- 2026-09-04: classification of the previously-unclassified emitters
+    #     (RH-region, BG-derived, and misc shapes). Evidence-based CS vs SN from
+    #     per-emitter emit_body review. The CERTIFICATE_SENSITIVE ones without a
+    #     negative-control adapter yet are declared NEG_CONTROL_DECLARED_UNWIRED
+    #     (the honest gap, analogous to checked_in=None). ---
+    "AchievabilityClosureEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "emit_body closes 0≤Q(x) on [l,b] by nlinarith over generic nonneg atoms (mul_nonneg (x-l)(b-x), sq_nonneg x, sq_nonneg (x-b)) + the two bound hyps"),
+    "AffineParamEndpointEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Affine-in-parameter endpoint collapse: abstract core proved by nlinarith from the algebraic identity (hi-lo)(A+muB)=(hi-mu)(A+loB)+(mu-lo)(A+hiB)"),
+    "AlgebraicBracketEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Rigorous-rational-enclosure shape: lo,a,hi ARE the statement, not a separate cofactor. norm_num decides the three pure-rational side-goals"),
+    "BilinearCornerBoxEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Worst-corner box positivity: reusable affine-min-at-corners lemma closed by sign-cased mul_nonneg/nlinarith + 4 corner facts each norm_num-recomputed"),
+    "BoxRobustEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Forall-box separable-quadratic 0<=target: nlinarith over generic nonneg atoms (sq_nonneg (v-lo)/(hi-v) per axis, 4 corner mul_nonneg per bilinear pair) + named box bounds; no separately-supplied corruptible cofactor -- the rigorous monomial-wise margin is recomputed by nlinarith as the nonneg combination"),
+    "HyperbolicityEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Discriminant nonnegativity (b^2-4ac>=0) is recomputed by nlinarith from structural sq_nonneg/corner facts + the kernel bridge lemma; there is no separately-supplied corruptible cofactor"),
+    "JensenPolynomialHyperbolicityEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Same shape as HyperbolicityEmitter for the d=2 Jensen polynomial: disc(c0,c1,c2)>=0 "
+        "over Arb coefficient boxes via hyperbolic_deg2_of_discrim_nonneg + nlinarith off the "
+        "named box hypotheses; the boxes enter as hypotheses (Arb trust seam), no "
+        "separately-supplied corruptible identity.  Only discoverable when python-flint is "
+        "importable (rh_jensen imports are flint-gated), which is why the flint-less CI unit "
+        "job never surfaced the gap"),
+    "CauchyDerivBoundEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Both emitted shapes are structural: main wrapper is Mathlib's norm_deriv lemma specialized (R>0 via norm_num on a literal)"),
+    "CavityExchangeEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Both emit paths discharge structurally: corner mode is `positivity` on an all-nonneg-coeff polynomial (reflexive nonneg form)"),
+    "ConcaveStationaryMaxEmitter": _S(CERTIFICATE_SENSITIVE,
+        "Ships a `_foc` theorem `g'(f*)=0` = an exact rational equation whose one side is the separately-supplied stationary point `fstar`"),
+    "CurvatureBoundaryEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Convexity/positivity shape: nlinarith consumes the structural fact (x-a)(b-x)>=0 built from interval bounds, not a supplied cofactor; "
+        "kink-minimum route (2026-10-01): derivative signs of the two polynomial pieces closed by linarith from Bernstein product facts, "
+        "monotonicity via Mathlib antitoneOn_of_deriv_nonpos / monotoneOn_of_deriv_nonneg, the kink value recomputed by norm_num",
+        # Structural, yet a kernel control exists (kink route): the minimum of
+        # |x - 1/3| + x^2 on [0, 1] forged to 1/9 + 1/1000; the kink-value norm_num
+        # reduces to False.  See negctrl_adapters/adapter_curvature_boundary.py.
+        neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "DiskCoordBoundsEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "\"Farkas-style\" is naming only: the cert (wr,wi,rho) is substituted into BOTH hypothesis and conclusion, so it parameterizes the statement, not a corruptible witness"),
+    "FiniteArgmaxMarginEmitter": _S(CERTIFICATE_SENSITIVE,
+        "Emits supplied concrete integer facts p_i*q_w < p_w*q_i (and p_w<q_w) closed by norm_num; the winner/competitor rationals are a separately-supplied payload (spec callback) whose"),
+    "HalfPlaneDiskEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Payload carries only positive-rational B + 2 bools; the core 4B(B-Re w)>=0 is a product-of-nonnegatives closed by nlinarith from B>0 and Re w<=B"),
+    # (BCSplit / JensenZeroCount / SphereBound stances live in the 2026-09-05
+    #  entire-part batch below — earlier copies here were silently shadowed
+    #  dict-literal duplicates, removed 2026-09-09; see
+    #  test_registry_source_has_no_duplicate_keys.)
+    "IntegralityGateEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "All emitted goals are concrete ℤ/ℕ literals: divisibility norm_num + per-row norm_num + a decide over a literal List(ℤ×ℤ). No separate multiplier/Gram/cofactor is consumed"),
+    "LFunctionProductEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Emitted Lean discharges via a hard-coded Mathlib lemma (norm_LFunction_product_ge_one) + LFunction_modOne_eq + norm_mul/norm_pow + `exact h`"),
+    "LogCombinationEmitter": _S(CERTIFICATE_SENSITIVE,
+        "Log inequality folded to a rational-power/exp fact; every load-bearing step is norm_num/positivity recomputed from emitted literals + Mathlib log/exp lemmas glued by linarith"),
+    "LogDerivRegionCoreEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "No separately-supplied corruptible witness. Per-instance A,L,k live inside BOTH the theorem hypotheses and goal, so linarith / field_simp;ring"),
+    "MagnitudeSplitBoundEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Triangle-inequality glue: linarith over Mathlib norm_sub_le/norm_add_le + the theorem's own magnitude hyps. No separately-supplied corruptible identity"),
+    "OrderBalanceEmitter": _S(CERTIFICATE_SENSITIVE,
+        "Emitter bakes a supplied rational-weight/integer-order tuple (a_j, k_j) into hpos/hb_j/hk_j hypotheses"),
+    "ParametricHolomorphyEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Payload carries only (c, σ₀) numerals + derived gate values; emitted Lean re-derives every gate structurally via norm_num/linarith from 0<σ₀ and 1≤c"),
+    "PerSizeDominanceSweepEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Per-config face is norm_num on a fully-closed concrete-rational LHS (baseOf L)^11*prodBcap L/(W*(5/3)^11)≤1"),
+    "PolytopeMaxMonotoneEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Multi-affine box-positivity via worst-corner: emitted proof re-derives every corner value with norm_num and closes via structural affine-slice nlinarith+mul_nonneg on box hyps"),
+    "PseudoExpectationDualityEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Payload is 4 scalars (name/n_vars/degree/mode); emitted Lean weights + kill lemmas are generated from these and proved by structural MvPolynomial algebra"),
+    "RecursionClosureEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Emitted proof is pure transitivity glue: `exact recursion_closure_assembly` over abstract nodeVal with htan/hceil as ASSUMED theorem hypotheses"),
+    "RecursiveDominationRatioEmitter": _S(CERTIFICATE_SENSITIVE,
+        "Consumes cert.corners D-values as literal rationals baked into the emitted `hid ... := by ring` convex-combination identity and `hq_j := mul_nonneg hw_j (by norm_num)` nonneg witnesses"),
+    "ScaleInvarianceEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "field_simp; ring closes f(lambda*args)=f(args) where both sides are the STATEMENT's own sympy-substituted shapes"),
+    "SecondOrderRecurrenceEmitter": _S(CERTIFICATE_SENSITIVE,
+        "Consumes a supplied three-term recurrence-satisfaction identity: A·g(q+2)+B·g(q+1)+C·g(q)=0 closed by `ring`, then fed to `linear_combination`"),
+    "SeparableConvexExtremumEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Convex-φ extremum on fixed-sum box: MIN=tangent surplus φ−L is an exact rational SOS (ring+positivity, linarith), MAX=push-to-bound exchanges via nlinarith over structural"),
+    "SymmetricQuadD2Emitter": _S(CERTIFICATE_SENSITIVE,
+        "Load-bearing `hid` step is a completing-the-square rational identity (field_simp;ring) over separately-supplied exact rational functions t2_expr/n2_expr/pcoef/a/f0..f4 from the payload"),
+    "SymmetricQuadFormEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "0 ≤ symbolic-in-N level-1 moment form via derived-and-exactly-rechecked completing-square congruence Φ=f0(A+(f1/f0)X)²+cCS(NQ−X²): positivity by structure + supplied CS hypothesis"),
+    "TightCapEnclosureEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Both modes discharge structurally on exact ℚ: concrete = norm_num over unfolded W/Bcap/baseOf/prodBcap defs on a literal config (goal is a concrete rational)"),
+    "TranscendentalEnclosureEmitter": _S(CERTIFICATE_SENSITIVE,
+        "Consumes payload cert's supplied rational L (and U): _lower_box closes L≤log(1+x0) via Real.le_log_iff_exp_le reduced to concrete exp(L)≤1+x0 discharged by exp_bound' Taylor +"),
+    # --- 2026-09-05: dVP zero-free-region atom emitters (bc_split/jensen_zero_count/
+    #     sphere_bound from the 2026-09-02 batch, left unclassified there; and the
+    #     2026-09-05 entire-part batch max_modulus/bc_deriv_re/entire_part_bound). All
+    #     are wrapper / glue / disk-geometry shapes: the payload (radii, bounds) is
+    #     substituted into BOTH hypotheses and goal, never a separately-supplied
+    #     corruptible identity certificate — same stance as CauchyDerivBoundEmitter. ---
+    "BCSplitEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Log-derivative combine w=Z+E, ‖E‖≤B ⟹ (-w).re ≤ B - Z.re (+ nonneg slack literal): "
+        "linarith glue over Mathlib Complex.abs_re_le_norm + the theorem's own hyps; no supplied witness"),
+    "JensenZeroCountEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Jensen zero-count for any analytic f: a concrete-(r,R) wrapper of Mathlib's "
+        "AnalyticOnNhd.sum_divisor_le, r<R side-goals closed by norm_num on literals; the count IS the statement"),
+    "SphereBoundEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Strip-type growth ⟹ uniform sphere bound: disk-geometry gcongr/linarith from the hypotheses "
+        "(‖z-c‖=R, |Re| ≤ ‖·‖), (c,R) parameterize the statement; no corruptible cofactor"),
+    "MaxModulusEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Maximum-modulus propagation: a concrete-R wrapper of Mathlib's "
+        "Complex.norm_le_of_forall_mem_frontier_norm_le (frontier_ball R≠0 via norm_num on a literal); "
+        "the bound B is substituted into both hypothesis and goal"),
+    "BCDerivReEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Real-part → derivative bound (Borel-Caratheodory + Cauchy): inline structural proof; (R,r,M') "
+        "live in both hyps and goal, side-goals norm_num on literals, constant collapse by field_simp; no supplied identity"),
+    "EntirePartBoundEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Entire-part bound ‖logDeriv g c‖ ≤ 2M'/(R-r): self-contained 3-lemma preamble (log branch + "
+        "BC-Cauchy + composition), wrapper feeds (R,r,M') via norm_num; the parameters parameterize the statement"),
+    # --- 2026-09-06: zeta zero-localization (Stage 1) on-line zero-count emitter. ---
+    "XiLineZerosEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "On-line nontrivial-zero existence for completedRiemannZeta: sign-change (lo>0 / hi<0 rational "
+        "literals closed by norm_num) + Mathlib intermediate_value_Icc/Icc' through the kernel lemma "
+        "ZetaZeroLocalization.completedZeta_im_eq_zero (Lambda real on the line). The enclosure boxes are "
+        "carried as theorem HYPOTHESES (the documented Arb non-kernel input), not a baked-in corruptible "
+        "fact -- a forged enclosure falsifies the hypothesis, leaving the IVT implication kernel-valid; "
+        "no separately-supplied witness. conjecture1_proved = False"),
+    # --- 2026-09-06: zeta-box-localization (Stage 2A) boundary winding-count emitter. ---
+    "WindingCountEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Boundary log-derivative winding count Bd(Lambda'/Lambda)=2*pi*i*N. The enclosure boxes are "
+        "documented Arb non-kernel input carried as theorem HYPOTHESES: in the toy z^2 (N=2) the winding "
+        "is proven FROM SCRATCH via the segment/Complex.log branch-split primitive (clog_real + FTC-2 "
+        "intervalIntegral.integral_eq_sub_of_hasDerivAt) with the two monodromy jumps log(-x)-log(x)=+-pi*i "
+        "closed over norm_num-decided half-plane facts; in the Lambda [2/5,3/5]x[10,35] instance (N=5) the "
+        "per-pole enclosure brackets (hin, strict rational interior bounds locating each zero) and the "
+        "argument-principle residue decomposition enter as hypotheses, the per-pole winding is DISCHARGED "
+        "from the same from-scratch interior-pole primitive, and Finset linearity telescopes the four "
+        "sides -- a forged enclosure falsifies the hypothesis, leaving the argument-principle implication "
+        "kernel-valid; no separately-supplied witness. conjecture1_proved = False"),
+    # --- 2026-09-06: dVP Blaschke/two-scale atoms. All wrapper/glue/geometry shapes: the numeric data
+    #     (radii R,R₀; σ,β,k) is substituted into BOTH hypotheses and goal, never a separately-supplied
+    #     corruptible identity certificate — same stance as CauchyDerivBoundEmitter / TwoScale geometry. ---
+    "TwoScaleSeparationEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Two-scale separation R-R₀ ≤ ‖z-ρ‖: reverse-triangle calc (norm_sub_norm_le + "
+        "sub_sub_sub_cancel_right) from the sphere/closedBall membership hyps; radii parameterize the statement"),
+    "FarPoleSumEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Far-pole sum ‖Σ (n u)conj u/(R²-conj u z)‖ ≤ (Σ|n u|)/(R-‖z‖): per-term reverse-triangle "
+        "denom bound R²-‖u‖‖z‖ ≥ R(R-‖z‖) + norm_sum_le/Finset.sum_div; concrete R via norm_num, no supplied witness"),
+    "HerglotzLowerEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Herglotz lower bound k/(σ-β) ≤ Re(Σ m/(z-ρ)): keep equal-height term (re_smul_inv_sub, real) + "
+        "drop nonneg rest (re_inv_sub_nonneg via normSq_nonneg) over Finset.add_sum_erase; no corruptible cofactor"),
+    "ArgumentPrincipleEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Argument principle ∮ Σ m/(z-ρ) = 2πi·Σ m: circleIntegral linearity (integral_fun_sum + integral_const_mul) over Mathlib per-pole residue integral_sub_inv_of_mem_ball; no separately-supplied witness"),
+    "FullArgumentPrincipleEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Full argument principle ∮ (Σ m/(z-ρ) + E) = 2πi·Σ m: residue side (integral_sub_inv_of_mem_ball) + analytic side E vanishes by Cauchy (DiffContOnCl.circleIntegral_eq_zero); linearity via integral_add; no separately-supplied witness"),
+    "RectArgumentPrincipleEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Rectangle Cauchy vanishing ∮_∂rect E = 0: direct over Mathlib integral_boundary_rect_eq_zero_of_differentiableOn with .re/.im reduction; no separately-supplied witness"),
+    "AnnulusCountEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Annulus count ∮_R − ∮_r = 2πi·Σ_shell m: outer residue sum (integral_sub_inv_of_mem_ball) minus inner Cauchy-zero (poles outside ⟹ DiffContOnCl.circleIntegral_eq_zero); no separately-supplied witness"),
+    "BoxLocalizationEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "RH-in-a-box localization counting step: a Finset exhaustion argument (Finset.sum_sdiff + sum_le_sum over T⊆s, each d≥1, ∑_s d = card T = n) forcing s = T and every Re = 1/2; the counting is structural (no corruptible identity certificate). The certificate REFUSES n_line > n_total and n_line != n_total (negative controls) — equality is the localization hypothesis"),
+    "SlitLoopWindingZeroEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Winding-zero (Rouché heart) ∮ w'/w = 0 for a closed loop in ‖·-1‖<r≤1: w'/w = (log∘w)' via HasDerivAt.clog_real (slitPlane from Re>0) + FTC-2 integral_eq_sub_of_hasDerivAt collapsing to log(w b)-log(w a)=0; no separately-supplied witness"),
+    "BoxResidueSumEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Box residue-sum Bd(Σ m/(z-ρ)) = 2πi·Σ m: Finset linearity (intervalIntegral.integral_finsetSum + integral_const_mul) over the four sides, conditional on the per-pole winding primitive Bd((z-ρ)⁻¹)=2πi (explicit hypothesis, the Mathlib gap); no separately-supplied witness"),
+    "RectWindingEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Winding-nonzero primitive Bd((z-ρ)⁻¹)=2πi for ρ strictly inside: from-scratch segment/Complex.log branch-split — 3 sides in slitPlane via clog_real+FTC-2, left side via ρ-(·) branch, two log(-w)-log(w)=±iπ monodromy jumps (arg_neg_eq_arg_±pi) sum to 2πi; no separately-supplied witness"),
+    "LogProductBoundEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Two-scale log-product bound log‖P c‖-log‖P z‖ ≤ (Σ m)·(log R₀-log(R-R₀)): reverse-triangle separation ‖z-ρ‖≥R-R₀ (norm_sub_norm_le) + monotone Real.log_le_log + log-of-product (norm_prod/Real.log_prod/log_zpow) + Finset.sum_le_sum; geometry is the certificate, no separately-supplied witness"),
+    # --- NS/Euler-derived emitters (2026-09-08) ---
+    "AffineLedgerEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "threshold ≤/< affine form (or min of forms) on a parameter box via linarith (+ lt_min_iff/le_min_iff); the worst-corner margin is recomputed by linarith as the nonneg combination of the box hyps — no separately-supplied corruptible cofactor (cf. AffineParamEndpointEmitter/BoxRobustEmitter)"),
+    "QuadraticIrrationalEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "ℤ[√d] conjugate-product identity + norm≥1 bound: the radicand d IS the statement (not a separate cofactor); the identity is recomputed by nlinarith off Real.sq_sqrt and the lower bound by Int.one_le_abs on the integer norm (cf. AlgebraicBracketEmitter)"),
+    "GevreyMajorantEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Gevrey-2 factorial-majorant calculus: a FIXED self-contained lemma chain (Nat.choose/factorial + majorant laws + triangular-recurrence closure) with per-instance rational budget parameters that ARE the statement (side conditions re-decided by norm_num in-kernel); no separately-supplied corruptible cofactor — a violated budget is refused at certify time (negative control)"),
+    "ContinuousBarrierEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "open-closed barrier bootstrap: fixed topological atom (compact least-hit + "
+        "IVT from Mathlib) with per-instance rational budget (T,B,a) that IS the "
+        "statement, side conditions re-decided by norm_num; violated budget B*T >= a "
+        "refused at certify time (negative control); no corruptible cofactor"),
+    "LogEpsOptimizeEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "log-eps cutoff witness optimization: the rational exponent theta and "
+        "multiplier m=1/theta ARE the statement; the coefficient arithmetic "
+        "(-m*log A)*theta = -log A is re-proved by ring in-kernel and theta out of "
+        "(0,1] is refused at certify time; no separately-supplied cofactor"),
+    "LogConvexInterpEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "zero-tolerant log-convexity interpolation: fixed cross/pair/between chain "
+        "(induction + nlinarith on the hypothesis law) with per-instance index "
+        "triples s<=a<=b re-decided by norm_num; violated ordering refused; no "
+        "corruptible cofactor"),
+    "FinitePrefixAbsorptionEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "eventually-bounded -> globally-bounded with the explicit Finset-sum "
+        "witness C = A + sum |f n|/w n; a single fully-generic fixed atom, no "
+        "per-instance data and no corruptible cofactor"),
+    "GradedConvolutionEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "graded-convolution endpoint identities (congr-below / strict-congr / "
+        "next-delta): fully-generic fixed exact identities over abstract modules, "
+        "no per-instance data and no corruptible cofactor"),
+    "PowerTowerEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "power-tower recurrence closure C q <= (9L)^(3^q): fully-generic fixed "
+        "induction atoms over an abstract sequence; no corruptible cofactor"),
+    "PartitionCompositionEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Faa di Bruno factorial-square partition-sum bound over Mathlib "
+        "OrderedFinpartition (extendEquiv recursion): fully-generic fixed calculus, "
+        "no corruptible cofactor"),
+    "RegularWordEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "forbidden-factor word invariant 2*losses <= len+1 over List Bool: "
+        "decidable structural recursion + omega; first discrete axis, no "
+        "corruptible cofactor"),
+    "LowOrderTailEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "low-order grades + doubled geometric tail hybrid: fully-generic fixed "
+        "atoms (geometric sums <= 2 / <= 2q^a + the assembled bound); no "
+        "corruptible cofactor"),
+    "EventualThresholdEmitter": _S(CERTIFICATE_SENSITIVE,
+        "two faces. Arity face: explicit nested-max-of-ratios witness, the arity IS "
+        "the statement (le_max chains + div_lt_iff0, no corruptible cofactor). "
+        "Quadratic-sign-race face (2026-09-29): the switch point r and the Taylor "
+        "literals P'(k), P(k) are baked into norm_num endpoint facts and a ring "
+        "identity, so a forged switch point is kernel-rejected",
+        neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "ComparabilityEnvelopeEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "comparability/Lipschitz envelope atoms (rpow both-signs, sqrt "
+        "conjugate-multiply, 1+x^2 denominator kill): fully-generic fixed atoms, "
+        "no per-instance data and no corruptible cofactor"),
+    "DiscreteMomentEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "discrete-sum moment atoms (simplex second moment, squareDecay telescope + "
+        "antidiagonal convolution <= 8): fully-generic fixed atoms, no per-instance "
+        "data and no corruptible cofactor"),
+    "PolyExpAbsorptionEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "poly-exp absorption exp(-1/(2lam))/lam^m <= (4m)^m exp(-1/(4lam)): the "
+        "power m and exact constant (4m)^m ARE the statement, re-decided in-kernel "
+        "(add_one_le_exp + pow + norm_num); m=0 refused at certify time (negative "
+        "control); no corruptible cofactor"),
+    "ExpLaurentIdentityEmitter": _S(CERTIFICATE_SENSITIVE,
+        "an exp-Laurent identity in e^d, e^(-d) certified as an exact reduction of "
+        "lhs - rhs modulo the single relation e^d * e^(-d) = 1; the QUOTIENT "
+        "(cofactor) is carried into linear_combination, so a corrupted cofactor or "
+        "a corrupted side leaves a nonzero residue and ring cannot close it",
+        neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "TwoRowSolveEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "2x2 solution-entry bound from row-scale + ratio-gap hypotheses: a single "
+        "fully-generic fixed atom (eq_div_iff/abs algebra + nlinarith), no per-instance "
+        "data and no corruptible cofactor"),
+    "RatioTelescopeEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "ratio-recurrence telescoping (factorial/geometric/index normal forms): three "
+        "fully-generic fixed induction atoms over abstract sequences; no per-instance "
+        "data and no corruptible cofactor"),
+    "MonomialLadderEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "master-budget monomial rungs c*e*Theta^k <= b: the (Cm,Kmax,rung) rationals ARE "
+        "the statement; each rung is re-derived in-kernel by pow_le_pow_right0 + "
+        "mul_le_mul + linarith off the master hypothesis; violated rung budget refused "
+        "at certify time (negative control); no corruptible cofactor"),
+    "RpowBudgetEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "k-power product collapse with linarith at the exponent level: the exponent "
+        "rationals ARE the statement; the collapse identity is re-proved by "
+        "rpow_add/rpow_mul_natCast + ring and the margin by linarith; violated exponent "
+        "margin refused at certify time (negative control); no corruptible cofactor"),
+    "MultilinearPerturbationEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Leibniz telescoping product-perturbation envelope |prod F - prod G| <= C*eta: "
+        "the arity and rational bounds ARE the statement; the envelope C = sum prod_{j!=i} M_j "
+        "is recomputed in-kernel by the ring telescoping identity + mul_le_mul chains + linarith; "
+        "no separately-supplied corruptible cofactor"),
+    "PolyGeomClosureEmitter": _S(
+        CERTIFICATE_SENSITIVE,
+        "exact-invariant weighted-geometric closure: the SYNTHESIZED remainder polynomial q "
+        "(solving q(N) = p(N) + rho*q(N+1)) is the load-bearing certificate -- a corrupted q "
+        "breaks the induction's push_cast/ring step (and is refused at certify time by the "
+        "exact sympy recurrence check)",
+        neg_control=NegControlStance(
+            NEG_CONTROL_DECLARED_UNWIRED,
+            reason="certificate-sensitive (a forged remainder is kernel-rejectable via the "
+                   "induction ring identity) but no adapter is registered in "
+                   "negative_control_harness.ADAPTERS yet -- the honestly-named gap"),
+    ),
+    "TwoPointMomentEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "two-point moment feasibility: a FIXED explicit-witness calculus (symmetricPair / "
+        "oneSidedPair, field_simp/ring/linarith) with per-instance rational (p1,p2,m,V) that "
+        "ARE the statement, margin re-decided by norm_num; violated margin refused at certify "
+        "time (negative control); no corruptible cofactor"),
+    "CoefficientMassEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "l1-coefficient sup-envelope |p(x)| <= ||p||_1 * T^deg: the coefficient "
+        "list and radius ARE the statement; the mass M and per-term |a_i| facts "
+        "are re-decided in-kernel (sign-aware abs_of_nonneg/nonpos + norm_num + "
+        "linarith); T < 1 / zero leading coeff refused at certify time"),
+    # --- PROGRAM ANDÚRIL × MIRRORMERE emitters (2026-09-14) ---
+    "BraggAmplitudeEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Truncated Bragg amplitude Σ cos(γ_k·u) ∈ [A,B] over rational ordinate brackets: each "
+        "per-bracket cos box is a CosEnclosure order-4 base bracket (cos_base_interval, decided by "
+        "norm_num) + Lipschitz width absorption (cos_encl_bracket), folded by add_encl; the claimed "
+        "[A,B] is closed by le_trans over norm_num-decided rational endpoint facts. No "
+        "separately-supplied corruptible identity — the enclosure boxes ARE the statement, and "
+        "certify REFUSES a claimed interval that fails to enclose the folded box (the negative "
+        "control) and any |c_k|>1 out-of-range sample. conjecture1_proved = False"),
+    "DefectWitnessEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Two-configuration inertia gap (BraggDefect shape): on-line functional value 0 ∈ [A,B] and "
+        "off-line functional value strictly in [C,D] with D < A (the certified leakage gap). All "
+        "three facts (0 ∈ [A,B]; the off-line interval; the gap D < A) are concrete-rational, "
+        "closed by norm_num; the intervals ARE the statement, no separately-supplied corruptible "
+        "cofactor. certify REFUSES a swapped/non-separated configuration (the off-line upper bound "
+        "not strictly below the on-line lower value) — the negative control. conjecture1_proved = False"),
+    # --- 2026-09-17: the T5 per-band certificate emitter (kind="turing_band"). ---
+    "_TuringBandEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Per-band RH-in-a-box theorem rh_in_box_<tag> assembled through TuringBand.turing_band_on_line "
+        "plus a kernel statement_match gate against the canonical TuringBand.BandStatement. The Arb "
+        "enclosures (edge non-vanishing, winding integer, on-line sign-change count) enter as theorem "
+        "HYPOTHESES (the documented trust boundary), so a corrupted certificate yields a DIFFERENT "
+        "hypothesis set, never a false kernel theorem — there is no corruptible identity certificate "
+        "at the emission layer. Winding == line count is enforced at driver/certify time (refusal "
+        "guard) and the WindingBoxZeroEmitter sidecar re-verifies the winding at doubled precision. "
+        "conjecture1_proved = False"),
+    "WindingBoxZeroEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Arb-trust-class winding-number box certificate (the turing_band sidecar trust class): the "
+        "rigorous zero count of an analytic function on a rational-cornered box, via the "
+        "quadrant-advance argument principle over Arb-ball boundary samples. Ships NO kernel theorem "
+        "(nthm=0) — only a .cert.json sidecar + a documentation stub — so there is no Lean identity "
+        "to corrupt; the winding integer is RE-VERIFIED at doubled precision + density at certify "
+        "time and a claimed count the argument principle does not support is REFUSED (the negative "
+        "control). conjecture1_proved = False"),
+    # --- 2026-09-19: the Face-7 pilot's Lipschitz-net ZERO-FREENESS emitter
+    #     (kind="grid_modulus_nonvanishing").  A different instrument from
+    #     WindingBoxZeroEmitter: no contour, no argument principle, and it SHIPS kernel
+    #     theorems.  It can only ever certify zero-freeness, never a nonzero count. ---
+    "GridModulusNonvanishingEmitter": _S(CERTIFICATE_SENSITIVE,
+        "Lipschitz-net zero-freeness certificate: |f'| <= M on a convex rational-cornered box, a "
+        "finite grid that is a delta-net of the box, |f| >= L at every node, and the GAP CONDITION "
+        "M*delta < L; the Lean side is the unconditional mean-value argument "
+        "SpeiserBoxProbe.nonvanishing_of_grid. M, delta and L are SUPPLIED numbers that appear in "
+        "the emitted statement AND are what the kernel arithmetic must clear (cover_radius_ok, "
+        "gap_ok, column_span_ok, row_tiling_ok, all norm_num on exact rationals), so an understated "
+        "delta or an inflated L yields a FALSE rational theorem the kernel rejects -- hence an "
+        "adapter, not not_applicable. certify RE-DERIVES every load-bearing quantity from its "
+        "definition and REFUSES: a grid that does not actually net the box (column span / row "
+        "tiling recomputed from geometry), a delta below the exact cell half-diagonal, a violated "
+        "gap, a claimed M the independent |f''| sweep does not support, a claimed L the independent "
+        "per-node |f'| evaluation does not support, and any doubled-precision / doubled-density "
+        "re-run that disagrees. TRUST CLASS mpmath-numeric -- WEAKER than arb: the numeric facts "
+        "are EVIDENCE and remain OPEN Lean hypotheses (SecondDerivBoundOnBox, "
+        "GridModulusLowerBound), proved nowhere. The shipped instance is the Face-7 pilot box for "
+        "deriv riemannZeta on [1/4,3/8]x[6,10]; that is NOT the Speiser wall (Speiser 1935 makes "
+        "the WHOLE open left strip equivalent to RH, and no finite union of boxes exhausts a "
+        "strip) and NOT a step toward RH. conjecture1_proved = False",
+        neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    # --- 2026-09-18: MIRRORMERE E4b isolation INSTANCE emitter (the concrete shape the
+    #     Rouche/E5 leg consumes; the general lemma is OfflineDiscs.offline_disjoint_discs). ---
+    "DisjointDiscsEmitter": _S(CERTIFICATE_SENSITIVE,
+        "Concrete isolation instance (OfflineDiscs shape): explicit Gaussian-rational strip points "
+        "plus an explicit rational radius r. The load-bearing facts are the per-pair STRICT "
+        "separation (2r)^2 < dist^2 (reached by Complex.dist_eq + Complex.norm_def + Real.lt_sqrt, "
+        "so no square root is ever approximated) and the per-point strict strip margins r < re, "
+        "r < 1 - re, all closed by norm_num on rational data. r is a SUPPLIED number that appears "
+        "in the statement AND is what the kernel arithmetic must clear, so an inflated r yields a "
+        "FALSE pair theorem the kernel rejects -- hence an adapter, not not_applicable. certify "
+        "REFUSES an overlapping pair, a boundary-reaching radius, a point off the open strip, a "
+        "duplicate point, or r <= 0. conjecture1_proved = False",
+        neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "SelfInversiveRigidityEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Equal-modulus real-rootedness (TwoFreqRigidity.twoFreq_realRooted_iff): the Gaussian-rational "
+        "coefficients c₁,c₂ ARE the statement; the emitted proof discharges ‖c₁‖=‖c₂‖ from the EXACT "
+        "rational equality |c₁|²=|c₂|² (Complex.norm via norm_num on re²+im²) and applies the in-island "
+        "iff lemma; no separately-supplied corruptible identity. certify REFUSES |c₁|²≠|c₂|² (real-"
+        "rootedness not forced) — the negative control. MODE offline (2026-09-18): the mirror, "
+        "refutation-shaped — radical coefficients r*sqrt(q) with |c1|^2 != |c2|^2 EXACTLY emit "
+        "NOT-real-rooted via the .mp direction, the kernel re-deriving ||c||^2 = r^2*q by norm_num "
+        "(so a corrupted normSq breaks the emitted rewrite, not the statement), plus the explicit "
+        "x = i/2 witness for the Euler-factor shape; certify REFUSES EQUAL modulus and any "
+        "frequency pair needing transcendence of log. conjecture1_proved = False"),
+    "LeakageDictionaryEmitter": _S(
+        CERTIFICATE_SENSITIVE,
+        "MIRRORMERE ROUTE A item A2b leakage dictionary: the RE-DERIVED log-derivative "
+        "coefficient row b(d), d | n, of a periodic amplitude, carried on the prime-log basis "
+        "and emitted as a chain of lemmas over Quasicrystal.IsLogDerivCoeff. The row IS the "
+        "separately-supplied certificate: each b(d) closed form is re-proved from the divisor "
+        "recursion at d (Nat.divisors expansion + the already-derived smaller coefficients) and "
+        "closed by linarith, so CORRUPTING ANY ENTRY leaves linarith with no proof and the "
+        "kernel rejects the file; the same holds for the interval-arithmetic enclosure of b(n), "
+        "which is computed from the island's kernel-proved atom bounds and closed by nlinarith. "
+        "certify REFUSES in BOTH directions -- a 'vanishes' claim for a non-completely-"
+        "multiplicative amplitude (the Davenport-Heilbronn fingerprint), a 'leaks' claim for a "
+        "completely multiplicative one (the island theorem proves it false), a vanishing claim "
+        "whose re-derived b(n) is not symbolically 0, a leak claim whose re-derived b(n) IS 0, "
+        "an unnormalized a(1) != 1, and a PRIME-POWER index (where the dictionary has no "
+        "content). Complete multiplicativity of a q-periodic amplitude is DECIDED exactly by "
+        "the q x q monoid-homomorphism table on Z/q, never sampled. The trivial-direction trap "
+        "is avoided by construction: the certificate is about the coefficients of a logarithmic "
+        "derivative, not about the support of Lambda (which is rfl-grade in Mathlib and is "
+        "quarantined in the island as vonMangoldt_support_is_definitional). "
+        "conjecture1_proved = False",
+        neg_control=NegControlStance(
+            NEG_CONTROL_DECLARED_UNWIRED,
+            reason="certificate-sensitive (a forged coefficient row is kernel-rejectable at the "
+                   "emitted linarith step, and the certify-time refusals already bite in both "
+                   "directions) but no adapter is registered in "
+                   "negative_control_harness.ADAPTERS yet -- the honestly-named gap"),
+    ),
+    "TwoFreqOfflineEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Off-line displacement, the EXACT COMPLEMENT of SelfInversiveRigidityEmitter "
+        "(TwoFreqRigidity.twoFreq_realRooted_iff): the coefficient literals ARE the statement, "
+        "and the emitted proof refutes real-rootedness from the EXACT rational inequality "
+        "|c1|^2 != |c2|^2 (normSq by norm_num / Real.mul_self_sqrt); no separately-supplied "
+        "corruptible identity. certify REFUSES equal modulus -- precisely the regime the "
+        "rigidity emitter certifies -- so the two partition the coefficient space and neither "
+        "can emit a false theorem; also refuses a zero coefficient, equal frequencies "
+        "(including the disguised neglog(1) = rat(0)) and mode='displacement' outside the "
+        "Euler-factor shape. A kernel-gated adapter renders the equal-modulus forgery in "
+        "bridge-hypothesis mode. conjecture1_proved = False",
+        neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "SqrtRootEliminationEmitter": _S(
+        CERTIFICATE_SENSITIVE,
+        "radical elimination v < E - u*sqrt(rad) <-> (v < E and 0 < Q): the "
+        "separately-supplied eliminated form Q is the load-bearing certificate — "
+        "a corrupted Q breaks the emitted `ring` identity (E-v)^2 - u^2*rad = Q "
+        "(and is refused at certify time by the exact sympy identity check)",
+        neg_control=NegControlStance(
+            NEG_CONTROL_DECLARED_UNWIRED,
+            reason="certificate-sensitive (a forged Q is kernel-rejectable via the "
+                   "ring identity) but no adapter is registered in "
+                   "negative_control_harness.ADAPTERS yet — the honestly-named gap"),
+    ),
+    # --- RH SEVEN-FACES instruments (2026-09-14, face-emitters agent) ---
+    "RobinGrowthEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Robin rung (σ(n):ℝ) < R with R = e^γ·n·log log n carried as hypothesis hR : "
+        "Llo ≤ R (the Arb enclosure trust seam): the exact σ(n) and the certified "
+        "lower bound Llo ARE the statement, the chaining (σ:ℝ) < Llo is re-decided "
+        "in-kernel by norm_num and closed by lt_of_lt_of_le; a non-strict Llo (≤σ) or "
+        "n ≤ 5040 (outside Robin's range) refused at certify time (negative control); "
+        "no separately-supplied corruptible cofactor"),
+    "BaezDuarteEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "Báez-Duarte rung d²_N ≤ U with d²_N carried as hypothesis hval : Q ≤ U and Q "
+        "the exact quadratic-form value of the chosen coefficient vector (the analytic "
+        "trust seam is d²_N ≤ Q, the closed-form Gram evaluation): the exact rational Q "
+        "and the readable upper bound U ARE the statement, Q ≤ U re-decided by norm_num "
+        "and closed by le_trans; a U below the exact Q refused at certify time (negative "
+        "control); no separately-supplied corruptible cofactor"),
+    "LehmerPairEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "certified Lehmer-pair quality inequality quality_short ≤ qcap (< 1) with "
+        "quality = δ²·C_n the exact rational Lehmer signature from a close consecutive-"
+        "zero pair (the Arb ordinate data via hardy_z_zeros is the trust seam): the "
+        "rounded rationals ARE the statement, re-decided by norm_num; a non-Lehmer pair "
+        "(quality ≥ 1) or a qcap below the quality / ≥ the threshold refused at certify "
+        "time (negative controls); the de Bruijn–Newman Λ lower bound derived from it is "
+        "shipped only as the documented WIP hypothesis-carrying skeleton (CNV constant "
+        "unverified), NOT a numeric kernel claim; no separately-supplied corruptible cofactor"),
+    "BagchiRecurrenceEmitter": _S(STRUCTURALLY_NONVACUOUS,
+        "recurrence sup bound M ≤ ε with M = max_grid |ζ(s+iτ) − target(s)| carried as "
+        "hypothesis hgrid : dev ≤ M-per-point from Arb acb_zeta enclosures (the trust "
+        "seam): the certified per-point deviations and the tolerance ε ARE the statement, "
+        "the grid-max ≤ ε re-decided by norm_num over the finite grid; an ε below the "
+        "certified max deviation refused at certify time (negative control); no "
+        "separately-supplied corruptible cofactor"),
+}
+
+
+def _derive_neg_control(stance: SensitivityStance) -> NegControlStance:
+    """Derive an emitter's negative-control stance from its sensitivity stance when
+    it did not declare one explicitly.
+
+    A CERTIFICATE_SENSITIVE emitter carries a corruptible identity/fact, so a
+    forged FALSE instance is kernel-rejectable — it must have an ADAPTER (the
+    ``neg_control_adapter_gap`` check then enforces one is actually registered).
+    A STRUCTURALLY_NONVACUOUS emitter (positivity / decidable / finite / glue /
+    adapter) has no independent numeric fact to falsify at the emission layer, so
+    it is NOT_APPLICABLE and its own ``reason`` is the honest not-applicable reason.
+    """
+    if stance.neg_control is not None:
+        return stance.neg_control
+    if stance.stance == CERTIFICATE_SENSITIVE:
+        return NegControlStance(NEG_CONTROL_ADAPTER)
+    return NegControlStance(NEG_CONTROL_NOT_APPLICABLE, reason=stance.reason)
+
+
+# Fill in the neg_control declaration for every entry (derive when unspecified).
+REGISTRY = {
+    name: SensitivityStance(
+        stance=s.stance, reason=s.reason, checked_in=s.checked_in,
+        neg_control=_derive_neg_control(s),
+    )
+    for name, s in REGISTRY.items()
+}
+
+
+def undeclared_neg_control_emitters() -> list[str]:
+    """Registry emitters with no negative-control declaration — the completeness
+    gate. (After derivation every entry is declared, so a stray None means a bug.)"""
+    return sorted(n for n, s in REGISTRY.items() if s.neg_control is None)
+
+
+def neg_control_adapter_gap() -> list[str]:
+    """Emitters that DECLARE a neg-control adapter but have none registered in
+    ``negative_control_harness.ADAPTERS`` — the registry cannot claim a control
+    that does not exist (the analogue of ``wired_sensitive_emitters``' honesty)."""
+    try:
+        import telperion.negctrl_adapters  # noqa: F401  (import triggers register())
+        from .negative_control_harness import registered_adapters
+    except Exception:
+        # Harness/adapters unavailable — report every declared adapter as a gap so
+        # the honesty check fails loudly rather than silently passing.
+        return sorted(
+            n for n, s in REGISTRY.items()
+            if s.neg_control and s.neg_control.kind == NEG_CONTROL_ADAPTER
+        )
+    live = set(registered_adapters())
+    return sorted(
+        n for n, s in REGISTRY.items()
+        if s.neg_control and s.neg_control.kind == NEG_CONTROL_ADAPTER
+        and n not in live
+    )
+
+
+def neg_control_unwired_emitters() -> list[str]:
+    """Certificate-sensitive emitters declared ``NEG_CONTROL_DECLARED_UNWIRED`` — an
+    adapter is possible but not built yet.  The honestly-named gap (analogue of a
+    CERTIFICATE_SENSITIVE emitter with ``checked_in=None``); reported, not failed."""
+    return sorted(
+        n for n, s in REGISTRY.items()
+        if s.neg_control and s.neg_control.kind == NEG_CONTROL_DECLARED_UNWIRED
+    )
+
+
+_LAZY_EMITTER_CLASSES: tuple[tuple[str, str], ...] = (
+    ("telperion.emit_turing_band", "turing_band_emitter_class"),
+)
+
+
+def discover_emitters() -> list[type]:
+    """Every concrete SHIPPED Emitter subclass reachable from the base class.
+
+    Governs only emitters defined in the ``telperion`` package — a test that
+    defines or ``exec``s a throwaway ``Emitter`` subclass (e.g.
+    ``test_provenance_code_fingerprint``'s ``ReplEmitter``, whose ``__module__``
+    is ``builtins``) pollutes ``Emitter.__subclasses__()`` process-globally but is
+    NOT a shippable emitter, so it is excluded from the completeness gate."""
+    seen: dict[str, type] = {}
+    # Lazily-constructed emitters (deferred to dodge an import cycle) are only
+    # reachable from Emitter.__subclasses__() once their factory has run;
+    # materialize them here so discovery is order-independent.
+    for mod_name, accessor in _LAZY_EMITTER_CLASSES:
+        getattr(importlib.import_module(mod_name), accessor)()
+
+    def walk(cls: type) -> None:
+        for sub in cls.__subclasses__():
+            if sub.__module__.startswith("telperion."):
+                seen[sub.__name__] = sub
+            walk(sub)
+
+    walk(Emitter)
+    return list(seen.values())
+
+
+def _emitter_names() -> set[str]:
+    return {c.__name__ for c in discover_emitters()}
+
+
+def unclassified_emitters() -> list[str]:
+    """Discovered emitters with no declared stance — the completeness gate."""
+    return sorted(_emitter_names() - set(REGISTRY))
+
+
+def stray_registry_entries() -> list[str]:
+    """Registry entries that no longer correspond to a real emitter."""
+    return sorted(set(REGISTRY) - _emitter_names())
+
+
+def wired_sensitive_emitters() -> set[str]:
+    """CERTIFICATE_SENSITIVE emitters whose `checked_in` module truthfully invokes
+    `assert_certificate_sensitive` — verified by reading the module source, so the
+    registry cannot lie about what is actually wired."""
+    src = Path(__file__).resolve().parent
+    wired: set[str] = set()
+    for name, stance in REGISTRY.items():
+        if stance.stance != CERTIFICATE_SENSITIVE or not stance.checked_in:
+            continue
+        mod = src / f"{stance.checked_in}.py"
+        if mod.is_file() and "assert_certificate_sensitive" in mod.read_text(encoding="utf-8"):
+            wired.add(name)
+    return wired
+
+
+def sensitivity_report() -> str:
+    """A human-readable stance table naming which sensitive emitters are wired."""
+    wired = wired_sensitive_emitters()
+    lines = ["Emitter certificate-sensitivity stances:"]
+    for name in sorted(REGISTRY):
+        st = REGISTRY[name]
+        tag = st.stance
+        if st.stance == CERTIFICATE_SENSITIVE:
+            tag += " [wired]" if name in wired else " [declared, unwired]"
+        lines.append(f"  {name}: {tag}")
+    return "\n".join(lines)

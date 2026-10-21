@@ -1,0 +1,348 @@
+"""The Telperion MCP server: the certify/validate/emit workflow as agent tools.
+
+Run with:  telperion-mcp   (requires `pip install "telperion[mcp]"`)
+
+Register in Claude Code:
+  claude mcp add telperion -- telperion-mcp
+
+Tools mirror the enforced workflow — there is no emit tool that skips
+certification or validation.  `certify_family`/`emit_family` import the family
+module the caller names: point this server only at projects you trust, exactly
+as you would an editor or test runner.
+
+The transcendental-free rule holds: every tool answers from exact arithmetic;
+nothing here trusts floats or asserts truth — the Lean kernel downstream does.
+"""
+from __future__ import annotations
+
+import io
+import json
+from contextlib import redirect_stdout
+from pathlib import Path
+
+try:
+    from mcp.server.fastmcp import FastMCP
+except ImportError as e:  # pragma: no cover
+    raise SystemExit(
+        'the MCP server needs the optional extra:  pip install "telperion[mcp]"'
+    ) from e
+
+mcp = FastMCP(
+    "telperion",
+    instructions=(
+        "Telperion certifies families of rational-function inequalities in "
+        "sympy and batch-emits kernel-checked Lean 4. Workflow (enforced): "
+        "define a family module -> certify_family -> emit_family (requires the "
+        "module to define validation()) -> compile the emitted Lean in the "
+        "project's CI -> diff_family to detect drift. Use polya_probe first to "
+        "test whether a single inequality is certifiable at all. A refusal "
+        "names the failing (grid point, corner) — fix the family, never the "
+        "emitted Lean."
+    ),
+)
+
+
+def _cli(args: list[str]) -> tuple[int, str]:
+    from .cli import main
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        try:
+            code = main(args)
+        except SystemExit as e:
+            code = int(e.code) if e.code is not None else 0
+    return code, buf.getvalue()
+
+
+@mcp.tool()
+def polya_probe(expression: str, symbols: str = "u") -> str:
+    """Test whether a single rational expression in nonnegative symbols has a
+    Polya certificate (all-nonneg-integer numerator / positive-factored
+    denominator). expression: sympy syntax, e.g. '(1 + u)/(2 + u) - 1/(u + 3)'.
+    symbols: comma-separated, e.g. 'u,v'. Returns the certificate or the
+    refusal reason."""
+    code, out = _cli(["probe", expression, "--symbols", symbols])
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def diagnose(target: str, symbols: str = "u", trials: int = 400) -> str:
+    """Triage a refused inequality: distinguishes FALSE (returns an exact
+    rational counterexample — a proof of falsity), NOT_POLYA_IN_THIS_FORM
+    (with remedy hints naming the negative monomials and cheap
+    transformations), and CERTIFIABLE. target: 'path/to/family.py:factory'
+    to triage every failing instance of a family, or a raw sympy expression
+    with the symbols argument."""
+    args = ["diagnose", target, "--symbols", symbols, "--trials", str(trials)]
+    code, out = _cli(args)
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def prove_goal(expression: str, symbols: str = "u", name: str = "Goal") -> str:
+    """Single-goal backend socket: certify 0 <= <expression> (nonnegative
+    symbols) and return a complete, kernel-checkable Lean theorem — or, on
+    refusal, the triage (FALSE with an exact rational counterexample /
+    NOT_POLYA_IN_THIS_FORM with remedy hints / CERTIFIABLE). This is the
+    primitive an LLM prover loop calls to discharge a certificate-shaped
+    subgoal: sound by construction, deterministic, no sampling. expression:
+    sympy syntax; symbols: comma-separated, e.g. 'u,v'."""
+    import sympy as sp
+
+    from .parsing import safe_parse_expr
+    from .prove import prove_goal as _prove_goal
+
+    syms = tuple(sp.Symbol(s.strip(), nonnegative=True) for s in symbols.split(","))
+    expr = safe_parse_expr(expression, syms)
+    res = _prove_goal(expr, syms, name=name)
+    if res.proved:
+        return res.lean
+    return res.render()
+
+
+@mcp.tool()
+def audit_lean(lean_text: str) -> str:
+    """Referee any Lean source (e.g. an LLM prover's output) for the
+    'green build != proved' defects: sorry/admit, smuggled axiom, empty tactic
+    block, missing type ascription, Prop:=True stub, and per-theorem vacuity
+    (a reflexive `X = X` / `0 <= 0` tautology that compiles while asserting
+    nothing). Returns 'clean' or an itemized, line-cited findings list. A clean
+    audit is necessary not sufficient — the kernel remains the arbiter of
+    truth; a dirty audit is a concrete cited defect."""
+    from .audit import audit_lean_text
+
+    return audit_lean_text(lean_text).render()
+
+
+@mcp.tool()
+def discharge_goal(target: str, symbols: str = "u", aux_name: str = "telperion_aux") -> str:
+    """Backend-bridge for an LLM prover loop: hand a certificate-shaped subgoal
+    `0 <= target` to Telperion's deterministic backend and get back a
+    JSON contract with a spliceable auxiliary Lean lemma (sound, deterministic,
+    no sampling) — or an exact FALSE/NOT_POLYA/CERTIFIABLE triage. `over_all_reals`
+    tells the caller the lemma's binder shape (SOS `forall x:R` vs Polya with
+    `0<=x` hypotheses) for application. This is the socket a Lean tactic frontend
+    or a prover's tool call hits; the kernel remains the sole arbiter of truth."""
+    import json as _json
+
+    import sympy as sp
+
+    from .parsing import safe_parse_expr
+    from .tactic import discharge
+
+    syms = tuple(sp.Symbol(s.strip(), nonnegative=True) for s in symbols.split(","))
+    expr = safe_parse_expr(target, syms)
+    return _json.dumps(discharge(expr, syms, aux_name=aux_name))
+
+
+@mcp.tool()
+def certify_family(family: str) -> str:
+    """Run every symbolic self-check for a family. family: 'path/to/family.py:factory'
+    where factory() returns an InequalityFamily. Returns the green summary or
+    the refusal listing every failing (grid point, reason)."""
+    code, out = _cli(["certify", family])
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def emit_family(
+    family: str,
+    out_dir: str,
+    profile: str = "",
+    validation: str = "",
+    file_name: str = "",
+) -> str:
+    """Certify, validate, and emit a family to provenance-stamped Lean files in
+    out_dir. Requires validation: either the family module defines
+    validation() -> ValidationReport, or pass validation='path.py:fn'.
+    profile: optional 'path.py:factory' for the LeanProfile (namespace,
+    imports, prelude, tactic-skeleton overrides)."""
+    args = ["emit", family, "-o", out_dir]
+    if profile:
+        args += ["--profile", profile]
+    if validation:
+        args += ["--validation", validation]
+    if file_name:
+        args += ["--file-name", file_name]
+    code, out = _cli(args)
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def diff_family(
+    family: str, frozen_dir: str, profile: str = "", validation: str = ""
+) -> str:
+    """Regenerate a family in memory and byte-compare against its frozen
+    output (the reviewer's drift check). Returns OK or the drift details."""
+    args = ["diff", family, "--frozen", frozen_dir]
+    if profile:
+        args += ["--profile", profile]
+    if validation:
+        args += ["--validation", validation]
+    code, out = _cli(args)
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def init_project(directory: str, namespace: str = "MyProof") -> str:
+    """Scaffold a new Telperion proof project in an empty directory: family
+    template with the validation discipline built in, generate script, drift
+    manifest, pinned Lean/Mathlib project shell, and a lean-verify GitHub
+    workflow. namespace must be an UpperCamel Lean module name."""
+    code, out = _cli(["init", directory, "--namespace", namespace])
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def verify_project(manifest: str = "telperion.toml", group: str = "all") -> str:
+    """Run every check in the project manifest (regeneration diffs for all
+    frozen families; fails on unlisted generate scripts). group: quick |
+    heavy | all."""
+    code, out = _cli(["verify", "--manifest", manifest, "--group", group])
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def margins(family: str, samples: int = 60) -> str:
+    """Tightness analysis of a certified family: for every certificate, the
+    exact tie variety (coordinate faces where the inequality degenerates),
+    the numerator's constant-term floor, and an exact-rational sample minimum
+    with its argmin. Tight/marginal instances listed first — this is where
+    the extremal structure of the mathematics lives."""
+    code, out = _cli(["margins", family, "--samples", str(samples), "--all"])
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def ties(expression: str, symbols: str = "u") -> str:
+    """Exact equality cases of a single 0 <= expression claim on the orthant:
+    combinatorial tie faces for nonneg-coefficient numerators, exact real
+    roots for univariate mixed-sign numerators."""
+    code, out = _cli(["ties", expression, "--symbols", symbols])
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def hunt(expression: str, symbols: str = "u", iters: int = 400) -> str:
+    """Adversarially minimize 0 <= expression over the nonneg orthant in EXACT
+    rational arithmetic (coordinate descent + restarts). A negative minimum is
+    a theorem: the claim is false, witness attached. Run before designing a
+    certificate family around a conjectured inequality."""
+    code, out = _cli(["hunt", expression, "--symbols", symbols, "--iters", str(iters)])
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def relax(family: str, axis: str, iters: int = 200) -> str:
+    """The smooth-vs-arithmetic verdict: interpolate an integer grid axis
+    continuously and hunt for exact violations. ARITHMETIC (with witness)
+    means the family is true only through integrality -- no Polya lift or SOS
+    can close it; use symbolic tails/unimodality/decide. SMOOTH-SO-FAR means
+    analytic certificates remain viable."""
+    code, out = _cli(["relax", family, "--axis", axis, "--iters", str(iters)])
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def p2m_triage() -> str:
+    """Rank prove2.me open milestones against Telperion's emitter registry
+    (certificate-first triage). Writes queue.json in the workspace; returns
+    the top of the ranked queue. Requires prior `telperion p2m login`."""
+    code, out = _cli(["p2m", "triage"])
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def p2m_lift(milestone_id: str, name: str = "") -> str:
+    """Scaffold a lift family (Lean formal_statement embedded verbatim) for one
+    prove2.me milestone. Edit family()/validation() before attempting."""
+    args = ["p2m", "lift", milestone_id]
+    if name:
+        args += ["--name", name]
+    code, out = _cli(args)
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def p2m_attempt(milestone_id: str, name: str = "", no_submit: bool = False,
+                explanation: str = "") -> str:
+    """Certify+emit the lift, enforce invariants I1-I5 (local lake build gate),
+    submit to prove2.me unless no_submit, poll the verdict, ledger the result.
+    A live submission (no_submit=False) is refused unless explanation is
+    non-empty (I4)."""
+    args = ["p2m", "attempt", milestone_id]
+    if name:
+        args += ["--name", name]
+    if no_submit:
+        args += ["--no-submit"]
+    if explanation:
+        args += ["--explanation", explanation]
+    code, out = _cli(args)
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def p2m_status() -> str:
+    """Attempt-ledger summary: attempts, proved count, recent verdicts."""
+    code, out = _cli(["p2m", "status"])
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def p2m_coverage() -> str:
+    """Shape-rule vs emitter-registry coverage: unknown rule classes (error)
+    and registry emitters no rule can select (named gap)."""
+    code, out = _cli(["p2m", "coverage"])
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def read_manifest(frozen_dir: str) -> str:
+    """Read a frozen directory's provenance manifest (family, input hash,
+    tool version, files, theorem count)."""
+    p = Path(frozen_dir) / "manifest.json"
+    if not p.exists():
+        return f"no manifest at {p}"
+    return json.dumps(json.loads(p.read_text()), indent=2)
+
+
+@mcp.resource("telperion://tactic-contract")
+def tactic_contract() -> str:
+    """The exact Mathlib tactic assumptions of the default templates."""
+    doc = Path(__file__).resolve().parents[2] / "docs" / "TACTIC_CONTRACT.md"
+    return doc.read_text() if doc.exists() else "TACTIC_CONTRACT.md not found"
+
+
+@mcp.resource("telperion://methodology")
+def methodology() -> str:
+    """The trust model and the numeric-first discipline."""
+    doc = Path(__file__).resolve().parents[2] / "docs" / "METHODOLOGY.md"
+    return doc.read_text() if doc.exists() else "METHODOLOGY.md not found"
+
+
+@mcp.tool()
+def mission_status(campaign: str = "") -> str:
+    """One-glance status tree of an internal mission campaign (all campaigns
+    when empty): node statuses, reductions' closure_clean, claims."""
+    args = ["mission", "status"] + ([campaign] if campaign else [])
+    code, out = _cli(args)
+    return out.strip() or f"exit {code}"
+
+
+@mcp.tool()
+def mission_open_leaves(campaign: str = "", include_claimed: bool = False) -> str:
+    """The live frontier: open nodes whose dependencies are all proved,
+    minus freshly-claimed ones (include_claimed=True shows those too)."""
+    args = ["mission", "open-leaves"] + ([campaign] if campaign else [])
+    if include_claimed:
+        args.append("--all")
+    code, out = _cli(args)
+    return out.strip() or f"exit {code}"
+
+
+def main() -> None:  # entry point: telperion-mcp
+    mcp.run()
+
+
+if __name__ == "__main__":
+    main()

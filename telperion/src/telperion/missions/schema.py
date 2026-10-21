@@ -1,0 +1,830 @@
+"""Missions registry schema: one small file per node/manifest/claim.
+
+TOML I/O is a CLOSED LOOP: `dumps_toml` emits a restricted, deterministic
+subset (sorted keys; str/int/bool, lists of strings, one level of nested
+tables), and `loads_toml` reads via stdlib tomllib when available (Python
+3.11+, the CI environment — repo convention, see status.py) with an
+in-module fallback parser that accepts exactly what `dumps_toml` emits.
+Round-trip is tested; hand-written files are read by tomllib in CI.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+import os
+import tempfile
+from pathlib import Path
+from typing import Optional, Tuple
+
+STATUSES = ("draft", "open", "proved", "refuted", "deprecated")
+KINDS = ("goal", "milestone", "lemma", "definition")
+ARTIFACT_KINDS = ("lean_module", "frozen_cert")
+VIAS = ("direct", "reduction")
+
+
+class SchemaError(Exception):
+    """A mission file violates the schema; message names path/field."""
+
+
+class ClaimError(Exception):
+    """A claim operation failed; message describes why."""
+
+
+def slug_of(name: str) -> str:
+    return name.replace(".", "_")
+
+
+def dumps_toml(doc: dict) -> str:
+    def scalar(v):
+        if isinstance(v, bool):
+            return "true" if v else "false"
+        if isinstance(v, int):
+            return str(v)
+        if isinstance(v, str):
+            return ('"' + v.replace("\\", "\\\\").replace('"', '\\"')
+                    .replace("\n", "\\n").replace("\r", "\\r") + '"')
+        raise SchemaError(f"unsupported TOML scalar: {type(v).__name__}")
+
+    lines, tables = [], []
+    for k in sorted(doc):
+        v = doc[k]
+        if isinstance(v, dict):
+            tables.append((k, v))
+        elif isinstance(v, (list, tuple)):
+            lines.append(f"{k} = [" + ", ".join(scalar(x) for x in v) + "]")
+        else:
+            lines.append(f"{k} = {scalar(v)}")
+    for name, tbl in tables:
+        lines.append("")
+        lines.append(f"[{name}]")
+        for k in sorted(tbl):
+            v = tbl[k]
+            if isinstance(v, (list, tuple)):
+                lines.append(f"{k} = [" + ", ".join(scalar(x) for x in v) + "]")
+            else:
+                lines.append(f"{k} = {scalar(v)}")
+    return "\n".join(lines) + "\n"
+
+
+def loads_toml(text: str) -> dict:
+    """Parse TOML with a REAL parser wherever one can be had.
+
+    WHY THIS ORDER (audit 2026-09-19). The fallback below is not TOML; it parses the subset
+    `dumps_toml` emits. CI runs Python 3.11-3.13 and gets `tomllib`, while a developer on
+    3.9 got the fallback -- so the same file could mean different things in the two places,
+    and the divergences that matter are SILENT:
+
+      * `name  =  "RH.foo"` (extra spaces) -> key `'name '`, so the field vanishes;
+      * `proof.via = "direct"` (dotted key) -> a top-level key, so the proof is absent;
+      * a duplicate key or `[proof]` table from a botched merge -> silent last-wins here,
+        outright rejection in CI. On a real proved node that meant reading a STALE artifact
+        and `closure_clean = False` locally while CI refused the file entirely.
+
+    `tomli` is the same parser as `tomllib`, so preferring it on older interpreters removes
+    the divergence rather than papering over it. The fallback now runs only when neither is
+    installed, and says so when it fails.
+    """
+    try:
+        import tomllib
+    except ModuleNotFoundError:
+        try:
+            import tomli as tomllib  # type: ignore[no-redef]
+        except ModuleNotFoundError:
+            return _mini_parse(text)
+    return tomllib.loads(text)
+
+
+def _mini_parse(text: str) -> dict:
+    """Parse exactly the subset dumps_toml emits (fallback for Python < 3.11 without tomli).
+
+    NOT a TOML parser. It is retained only so the package imports on a bare interpreter; see
+    `loads_toml` for why it is the last resort. It now rejects the two silent-corruption
+    shapes it used to accept quietly: duplicate keys and dotted keys.
+    """
+    import ast
+    doc: dict = {}
+    target = doc
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            target = doc.setdefault(line[1:-1], {})
+            continue
+        key, _, val = line.partition("=")
+        key = key.strip()
+        val = val.strip()
+        if "." in key:
+            raise SchemaError(
+                f"dotted key {key!r} is not supported by the fallback TOML parser; "
+                "install `tomli` (or run Python 3.11+) so a real parser is used."
+            )
+        if key in target:
+            raise SchemaError(
+                f"duplicate key {key!r}: a real TOML parser rejects this file, and the "
+                "fallback used to take last-wins silently. Install `tomli` or fix the file."
+            )
+        if val in ("true", "false"):
+            target[key] = val == "true"
+        elif val.startswith("["):
+            target[key] = list(ast.literal_eval(val))
+        elif val.startswith('"'):
+            target[key] = ast.literal_eval(val)
+        else:
+            target[key] = int(val)
+    return doc
+
+
+# ---------------------------------------------------------------------------
+# Dataclasses
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Proof:
+    artifact: str
+    artifact_kind: str
+    via: str
+    closure_clean: bool = False
+    #: Free prose recorded with the link, e.g. where the artifact was kernel-verified when
+    #: that differs from CI. Modelled because it exists in live data and `save_node` used to
+    #: silently drop it: granting a node destroyed the note explaining its provenance.
+    fidelity_note: str = ""
+
+    def __post_init__(self):
+        if self.artifact_kind not in ARTIFACT_KINDS:
+            raise SchemaError(f"artifact_kind must be one of {ARTIFACT_KINDS!r}, got {self.artifact_kind!r}")
+        if self.via not in VIAS:
+            raise SchemaError(f"via must be one of {VIAS!r}, got {self.via!r}")
+
+
+#: What a read-back's `independence` field may say (governance 2026-09-23, see
+#: docs/AUDIT_INDEPENDENCE_2026-09-23.md):
+#:   unverified  -- recorded before structured provenance existed, or on a node with no
+#:                  `[author]` block, so the gate cannot decide who wrote it. Every read-back
+#:                  that existed on 2026-09-23 was migrated to this value: all of them share
+#:                  the git identity of the proof commits and were written by subagents of the
+#:                  authoring session.
+#:   independent -- `mission audit` compared the auditor's {identity, session} with the node's
+#:                  `[author]` block and both differ.
+#:   self        -- never written by the CLI (it refuses); the value a hand edit would have to
+#:                  admit to, and the value `verify` rejects on a proved node.
+INDEPENDENCE_VALUES = ("unverified", "independent", "self")
+
+
+@dataclass(frozen=True)
+class Author:
+    """Who registered the statement: the identity the gate can later refuse a self-audit against.
+
+    `identity` is `git config user.email` at `mission add` time; `session` is the authoring
+    session id (`$CLAUDE_SESSION_ID` or `--session`). Neither is unforgeable -- a session can
+    supply any string for either -- so this makes self-certification VISIBLE, not impossible
+    (MISSIONS_ARCHITECTURE_AUDIT_2026-09-19.md section 4).
+    """
+    identity: str
+    session: str
+    date: str
+
+    def __post_init__(self):
+        if not self.identity.strip() or not self.session.strip():
+            raise SchemaError("author.identity and author.session must both be non-empty")
+
+
+@dataclass(frozen=True)
+class Readback:
+    text: str
+    auditor: str
+    date: str
+    #: Structured auditor provenance (empty on read-backs recorded before 2026-09-23).
+    auditor_identity: str = ""
+    auditor_session: str = ""
+    #: One of INDEPENDENCE_VALUES, or "" on a read-back that predates the field and has not
+    #: been migrated.
+    independence: str = ""
+
+    def __post_init__(self):
+        if self.independence and self.independence not in INDEPENDENCE_VALUES:
+            raise SchemaError(
+                f"readback.independence must be one of {INDEPENDENCE_VALUES!r}, "
+                f"got {self.independence!r}")
+
+
+@dataclass(frozen=True)
+class Grant:
+    """Provenance of the status flip, written by the gate and nothing else.
+
+    `artifact_sha256` / `statement_sha256` are digests of the artifact file and the statement
+    file AS THE GATE SAW THEM; `verify` recomputes both and fails on a mismatch, so an artifact
+    edited after its grant can no longer hide behind the status. `gate_version` names the
+    gate's rule set, so a grant made under weaker rules is distinguishable from a fresh one.
+    """
+    artifact_sha256: str
+    statement_sha256: str
+    gate_version: str
+    date: str
+    identity: str
+    session: str
+
+    def __post_init__(self):
+        for f in ("artifact_sha256", "statement_sha256", "gate_version", "date",
+                  "identity", "session"):
+            if not getattr(self, f).strip():
+                raise SchemaError(f"grant.{f} must be non-empty")
+
+
+@dataclass(frozen=True)
+class ComparatorRecord:
+    """A passing run of the independent judge (openai/ten-proofs Comparator) over this node.
+
+    Recorded by `mission comparator-record` after the CI job passed; it is NOT written by the
+    grant gate, because the judge runs in CI after the grant lands. `artifact_sha256` pins the
+    artifact the judge saw, so `verify` can say when the verdict has gone stale.
+    """
+    run_id: str
+    date: str
+    artifact_sha256: str
+    theorem: str
+    run_url: str = ""
+    #: Which second kernel replayed the export: "nanoda" (the default judge config) or
+    #: "none: heavy_certificates" when the node's `heavy_certificates = true` turned nanoda
+    #: off (its exact `decide +kernel` certificates exhaust a 16 GB runner under nanoda;
+    #: the Lean kernel replay and the axiom whitelist still ran). Surfaced by
+    #: `mission provenance-report` as "Lean kernel only".
+    second_kernel: str = "nanoda"
+    #: The shard JOB that printed the PASS line, and its url.  A record pushed onto the same
+    #: pull request supersedes the run that validated the artifact (missions-comparator cancels
+    #: in-progress runs on pull_request), so the RUN's conclusion can be "cancelled" while the
+    #: judging job succeeded -- seen 2026-09-25 on cl/kwin.  The job is what a verifier should
+    #: open, so record it.
+    job_id: str = ""
+    job_url: str = ""
+    #: The literal `kernel=` token from the PASS line ("nanoda" or "lean-kernel-only"), as
+    #: observed rather than inferred from the node's flag.  `second_kernel` is its reading.
+    kernel_mode: str = ""
+    #: The commit the judging job checked out.  Recorded so any later verifier can re-hash the
+    #: artifact blob at that commit without asking the API what the job's head was.
+    judged_head_sha: str = ""
+    #: How thoroughly this record was checked when written.  A degraded check must leave a mark
+    #: in the RECORD, not only in the terminal of whoever ran the command:
+    #:   log_check  "verified"          the judge's own job logs were read and agreed
+    #:              "verified-offline"  a supplied log file agreed; the job id is the caller's word
+    #:              "skipped"           --no-verify: nothing confirmed this record
+    #:   head_check "matched"           the artifact blob at `judged_head_sha` equals the recorded hash
+    #:              "unresolved"        that commit could not be resolved, so the hash is the
+    #:                                  working tree's and only the grant still pins the artifact
+    #:              "skipped"           not attempted (--no-verify)
+    log_check: str = ""
+    head_check: str = ""
+    #: "" = the judge replayed the node's theorem as ONE closure.  "compositional" = the
+    #: capstone's own proof was NOT replayed at all: an independent proof of the same statement
+    #: was assembled from parts -- it follows by a Comparator-checked implication (`theorem`) from
+    #: Comparator-checked segment statements, each judged in its own job, glued by
+    #: `telperion.missions.compose` (statement identity by lean4export bytes, closure check,
+    #: per-part axioms).  Read from the verdict line (`judge=compositional`), never inferred.
+    judge_mode: str = ""
+    #: For a compositional record: one "part=<slug> theorem=<thm> job=<id>" per judged part
+    #: (the implication and every segment), so no reader has to infer the shape from job ids.
+    parts: tuple = ()
+
+    def __post_init__(self):
+        for f in ("run_id", "date", "artifact_sha256", "theorem", "second_kernel"):
+            if not getattr(self, f).strip():
+                raise SchemaError(f"comparator.{f} must be non-empty")
+        if self.judge_mode not in ("", "compositional"):
+            raise SchemaError(f"comparator.judge_mode must be '' or 'compositional', "
+                              f"got {self.judge_mode!r}")
+        if not isinstance(self.parts, tuple):
+            object.__setattr__(self, "parts", tuple(self.parts))
+        if (self.judge_mode == "compositional") != bool(self.parts):
+            raise SchemaError("comparator.parts must be listed exactly when judge_mode = "
+                              "'compositional'")
+
+
+@dataclass(frozen=True)
+class ComposeSpec:
+    """How a `judge_via = "heavy"` node is judged COMPOSITIONALLY (2026-09-27).
+
+    One Comparator run cannot replay a ladder capstone: its closure is every segment's
+    certificates, replayed serially in one kernel (run 36274981386: > 4 h, cancelled). The judge
+    instead checks, each in its own job, every segment theorem `segment_theorems[i] :
+    segment_statements[i]`, and once the IMPLICATION `theorem : segment_statements[0] -> ... ->
+    <the node statement>`, whose closure must contain no module matching `forbidden_modules`
+    (the certificate modules). `telperion.missions.compose` then glues them: each implication
+    binder must be exactly the statement a segment job judged, identical by lean4export bytes.
+    The record says `judge_mode = "compositional"`: the capstone was NOT replayed as one closure.
+    """
+    module: str
+    theorem: str
+    forbidden_modules: str
+    segment_names: tuple
+    segment_statements: tuple
+    segment_theorems: tuple
+    segment_modules: tuple
+
+    def __post_init__(self):
+        import re as _re
+        for f in ("module", "theorem", "forbidden_modules"):
+            if not str(getattr(self, f)).strip():
+                raise SchemaError(f"compose.{f} must be non-empty")
+        try:
+            _re.compile(self.forbidden_modules)
+        except _re.error as exc:
+            raise SchemaError(f"compose.forbidden_modules is not a regex: {exc}") from exc
+        cols = (self.segment_names, self.segment_statements, self.segment_theorems,
+                self.segment_modules)
+        n = len(self.segment_names)
+        if n == 0 or any(len(c) != n for c in cols):
+            raise SchemaError("compose.segment_* must be non-empty arrays of equal length")
+        if len(set(self.segment_names)) != n:
+            raise SchemaError("compose.segment_names must be distinct")
+        for nm in self.segment_names:
+            if not _re.fullmatch(r"[A-Za-z0-9_]+", nm):
+                raise SchemaError(f"compose.segment_names: {nm!r} is not [A-Za-z0-9_]+")
+        if len(set(self.segment_statements)) != n:
+            raise SchemaError("compose.segment_statements must be distinct (one binder each)")
+
+    @property
+    def segments(self):
+        return list(zip(self.segment_names, self.segment_statements, self.segment_theorems,
+                        self.segment_modules))
+
+
+@dataclass(frozen=True)
+class CIRecord:
+    """A passing run of a named CI job on this node's artifact (owner ruling, 2026-09-24).
+
+    Some artifacts are verified only by a job that is not a required check (the anduril
+    kernel ladder). A node may declare `requires_ci_job = "<workflow>:<job>"`; the gate then
+    refuses to grant, and `verify` refuses a proved status, unless a `[ci_record]` names that
+    workflow and job with conclusion "success" on the CURRENT artifact digest.
+    """
+    workflow: str
+    job: str
+    run_id: str
+    head_sha: str
+    artifact_sha256: str
+    conclusion: str
+    date: str
+    run_url: str = ""
+
+    def __post_init__(self):
+        for f in ("workflow", "job", "run_id", "head_sha", "artifact_sha256", "conclusion", "date"):
+            if not getattr(self, f).strip():
+                raise SchemaError(f"ci_record.{f} must be non-empty")
+
+    @property
+    def key(self) -> str:
+        return f"{self.workflow}:{self.job}"
+
+
+@dataclass(frozen=True)
+class Node:
+    name: str
+    title: str
+    kind: str
+    status: str
+    depends_on: Tuple[str, ...]
+    statement_module: str
+    source: str = ""
+    proof: Optional[Proof] = None
+    readback: Optional[Readback] = None
+    refutation_statement: str = ""
+    deprecated_reason: str = ""
+    created: str = ""
+    updated: str = ""
+    #: Statement authorship, recorded by `mission add` (None on nodes registered before
+    #: 2026-09-23, which is every node then live).
+    author: Optional[Author] = None
+    #: Written by the grant gate only. None on every node granted before 2026-09-23.
+    grant: Optional[Grant] = None
+    #: Sidecar for a passing independent-judge run (see ComparatorRecord).
+    comparator: Optional[ComparatorRecord] = None
+    #: "<workflow file>:<job name>" of a non-required CI job whose passing run on the current
+    #: artifact digest is a precondition for granting (and for staying proved). "" = none.
+    requires_ci_job: str = ""
+    #: The recorded passing run of that job (see CIRecord); written by `mission ci-record`.
+    ci_record: Optional[CIRecord] = None
+    #: True when the artifact's exact certificates (`decide +kernel` LDL^T blocks, ~16 GB to
+    #: replay) cannot be run through nanoda on a hosted runner: the judge then asserts the
+    #: node with `enable_nanoda = false` and the record says "Lean kernel only".
+    heavy_certificates: bool = False
+    #: WHERE the node is independently judged. "" (default) = the per-PR missions-comparator
+    #: bundle. "heavy" = excluded from the per-PR bundle BY RULE and judged by the dispatch-only
+    #: missions-comparator-heavy.yml, because building its challenge needs more than one hosted
+    #: runner can do (e.g. a ladder capstone whose import closure is every segment's edge
+    #: certificates). `heavy_certificates` says HOW (nanoda off); this says WHERE.
+    judge_via: str = ""
+    #: For a `judge_via = "heavy"` node judged in parts (see ComposeSpec); None = one closure.
+    compose: Optional[ComposeSpec] = None
+    #: Top-level keys and tables present in the file that this schema does not model, kept
+    #: verbatim so a write-back cannot destroy them. Audit 2026-09-19: a live node carries a
+    #: `[nonvacuity]` table and a `proof.fidelity_note`, and any CLI mutation on it silently
+    #: erased 1978 characters of audit evidence -- including the note recording that the
+    #: proof was kernel-verified locally and NOT on main CI.
+    extra: Optional[dict] = None
+
+    def __post_init__(self):
+        if self.status not in STATUSES:
+            raise SchemaError(f"status must be one of {STATUSES!r}, got {self.status!r}")
+        if self.kind not in KINDS:
+            raise SchemaError(f"kind must be one of {KINDS!r}, got {self.kind!r}")
+        if self.status == "deprecated" and not self.deprecated_reason:
+            raise SchemaError("deprecated_reason must be set when status is 'deprecated'")
+        if self.status in ("proved", "refuted") and self.proof is None:
+            raise SchemaError("proof must be set when status is 'proved' or 'refuted'")
+        if self.compose is not None and self.judge_via != "heavy":
+            raise SchemaError("a [compose] table needs judge_via = \"heavy\": compositional "
+                              "judging is only for nodes the per-PR bundle excludes by rule")
+        # Coerce depends_on to tuple if a list was passed
+        if not isinstance(self.depends_on, tuple):
+            object.__setattr__(self, "depends_on", tuple(self.depends_on))
+
+
+@dataclass(frozen=True)
+class MissionManifest:
+    name: str
+    title: str
+    description: str
+    goal_node: str
+    environment_toolchain: str
+    environment_mathlib_rev: str
+    sources: Tuple[str, ...] = ()
+
+    def __post_init__(self):
+        if not isinstance(self.sources, tuple):
+            object.__setattr__(self, "sources", tuple(self.sources))
+
+
+@dataclass(frozen=True)
+class Claim:
+    node: str
+    session: str
+    started: str
+    ttl_hours: int = 24
+    note: str = ""
+    superseded: str = ""
+
+
+# ---------------------------------------------------------------------------
+# Serialization helpers
+# ---------------------------------------------------------------------------
+
+#: Top-level keys this schema models. Anything else in a node file is carried through
+#: `Node.extra` rather than dropped.
+_MODELLED_NODE_KEYS = frozenset({
+    "name", "title", "kind", "status", "statement_module", "source",
+    "refutation_statement", "deprecated_reason", "created", "updated",
+    "depends_on", "proof", "readback", "author", "grant", "comparator",
+    "requires_ci_job", "ci_record", "heavy_certificates", "judge_via", "compose",
+})
+
+
+#: Allowed values of `judge_via` ("" = the per-PR Comparator bundle).
+JUDGE_VIA = ("", "heavy")
+
+
+def _judge_via(v) -> str:
+    v = str(v or "").strip()
+    if v not in JUDGE_VIA:
+        raise SchemaError(f"judge_via must be one of {JUDGE_VIA!r}, got {v!r}")
+    return v
+
+
+def _node_to_doc(node: Node) -> dict:
+    # Unmodelled keys first so the modelled fields below take precedence on any collision.
+    doc: dict = dict(node.extra or {})
+    # Scalar fields first
+    for f in ("name", "title", "kind", "status", "statement_module"):
+        doc[f] = getattr(node, f)
+    if node.source:
+        doc["source"] = node.source
+    if node.refutation_statement:
+        doc["refutation_statement"] = node.refutation_statement
+    if node.deprecated_reason:
+        doc["deprecated_reason"] = node.deprecated_reason
+    if node.requires_ci_job:
+        doc["requires_ci_job"] = node.requires_ci_job
+    if node.heavy_certificates:
+        doc["heavy_certificates"] = True
+    if node.judge_via:
+        doc["judge_via"] = node.judge_via
+    if node.compose is not None:
+        c = node.compose
+        doc["compose"] = {
+            "module": c.module, "theorem": c.theorem, "forbidden_modules": c.forbidden_modules,
+            "segment_names": list(c.segment_names),
+            "segment_statements": list(c.segment_statements),
+            "segment_theorems": list(c.segment_theorems),
+            "segment_modules": list(c.segment_modules),
+        }
+    if node.created:
+        doc["created"] = node.created
+    if node.updated:
+        doc["updated"] = node.updated
+    # List field
+    if node.depends_on:
+        doc["depends_on"] = list(node.depends_on)
+    else:
+        doc["depends_on"] = []
+    # Nested tables
+    if node.proof is not None:
+        doc["proof"] = {
+            "artifact": node.proof.artifact,
+            "artifact_kind": node.proof.artifact_kind,
+            "closure_clean": node.proof.closure_clean,
+            "via": node.proof.via,
+        }
+        if node.proof.fidelity_note:
+            doc["proof"]["fidelity_note"] = node.proof.fidelity_note
+    if node.readback is not None:
+        doc["readback"] = {
+            "auditor": node.readback.auditor,
+            "date": node.readback.date,
+            "text": node.readback.text,
+        }
+        # Provenance keys are emitted only when set, so a read-back that predates them
+        # round-trips byte-for-byte (the migration commit is the one place they appear).
+        if node.readback.auditor_identity:
+            doc["readback"]["auditor_identity"] = node.readback.auditor_identity
+        if node.readback.auditor_session:
+            doc["readback"]["auditor_session"] = node.readback.auditor_session
+        if node.readback.independence:
+            doc["readback"]["independence"] = node.readback.independence
+    if node.author is not None:
+        doc["author"] = {
+            "date": node.author.date,
+            "identity": node.author.identity,
+            "session": node.author.session,
+        }
+    if node.grant is not None:
+        doc["grant"] = {
+            "artifact_sha256": node.grant.artifact_sha256,
+            "date": node.grant.date,
+            "gate_version": node.grant.gate_version,
+            "identity": node.grant.identity,
+            "session": node.grant.session,
+            "statement_sha256": node.grant.statement_sha256,
+        }
+    if node.comparator is not None:
+        doc["comparator"] = {
+            "artifact_sha256": node.comparator.artifact_sha256,
+            "date": node.comparator.date,
+            "run_id": node.comparator.run_id,
+            "theorem": node.comparator.theorem,
+        }
+        if node.comparator.run_url:
+            doc["comparator"]["run_url"] = node.comparator.run_url
+        if node.comparator.second_kernel != "nanoda":
+            doc["comparator"]["second_kernel"] = node.comparator.second_kernel
+        for _f in ("job_id", "job_url", "kernel_mode", "judged_head_sha", "log_check",
+                   "head_check"):
+            if getattr(node.comparator, _f):
+                doc["comparator"][_f] = getattr(node.comparator, _f)
+        if node.comparator.judge_mode:
+            doc["comparator"]["judge_mode"] = node.comparator.judge_mode
+            doc["comparator"]["parts"] = list(node.comparator.parts)
+    if node.ci_record is not None:
+        c = node.ci_record
+        doc["ci_record"] = {
+            "artifact_sha256": c.artifact_sha256, "conclusion": c.conclusion, "date": c.date,
+            "head_sha": c.head_sha, "job": c.job, "run_id": c.run_id, "workflow": c.workflow,
+        }
+        if c.run_url:
+            doc["ci_record"]["run_url"] = c.run_url
+    return doc
+
+
+def _doc_to_node(doc: dict, path: Path) -> Node:
+    try:
+        proof = None
+        if "proof" in doc:
+            p = doc["proof"]
+            proof = Proof(
+                artifact=p["artifact"],
+                artifact_kind=p["artifact_kind"],
+                via=p["via"],
+                closure_clean=p.get("closure_clean", False),
+                fidelity_note=p.get("fidelity_note", ""),
+            )
+        readback = None
+        if "readback" in doc:
+            r = doc["readback"]
+            readback = Readback(
+                text=r["text"], auditor=r["auditor"], date=r["date"],
+                auditor_identity=r.get("auditor_identity", ""),
+                auditor_session=r.get("auditor_session", ""),
+                independence=r.get("independence", ""),
+            )
+        author = None
+        if "author" in doc:
+            a = doc["author"]
+            author = Author(identity=a["identity"], session=a["session"], date=a["date"])
+        grant = None
+        if "grant" in doc:
+            g = doc["grant"]
+            grant = Grant(
+                artifact_sha256=g["artifact_sha256"],
+                statement_sha256=g["statement_sha256"],
+                gate_version=g["gate_version"],
+                date=g["date"],
+                identity=g["identity"],
+                session=g["session"],
+            )
+        comparator = None
+        if "comparator" in doc:
+            c = doc["comparator"]
+            comparator = ComparatorRecord(
+                run_id=str(c["run_id"]), date=c["date"],
+                artifact_sha256=c["artifact_sha256"], theorem=c["theorem"],
+                run_url=c.get("run_url", ""),
+                second_kernel=c.get("second_kernel", "nanoda"),
+                job_id=str(c.get("job_id", "")), job_url=c.get("job_url", ""),
+                kernel_mode=c.get("kernel_mode", ""),
+                judged_head_sha=c.get("judged_head_sha", ""),
+                log_check=c.get("log_check", ""), head_check=c.get("head_check", ""),
+                judge_mode=c.get("judge_mode", ""), parts=tuple(c.get("parts", ())),
+            )
+        ci_record = None
+        if "ci_record" in doc:
+            c = doc["ci_record"]
+            ci_record = CIRecord(
+                workflow=c["workflow"], job=c["job"], run_id=str(c["run_id"]),
+                head_sha=c["head_sha"], artifact_sha256=c["artifact_sha256"],
+                conclusion=c["conclusion"], date=c["date"], run_url=c.get("run_url", ""),
+            )
+        compose = None
+        if "compose" in doc:
+            c = doc["compose"]
+            compose = ComposeSpec(
+                module=c["module"], theorem=c["theorem"],
+                forbidden_modules=c["forbidden_modules"],
+                segment_names=tuple(c["segment_names"]),
+                segment_statements=tuple(c["segment_statements"]),
+                segment_theorems=tuple(c["segment_theorems"]),
+                segment_modules=tuple(c["segment_modules"]),
+            )
+        depends_on = tuple(doc.get("depends_on", []))
+        return Node(
+            name=doc["name"],
+            title=doc["title"],
+            kind=doc["kind"],
+            status=doc["status"],
+            depends_on=depends_on,
+            statement_module=doc["statement_module"],
+            source=doc.get("source", ""),
+            proof=proof,
+            readback=readback,
+            refutation_statement=doc.get("refutation_statement", ""),
+            deprecated_reason=doc.get("deprecated_reason", ""),
+            created=doc.get("created", ""),
+            updated=doc.get("updated", ""),
+            author=author,
+            grant=grant,
+            comparator=comparator,
+            requires_ci_job=doc.get("requires_ci_job", ""),
+            ci_record=ci_record,
+            heavy_certificates=bool(doc.get("heavy_certificates", False)),
+            judge_via=_judge_via(doc.get("judge_via", "")),
+            compose=compose,
+            extra={k: v for k, v in doc.items() if k not in _MODELLED_NODE_KEYS} or None,
+        )
+    except (KeyError, SchemaError) as exc:
+        raise SchemaError(f"{path}: {exc}") from exc
+
+
+
+def atomic_write_text(path: Path, text: str) -> None:
+    """Write `text` to `path` so a concurrent reader sees either the old file or the new one.
+
+    WHY (audit 2026-09-19). Every writer here was a bare `write_text`, which truncates in
+    place. Under two concurrent writers and two readers, 1325 of 8000 reads saw an EMPTY
+    file and 399 saw torn TOML. Most torn reads fail loudly -- but not all: an exhaustive
+    byte-prefix scan of all 66 live node files found 201 truncation points that load as a
+    VALID `Node` with a field silently missing, `readback` among them in 64 of the 66 files.
+
+    That is the dangerous shape, because `_load_and_save` reads, replaces one field, and
+    writes back. A session that reads a torn file mid-write and saves it PERMANENTLY erases
+    the read-back -- the record that gates `promote_to_open` -- with no error anywhere.
+
+    `os.replace` is atomic on POSIX and Windows, so a reader never observes a partial file.
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+def save_node(node: Node, path: Path) -> None:
+    path = Path(path)
+    doc = _node_to_doc(node)
+    atomic_write_text(path, dumps_toml(doc))
+
+
+def load_node(path: Path) -> Node:
+    path = Path(path)
+    try:
+        text = path.read_text()
+    except OSError as exc:
+        raise SchemaError(f"{path}: cannot read: {exc}") from exc
+    doc = loads_toml(text)
+    return _doc_to_node(doc, path)
+
+
+# ---------------------------------------------------------------------------
+# Manifest I/O
+# ---------------------------------------------------------------------------
+
+def _manifest_to_doc(m: MissionManifest) -> dict:
+    doc: dict = {
+        "name": m.name,
+        "title": m.title,
+        "description": m.description,
+        "goal_node": m.goal_node,
+        "environment_mathlib_rev": m.environment_mathlib_rev,
+        "environment_toolchain": m.environment_toolchain,
+        "sources": list(m.sources),
+    }
+    return doc
+
+
+def _doc_to_manifest(doc: dict, path: Path) -> MissionManifest:
+    try:
+        return MissionManifest(
+            name=doc["name"],
+            title=doc["title"],
+            description=doc["description"],
+            goal_node=doc["goal_node"],
+            environment_toolchain=doc["environment_toolchain"],
+            environment_mathlib_rev=doc["environment_mathlib_rev"],
+            sources=tuple(doc.get("sources", [])),
+        )
+    except (KeyError, SchemaError) as exc:
+        raise SchemaError(f"{path}: {exc}") from exc
+
+
+def save_manifest(manifest: MissionManifest, path: Path) -> None:
+    path = Path(path)
+    atomic_write_text(path, dumps_toml(_manifest_to_doc(manifest)))
+
+
+def load_manifest(path: Path) -> MissionManifest:
+    path = Path(path)
+    try:
+        text = path.read_text()
+    except OSError as exc:
+        raise SchemaError(f"{path}: cannot read: {exc}") from exc
+    return _doc_to_manifest(loads_toml(text), path)
+
+
+# ---------------------------------------------------------------------------
+# Claim I/O
+# ---------------------------------------------------------------------------
+
+def _claim_to_doc(c: Claim) -> dict:
+    doc: dict = {
+        "node": c.node,
+        "session": c.session,
+        "started": c.started,
+        "ttl_hours": c.ttl_hours,
+    }
+    if c.note:
+        doc["note"] = c.note
+    if c.superseded:
+        doc["superseded"] = c.superseded
+    return doc
+
+
+def _doc_to_claim(doc: dict, path: Path) -> Claim:
+    try:
+        return Claim(
+            node=doc["node"],
+            session=doc["session"],
+            started=doc["started"],
+            ttl_hours=int(doc.get("ttl_hours", 24)),
+            note=doc.get("note", ""),
+            superseded=doc.get("superseded", ""),
+        )
+    except (KeyError, SchemaError) as exc:
+        raise SchemaError(f"{path}: {exc}") from exc
+
+
+def save_claim(claim: Claim, path: Path) -> None:
+    path = Path(path)
+    atomic_write_text(path, dumps_toml(_claim_to_doc(claim)))
+
+
+def load_claim(path: Path) -> Claim:
+    path = Path(path)
+    try:
+        text = path.read_text()
+    except OSError as exc:
+        raise SchemaError(f"{path}: cannot read: {exc}") from exc
+    return _doc_to_claim(loads_toml(text), path)

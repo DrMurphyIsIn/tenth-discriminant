@@ -1,0 +1,765 @@
+"""telperion: certify rational-inequality families in sympy, validate them in
+exact arithmetic, and batch-emit kernel-checked Lean 4.
+
+Trust model: the generator is UNTRUSTED by design — the Lean kernel is the sole
+trusted component.  A defective certificate manifests as a compile failure,
+never a false theorem.  See docs/METHODOLOGY.md.
+"""
+
+__version__ = "0.1.6"
+
+from .certify import (  # noqa: F401
+    CertificationError,
+    CertifiedFamily,
+    PolyaCertificate,
+    certify,
+    emitter_for,
+    polya_certify,
+)
+from .emit import BilinearBoxEmitter, DirectPolyaEmitter  # noqa: F401
+from .emit_facts import ExactFactEmitter, IdentityEmitter, fact_pow, int_expr_lean  # noqa: F401
+from .emit_adapters import (  # noqa: F401
+    CaseDispatchAssemblyEmitter,
+    CustomAssemblyEmitter,
+    SubdivisionGlueEmitter,
+    Reparam,
+    ReparamAdapterEmitter,
+)
+from .parsing import UnsafeExpressionError, safe_parse_expr  # noqa: F401
+from .tails import TailFrom, TailNatEmitter, tail_family  # noqa: F401
+from .cache import DiskCache, memoize  # noqa: F401
+from .cone import ConeCombination, FarkasDual, cone_combination, cone_decide  # noqa: F401
+from .unimodal import UnimodalityCertificate, unimodal_certificate  # noqa: F401
+from .interval import interval_family  # noqa: F401
+from .varmap import MapSpec, VarMapAdapterEmitter  # noqa: F401
+from .dichotomy import DichotomyGlueEmitter  # noqa: F401
+from .certify import profile_report, restrict_instances  # noqa: F401
+from .padic import (  # noqa: F401
+    ADELIC_NOTE,
+    SPLIT_LEMMA,
+    TELESCOPE_LEMMA,
+    ValuationFact,
+    padic_decompose,
+    padic_val,
+    padic_val_frac,
+    valuation_facts_lean,
+)
+from .verdict import (  # noqa: F401
+    FloatAtDecisionPoint, ProbeVerdict, Verdict, decide, null, obstructed,
+    probe, re_derivation, require_exact, validated,
+)
+from .faithfulness import faithfulness_check, seeded_rational_points  # noqa: F401
+from .circularity import circularity_check  # noqa: F401
+from .upgradability import UNBOUNDED, upgradability_check, upgradability_of_family  # noqa: F401
+from .limit_probe import limit_probe  # noqa: F401
+from .super_solution import super_solution_check  # noqa: F401
+from .discharging import discharging_check  # noqa: F401
+from .witnessed_bound import witnessed_bound_check  # noqa: F401
+from .bench import ScalingResult, scaling_probe, time_op  # noqa: F401
+from .emit_sos import SOSEmitter, sos_family  # noqa: F401
+from .emit_bracket import BracketSpec, IntervalBracketEmitter, bracket_family  # noqa: F401
+from .emit_padic import PadicValuationEmitter, valuation_family  # noqa: F401
+# BG-derived first-class emitters (2026-08-19).
+from .emit_cone import ConeFarkasEmitter, cone_family  # noqa: F401
+from .emit_tangent import TangentSumEmitter, tangent_certificate, tangent_sum_family  # noqa: F401
+from .emit_cs import CauchySchwarzEmitter, cauchy_schwarz_family, cs_certificate  # noqa: F401
+from .emit_hermitian_moment import (  # noqa: F401
+    TwoMomentCountEmitter, two_moment_count_certificate, two_moment_count_family,
+    RankTraceScalarEmitter, rank_trace_scalar_certificate, rank_trace_scalar_family,
+)
+from .emit_li_positivity import (  # noqa: F401
+    LiPositivityLadderEmitter, li_rung_certificate, li_positivity_family,
+)
+from .emit_robin_growth import (  # noqa: F401
+    RobinGrowthEmitter, robin_growth_certificate, robin_growth_family,
+    robin_rhs_lower_bound, sigma_exact,
+)
+from .emit_baez_duarte import (  # noqa: F401
+    BaezDuarteEmitter, baez_duarte_certificate, baez_duarte_family,
+    baez_duarte_upper_bound, optimal_coeffs,
+)
+from .emit_lehmer_pair import (  # noqa: F401
+    LehmerPairEmitter, lehmer_pair_certificate, lehmer_pair_family,
+    lehmer_pair_quality, find_closest_pair,
+)
+from .emit_bagchi_recurrence import (  # noqa: F401
+    BagchiRecurrenceEmitter, bagchi_recurrence_certificate, bagchi_recurrence_family,
+    bagchi_grid_max, scan_best_shift,
+)
+from .emit_bragg_floor import (  # noqa: F401
+    BraggFloorEmitter, BraggFloorCert, bragg_floor_certificate,
+    bragg_floor_family, certify_bragg_floor_point,
+    bragg_below_floor_refutes_rh_lean,
+)
+from .emit_window_form_floor import (  # noqa: F401
+    WindowFormFloorEmitter, WindowFormFloorCert, WindowFormFloorData,
+    window_form_floor_certificate, window_form_floor_family,
+    certify_window_form_floor_point, window_form_floor_prelude_lean,
+    comb_mass,
+)
+from .emit_interval_gram_inertia import (  # noqa: F401
+    IntervalGramInertiaEmitter, IntervalGramInertiaCert,
+    interval_gram_inertia_certificate, interval_gram_inertia_family,
+    certify_interval_gram_inertia_point, interval_gram_inertia_prelude_lean,
+)
+from .emit_weil_form_enclosure import (  # noqa: F401
+    WeilFormEnclosureEmitter, WeilFormEnclosureCert, WeilFormEnclosureData, WeilBox,
+    weil_form_enclosure_certificate, weil_form_enclosure_family,
+    certify_weil_form_enclosure_point, weil_form_prelude_lean,
+)
+from .emit_exp_enclosure import (  # noqa: F401
+    ExpEnclosureEmitter, ExpEnclosureCert, exp_enclosure_certificate,
+    exp_enclosure_family, certify_exp_enclosure_point, taylor_box, taylor_parts,
+)
+from .emit_exp_threshold import (  # noqa: F401
+    ExpThresholdEmitter, ExpThresholdCert, ExpThresholdStep, exp_threshold_certificate,
+    exp_threshold_family, certify_exp_threshold_point,
+)
+from .emit_enclosure_tree import (  # noqa: F401
+    EnclosureTreeEmitter, EnclosureTreeCert, EnclosureTreeRefusal, LogSqrtCert,
+    enclosure_tree_certificate, enclosure_tree_family, certify_enclosure_tree_point,
+    log_sqrt_certificate,
+)
+from .emit_mobius_tangent_cell import (  # noqa: F401
+    MobiusTangentCellEmitter, MobiusTangentCellCert, MobiusTangentProblem,
+    MobiusTangentRefusal, mobius_tangent_problem, problem_from_sides,
+    mobius_tangent_cell_certificate, mobius_tangent_cell_family,
+    certify_mobius_tangent_cell_point,
+)
+from .emit_concave_pooled_induction import (  # noqa: F401
+    ConcavePooledInductionEmitter, ConcavePooledCert, concave_pooled_certificate,
+    concave_pooled_induction_family, certify_concave_pooled_induction_point,
+)
+from .emit_affine_hull_dominance import (  # noqa: F401
+    AffineHullDominanceEmitter, HullDominanceCert, HullRecursion, hull_dominance_certificate,
+    hull_recursion, affine_hull_dominance_family, certify_affine_hull_dominance_point,
+)
+from .emit_preordering_multiplier import (  # noqa: F401
+    PreorderingMultiplierEmitter, PreorderingMultiplierCert, PreorderingRefusal,
+    PreorderingObstruction, LocusCertificate, ComplexFace,
+    Generator as PreorderingGenerator, preordering_multiplier_certificate,
+    preordering_multiplier_family, certify_preordering_multiplier_point,
+    find_preordering_terms, locate_negative_witness, derive_locus, solve_nonneg_exact,
+    obstruction_refutation_lean, chebyshev_pair_polynomial, li_box_rung_target,
+    li_disk_generators,
+)
+from .emit_complex_re_im_split import (  # noqa: F401
+    ComplexReImSplitEmitter, ComplexReImSplitCert, complex_re_im_split_certificate,
+    complex_re_im_split_family, certify_complex_re_im_split_point,
+)
+from .emit_zero_sum_majorant import (  # noqa: F401
+    ZeroSumMajorantEmitter, ZeroSumMajorantCert, zero_sum_majorant_certificate,
+    zero_sum_majorant_family, certify_zero_sum_majorant_point, zsm_symbols,
+)
+from .emit_gap_budget_multiplicity import (  # noqa: F401
+    GapBudgetMultiplicityEmitter, GapBudgetCert, GapBudgetRefusal, gb_log, gb_logk,
+    gap_budget_multiplicity_certificate, gap_budget_multiplicity_family,
+    certify_gap_budget_multiplicity_point,
+)
+from .emit_single_crossing_ladder import (  # noqa: F401
+    SingleCrossingLadderEmitter, SingleCrossingCert, SingleCrossingRefusal,
+    single_crossing_ladder_certificate, single_crossing_ladder_family,
+    certify_single_crossing_ladder_point,
+)
+from .emit_factored_endpoint_enclosure import (  # noqa: F401
+    FactoredEndpointEnclosureEmitter, FactoredEndpointCert, FactoredEndpointRefusal,
+    factored_endpoint_certificate, factored_endpoint_enclosure_family,
+    certify_factored_endpoint_enclosure_point,
+)
+from .emit_typed_cavity_induction import (  # noqa: F401
+    TypedCavityInductionEmitter, TypedCavityCert, TypedCavityRefusal,
+    typed_cavity_certificate, typed_cavity_induction_family,
+    certify_typed_cavity_induction_point,
+)
+from .emit_anchored_monotone_extension import (  # noqa: F401
+    AnchoredMonotoneExtensionEmitter, AnchoredMonotoneCert, AnchoredMonotoneRefusal,
+    anchored_monotone_extension_certificate, anchored_monotone_extension_family,
+    certify_anchored_monotone_extension_point,
+)
+from .emit_enclosure_fold import (  # noqa: F401
+    EnclosureIntervalFoldEmitter, enclosure_interval_fold_certificate,
+    enclosure_interval_fold_family,
+)
+from .emit_reflection_halving import (  # noqa: F401
+    ReflectionHalvingEmitter, reflection_halving_certificate, reflection_halving_family,
+)
+from .emit_spacing_tail import (  # noqa: F401
+    SpacingTailBoundEmitter, spacing_tail_bound_certificate, spacing_tail_bound_family,
+)
+from .emit_autocorr_support import (  # noqa: F401
+    AutocorrSupportEmitter, autocorr_support_certificate, autocorr_support_family,
+)
+from .emit_rayleigh_gram import (  # noqa: F401
+    RayleighGramEmitter, rayleigh_gram_certificate, rayleigh_gram_family,
+)
+from .emit_polytope_moment import (  # noqa: F401
+    PolytopeMomentEmitter, polytope_moment_certificate, polytope_moment_family,
+)
+from .emit_admissible_tuple import (  # noqa: F401
+    AdmissibleTupleEmitter, admissible_tuple_certificate, admissible_tuple_family,
+)
+from .emit_lee_yang import (  # noqa: F401
+    LeeYangStablePairEmitter, lee_yang_stable_pair_certificate, lee_yang_stable_pair_family,
+)
+from .palomar_mine import (  # noqa: F401
+    classify_entry, mine, mining_report, poll, fetch_registry,
+    parse_feed, fetch_feed, MiningCandidate, TOPIC_KEYWORDS, SHAPE_RULES,
+)
+from .source_mining import (  # noqa: F401
+    Source, LEAD_FORMALIZED, LEAD_RAW, mine_source, poll_source, source_report,
+    build_source, ALL_SOURCES, arxiv_source, parse_arxiv_atom,
+)
+from .emit_psd_form import PSDFormEmitter, psd_certificate, psd_form_family  # noqa: F401
+from .emit_xor3 import Xor3MomentPSDEmitter, xor3_certificate, xor3_family  # noqa: F401
+from .emit_ns_ledger import (  # noqa: F401
+    AffineLedgerEmitter, affine_ledger_certificate, affine_ledger_family,
+)
+from .emit_quadratic_irrational import (  # noqa: F401
+    QuadraticIrrationalEmitter, quadratic_irrational_certificate,
+    quadratic_irrational_family,
+)
+from .emit_gevrey_majorant import (  # noqa: F401
+    GevreyMajorantEmitter, gevrey_majorant_certificate, gevrey_majorant_family,
+)
+from .emit_sqrt_root_elimination import (  # noqa: F401
+    SqrtRootEliminationEmitter, sqrt_root_elim_certificate,
+    sqrt_root_elimination_family,
+)
+from .emit_continuous_barrier import (  # noqa: F401
+    ContinuousBarrierEmitter, continuous_barrier_certificate,
+    continuous_barrier_family,
+)
+from .emit_log_eps_optimize import (  # noqa: F401
+    LogEpsOptimizeEmitter, log_eps_optimize_certificate, log_eps_optimize_family,
+)
+from .emit_logconvex_interp import (  # noqa: F401
+    LogConvexInterpEmitter, logconvex_interp_certificate, logconvex_interp_family,
+)
+from .emit_finite_prefix_absorption import (  # noqa: F401
+    FinitePrefixAbsorptionEmitter, finite_prefix_absorption_certificate,
+    finite_prefix_absorption_family,
+)
+from .emit_coefficient_mass import (  # noqa: F401
+    CoefficientMassEmitter, coefficient_mass_certificate, coefficient_mass_family,
+)
+from .emit_multilinear_perturbation import (  # noqa: F401
+    MultilinearPerturbationEmitter, multilinear_perturbation_certificate,
+    multilinear_perturbation_family,
+)
+from .emit_poly_geom_closure import (  # noqa: F401
+    PolyGeomClosureEmitter, poly_geom_closure_certificate, poly_geom_closure_family,
+)
+from .emit_twopoint_moment import (  # noqa: F401
+    TwoPointMomentEmitter, twopoint_moment_certificate, twopoint_moment_family,
+)
+from .emit_two_row_solve import (  # noqa: F401
+    TwoRowSolveEmitter, two_row_solve_certificate, two_row_solve_family,
+)
+from .emit_ratio_telescope import (  # noqa: F401
+    RatioTelescopeEmitter, ratio_telescope_certificate, ratio_telescope_family,
+)
+from .emit_monomial_ladder import (  # noqa: F401
+    MonomialLadderEmitter, monomial_ladder_certificate, monomial_ladder_family,
+)
+from .emit_rpow_budget import (  # noqa: F401
+    RpowBudgetEmitter, rpow_budget_certificate, rpow_budget_family,
+)
+from .emit_comparability_envelope import (  # noqa: F401
+    ComparabilityEnvelopeEmitter, comparability_envelope_certificate,
+    comparability_envelope_family,
+)
+from .emit_discrete_moment import (  # noqa: F401
+    DiscreteMomentEmitter, discrete_moment_certificate, discrete_moment_family,
+)
+from .emit_poly_exp_absorption import (  # noqa: F401
+    PolyExpAbsorptionEmitter, poly_exp_absorption_certificate,
+    poly_exp_absorption_family,
+)
+from .emit_exp_laurent_identity import (  # noqa: F401
+    ExpLaurentIdentityEmitter, exp_laurent_certificate,
+    exp_laurent_identity_family,
+)
+from .emit_graded_convolution import (  # noqa: F401
+    GradedConvolutionEmitter, graded_convolution_certificate,
+    graded_convolution_family,
+)
+from .emit_power_tower import (  # noqa: F401
+    PowerTowerEmitter, power_tower_certificate, power_tower_family,
+)
+from .emit_partition_composition import (  # noqa: F401
+    PartitionCompositionEmitter, partition_composition_certificate,
+    partition_composition_family,
+)
+from .emit_regular_word import (  # noqa: F401
+    RegularWordEmitter, regular_word_certificate, regular_word_family,
+)
+from .emit_low_order_tail import (  # noqa: F401
+    LowOrderTailEmitter, low_order_tail_certificate, low_order_tail_family,
+)
+from .emit_eventual_threshold import (  # noqa: F401
+    EventualThresholdEmitter, eventual_threshold_certificate,
+    eventual_threshold_family,
+)
+from .emit_bilinear_corner import (  # noqa: F401
+    BilinearCornerBoxEmitter, bilinear_corner_certificate, bilinear_corner_family,
+)
+from .emit_algebraic_bracket import (  # noqa: F401
+    AlgebraicBracketEmitter, algebraic_bracket_certificate, algebraic_bracket_family,
+)
+from .emit_halfplane_disk import (  # noqa: F401
+    HalfPlaneDiskEmitter, halfplane_disk_certificate, halfplane_disk_family,
+)
+from .emit_finite_argmax import (  # noqa: F401
+    FiniteArgmaxMarginEmitter, finite_argmax_certificate, finite_argmax_family,
+)
+from .emit_magnitude_split import (  # noqa: F401
+    MagnitudeSplitBoundEmitter, magnitude_split_certificate, magnitude_split_family,
+)
+from .emit_disk_coord import (  # noqa: F401
+    DiskCoordBoundsEmitter, disk_coord_certificate, disk_coord_family,
+)
+from .emit_cauchy_deriv import (  # noqa: F401
+    CauchyDerivBoundEmitter, cauchy_deriv_certificate, cauchy_deriv_family,
+)
+from .emit_logderiv_region import (  # noqa: F401
+    LogDerivRegionCoreEmitter, logderiv_region_certificate, logderiv_region_family,
+)
+from .emit_pe_duality import (  # noqa: F401
+    PseudoExpectationDualityEmitter, pe_duality_certificate, pe_duality_family,
+)
+from .emit_order_balance import (  # noqa: F401
+    OrderBalanceEmitter, order_balance_certificate, order_balance_family,
+)
+from .emit_lfunction_product import (  # noqa: F401
+    LFunctionProductEmitter, lfunction_product_certificate, lfunction_product_family,
+)
+from .emit_parametric_holomorphy import (  # noqa: F401
+    ParametricHolomorphyEmitter, parametric_holomorphy_certificate, parametric_holomorphy_family,
+)
+from .emit_symmetric_quad import (  # noqa: F401
+    SymmetricQuadFormEmitter, symmetric_quad_certificate, symmetric_quad_family,
+)
+from .emit_polytope_max import (  # noqa: F401
+    PolytopeMaxMonotoneEmitter, polytope_max_certificate, polytope_max_family,
+)
+from .emit_second_order import (  # noqa: F401
+    SecondOrderRecurrenceEmitter, second_order_certificate, second_order_family,
+)
+from .emit_integrality_gate import (  # noqa: F401
+    IntegralityGateEmitter, integrality_gate_certificate, integrality_gate_family,
+)
+from .emit_domination_ratio import (  # noqa: F401
+    RecursiveDominationRatioEmitter, domination_ratio_certificate, domination_ratio_family,
+)
+from .emit_achievability import (  # noqa: F401
+    AchievabilityClosureEmitter, achievability_certificate, achievability_family,
+)
+from .emit_separable_convex import (  # noqa: F401
+    SeparableConvexExtremumEmitter, separable_convex_certificate, separable_convex_family,
+)
+from .emit_scale_invariance import (  # noqa: F401
+    ScaleInvarianceEmitter, scale_invariance_certificate, scale_invariance_family,
+)
+from .emit_concave_stationary_max import (  # noqa: F401
+    ConcaveStationaryMaxEmitter, concave_stationary_max_certificate, concave_stationary_max_family,
+)
+from .emit_symmetric_quad_d2 import (  # noqa: F401
+    SymmetricQuadD2Emitter, symmetric_quad_d2_certificate, symmetric_quad_d2_family,
+)
+from .emit_tight_cap_enclosure import (  # noqa: F401
+    TightCapEnclosureEmitter, tight_cap_enclosure_certificate,
+    tight_cap_enclosure_family, certify_tight_cap_enclosure_point,
+)
+from .emit_affine_param_endpoint import (  # noqa: F401
+    AffineParamEndpointEmitter, affine_param_endpoint_certificate,
+    affine_param_endpoint_family, certify_affine_param_endpoint_point,
+)
+from .emit_recursion_closure import (  # noqa: F401
+    RecursionClosureEmitter, recursion_closure_certificate,
+    recursion_closure_family, certify_recursion_closure_point,
+)
+from .emit_cavity_exchange import (  # noqa: F401
+    CavityExchangeEmitter, cavity_exchange_certificate,
+    cavity_exchange_family, certify_cavity_exchange_point,
+)
+from .emit_per_size_dominance_sweep import (  # noqa: F401
+    PerSizeDominanceSweepEmitter, per_size_dominance_sweep_certificate,
+    per_size_dominance_sweep_family, certify_per_size_dominance_sweep_point,
+)
+from .emit_curvature_boundary import (  # noqa: F401
+    CurvatureBoundaryEmitter, curvature_boundary_certificate,
+    curvature_boundary_family, certify_curvature_boundary_point,
+)
+from .emit_transcendental_enclosure import (  # noqa: F401
+    TranscendentalEnclosureEmitter, transcendental_enclosure_certificate,
+    transcendental_enclosure_family, certify_transcendental_enclosure_point,
+)
+from .emit_log_combination import (  # noqa: F401
+    LogCombinationEmitter, log_combination_certificate,
+    log_combination_family, certify_log_combination_point,
+)
+# dVP zero-free-region frontier atoms (2026-09-05).
+from .emit_bc_split import (  # noqa: F401
+    BCSplitEmitter, bc_split_certificate, bc_split_family, certify_bc_split_point,
+)
+from .emit_jensen_zero_count import (  # noqa: F401
+    JensenZeroCountEmitter, jensen_zero_count_certificate,
+    jensen_zero_count_family, certify_jensen_zero_count_point,
+)
+from .emit_sphere_bound import (  # noqa: F401
+    SphereBoundEmitter, sphere_bound_certificate,
+    sphere_bound_family, certify_sphere_bound_point,
+)
+from .emit_max_modulus import (  # noqa: F401
+    MaxModulusEmitter, max_modulus_certificate,
+    max_modulus_family, certify_max_modulus_point,
+)
+from .emit_unit_modulus_sos import (  # noqa: F401
+    UnitModulusSOSEmitter, UnitModulusCertificate, unit_modulus_certificate,
+    unit_modulus_sos_family, certify_unit_modulus_point,
+)
+from .emit_bc_deriv_re import (  # noqa: F401
+    BCDerivReEmitter, bc_deriv_re_certificate,
+    bc_deriv_re_family, certify_bc_deriv_re_point,
+)
+from .emit_entire_part_bound import (  # noqa: F401
+    EntirePartBoundEmitter, entire_part_bound_certificate,
+    entire_part_bound_family, certify_entire_part_bound_point,
+)
+from .emit_two_scale_separation import (  # noqa: F401
+    TwoScaleSeparationEmitter, two_scale_certificate,
+    two_scale_separation_family, certify_two_scale_separation_point,
+)
+from .emit_endpoint_geom_cap import (  # noqa: F401
+    EndpointGeomCapEmitter, endpoint_geom_cap_certificate,
+    endpoint_geom_cap_family, certify_endpoint_geom_cap_point,
+)
+# PROGRAM ANDÚRIL × MIRRORMERE emitters (2026-09-14): the campaign's four minted
+# certificate shapes promoted to first-class Telperion kinds.
+from .emit_bragg_amplitude import (  # noqa: F401
+    BraggAmplitudeEmitter, bragg_amplitude_certificate,
+    bragg_amplitude_family, certify_bragg_amplitude_point,
+)
+from .emit_defect_witness import (  # noqa: F401
+    DefectWitnessEmitter, defect_witness_certificate,
+    defect_witness_family, certify_defect_witness_point,
+)
+from .emit_selfinversive_rigidity import (  # noqa: F401
+    SelfInversiveRigidityEmitter, selfinversive_rigidity_certificate,
+    selfinversive_rigidity_family, certify_selfinversive_rigidity_point,
+)
+from .emit_leakage_dictionary import (  # noqa: F401
+    LeakageDictionaryEmitter, leakage_certificate,
+    leakage_dictionary_family, certify_leakage_dictionary_point,
+)
+from .emit_disjoint_discs import (  # noqa: F401
+    DisjointDiscsEmitter, disjoint_discs_certificate,
+    disjoint_discs_family, certify_disjoint_discs_point,
+)
+from .emit_twofreq_offline import (  # noqa: F401
+    TwoFreqOfflineEmitter, twofreq_offline_certificate,
+    twofreq_offline_family, certify_twofreq_offline_point,
+)
+from .emit_winding_box_zero import (  # noqa: F401
+    WindingBoxZeroEmitter, winding_box_zero_certificate,
+    winding_box_zero_family, certify_winding_box_zero_point,
+)
+from .emit_grid_modulus_nonvanishing import (  # noqa: F401
+    GridModulusNonvanishingEmitter, grid_modulus_nonvanishing_certificate,
+    grid_modulus_nonvanishing_family, certify_grid_modulus_nonvanishing_point,
+    register_backend,
+)
+# Flint-free emitter previously only imported via the flint-gated rh_jensen
+# modules, making sensitivity-registry discovery depend on whether python-flint
+# was installed.  Imported here unconditionally so the completeness/stray gates
+# see the same emitter set on every environment.
+from .emit_jensen_polynomial_hyperbolicity import (  # noqa: F401
+    JensenPolynomialHyperbolicityEmitter,
+)
+from .emit_far_pole_sum import (  # noqa: F401
+    FarPoleSumEmitter, far_pole_sum_certificate,
+    far_pole_sum_family, certify_far_pole_sum_point,
+)
+from .emit_herglotz_lower import (  # noqa: F401
+    HerglotzLowerEmitter, herglotz_lower_certificate,
+    herglotz_lower_family, certify_herglotz_lower_point,
+)
+from .emit_argument_principle import (  # noqa: F401
+    ArgumentPrincipleEmitter, argument_principle_certificate,
+    argument_principle_family, certify_argument_principle_point,
+)
+# Argument-principle companion atoms (2026-09-06): full (residue+Cauchy), rect (box), annulus (shell).
+from .emit_full_argument_principle import (  # noqa: F401
+    FullArgumentPrincipleEmitter, full_argument_principle_certificate,
+    full_argument_principle_family, certify_full_argument_principle_point,
+)
+from .emit_rect_argument_principle import (  # noqa: F401
+    RectArgumentPrincipleEmitter, rect_argument_principle_certificate,
+    rect_argument_principle_family, certify_rect_argument_principle_point,
+)
+from .emit_annulus_count import (  # noqa: F401
+    AnnulusCountEmitter, annulus_count_certificate,
+    annulus_count_family, certify_annulus_count_point,
+)
+# RH-in-a-box localization capstone (Stage 3, 2026-09-06): every zeta-zero in the box is on Re=1/2.
+from .emit_turing_band import (  # noqa: F401
+    TuringBandCertificate, TuringBandEmitter, certify_turing_band_point,
+    emit_turing_band_instantiation, turing_band_certificate, turing_band_family,
+)
+from .emit_box_localization import (  # noqa: F401
+    BoxLocalizationEmitter, box_localization_certificate,
+    box_localization_family, certify_box_localization_point,
+    choose_ball, emit_per_box_instantiation,
+)
+# Winding-number frontier (2026-09-06): Rouché heart (winding 0) + conditional box residue-sum.
+from .emit_slit_loop_winding_zero import (  # noqa: F401
+    SlitLoopWindingZeroEmitter, certify_slit_loop_winding_zero_point,
+    slit_loop_winding_zero_certificate, slit_loop_winding_zero_family,
+)
+from .emit_box_residue_sum import (  # noqa: F401
+    BoxResidueSumEmitter, box_residue_sum_certificate,
+    box_residue_sum_family, certify_box_residue_sum_point,
+)
+# The winding-NONZERO primitive (2026-09-06): ∮_∂rect (z-ρ)⁻¹ = 2πi, from scratch.
+from .emit_rect_winding import (  # noqa: F401
+    RectWindingEmitter, certify_rect_winding_point,
+    rect_winding_certificate, rect_winding_family,
+)
+# dVP zero-factor magnitude bound (2026-09-06): two-scale log-product boundary bound.
+from .emit_log_product_bound import (  # noqa: F401
+    LogProductBoundEmitter, certify_log_product_bound_point,
+    log_product_bound_certificate, log_product_bound_family,
+)
+# Analytic-cert-structures build (2026-09-05): box-robust emitter (#2).
+from .emit_box_robust import (  # noqa: F401
+    BoxRobustEmitter, BoxRobustPayload, box_min_lower_bound,
+    box_robust_family, certify_box_robust_point,
+)
+# Analytic-cert-structures build (2026-09-05): hyperbolicity emitter (#3, d=2).
+from .emit_hyperbolicity import (  # noqa: F401
+    HyperbolicityEmitter, HyperbolicityPayload,
+    hyperbolicity_family, certify_hyperbolicity_point,
+)
+# Zeta-zero-localization Stage 1 core (2026-09-06): xi_line_zeros emitter.
+from .emit_xi_line_zeros import (  # noqa: F401
+    XiLineZerosEmitter, XiLineZerosPayload, sign_change_count,
+    xi_line_zeros_family, certify_xi_line_zeros_point,
+)
+# Zeta-box-localization Stage 2A (2026-09-06): winding_count emitter (kernel).
+from .emit_winding_count import (  # noqa: F401
+    WindingCountEmitter, winding_count_certificate, winding_count_family,
+    certify_winding_count_point,
+    SegmentWindingCertificate, segment_winding_certificate,
+)
+# Zeta-box-localization Stage 2/3 (2026-09-06): segment (ball) enclosures.
+from .arb_enclosure import (  # noqa: F401
+    enclose_lambda_segment, enclose_lambda_segments,
+    enclose_zeta_segment, enclose_zeta_segments,
+)
+# Analytic-cert-structures build (2026-09-05): turan-box log-concavity emitter (#5).
+from .emit_turan_box import turan_box_family  # noqa: F401
+from .emit_unimodal import (  # noqa: F401
+    UNIMODAL_PRELUDE, UnimodalMaxEmitter, unimodal_max_family,
+)
+from .emit_telescope import (  # noqa: F401
+    TELESCOPE_PRELUDE, TelescopingPotentialEmitter, telescope_family,
+)
+from .emit_lattice_box import LatticeBoxEmitter, lattice_box_family  # noqa: F401
+from .emit_logconcave import LogConcaveSinglePointEmitter, logconcave_family  # noqa: F401
+from .emit_monotone_tail import MonotoneRatioTailEmitter, monotone_tail_family  # noqa: F401
+from .emit_interlacing import InterlacingEmitter, interlacing_family  # noqa: F401
+# Tier-2 literature-derived first-class emitters (2026-08-19).
+from .emit_constrained_sos import ConstrainedSOSEmitter, putinar_family  # noqa: F401
+from .sos_sdp import find_putinar_certificate  # noqa: F401
+from .emit_wz import WZ_PRELUDE, WZEmitter, wz_family  # noqa: F401
+# Tier-3 literature-derived first-class emitters (2026-08-20).
+from .emit_handelman import (  # noqa: F401
+    HandelmanEmitter, find_handelman_certificate, handelman_family,
+)
+from .emit_nullstellensatz import (  # noqa: F401
+    NullstellensatzEmitter, nullstellensatz_family,
+)
+# Tier-4 refutation emitter (2026-08-20).
+from .emit_infeasible import (  # noqa: F401
+    InfeasibilityEmitter, find_refutation, infeasible_family,
+)
+# Tier-5 beyond-positivity emitters (2026-08-20).
+from .emit_consequence import ConsequenceEmitter, consequence_family  # noqa: F401
+from .emit_rational_identity import RationalIdentityEmitter, rational_identity_family  # noqa: F401
+from .emit_finite_decide import (FiniteDecideEmitter, finite_decide_family,  # noqa: F401
+    ForallIn, Imp, Cmp, Var, Lit, Xor, Pop, Lookup, Mul, NatTable, PairTable)
+from .emit_fwd_telescope import FwdTelescopeEmitter, fwd_telescope_family  # noqa: F401
+from .emit_sos_refutation import (  # noqa: F401
+    SOSRefutationEmitter, sos_refutation_family,
+)
+from .emit_real_nullstellensatz import (  # noqa: F401
+    RealNullstellensatzEmitter, find_real_nullstellensatz_certificate,
+    real_nullstellensatz_family,
+)
+# Tier-6 integer-arithmetic emitter (2026-08-20): VIPR-style Chvatal-Gomory.
+from .emit_cg_round import (  # noqa: F401
+    CGRoundEmitter, certify_cg_round_point, cg_round_family,
+)
+# SOS-refutation + real-Nullstellensatz SDP finders (Putinar finder lives in
+# sos_sdp; 2026-08-20).
+from .sdp_finder import find_real_nullstellensatz, find_sos_refutation  # noqa: F401
+# Tier-7 runway emitters (2026-08-20).
+from .emit_bernstein import (  # noqa: F401
+    BernsteinEmitter, bernstein_family, find_bernstein_certificate,
+)
+from .emit_rational_sos import (  # noqa: F401
+    RationalSOSEmitter, find_rational_sos, rational_sos_family,
+)
+# Facial-positivity emitter (2026-08-20): Castle-Powers-Reznick Polya-with-zeros
+# — the tie-safe homogeneous lift (zeros allowed on faces; cf. lift.py's
+# strict-only inhomogeneous lift).
+from .emit_polya_zeros import (  # noqa: F401
+    PolyaZerosEmitter, find_polya_zeros_certificate, polya_zeros_family,
+    polya_zeros_obstruction,
+)
+from .emit_sturm_positive import (  # noqa: F401
+    SturmPositiveEmitter, sturm_positive_family,
+)
+# Non-vacuity gate — Telperion pointed at its own emitted output (2026-08-19).
+from .nonvacuity import (  # noqa: F401
+    NonVacuityError, assert_certificate_sensitive, check_nonvacuous,
+)
+from .family import BoxAxis, GridSpec, InequalityFamily  # noqa: F401
+from .lean import LeanProfile, TemplateError  # noqa: F401
+from .provenance import DiffReport, EmitResult, diff_frozen, family_hash, freeze  # noqa: F401
+from .comparator import (  # noqa: F401
+    CLEAN_AXIOMS, challenge_config, challenge_for_result, emitted_theorem_names,
+    emitted_theorem_names_by_file, render_challenge_scaffold,
+    render_sharded_challenge_scaffolds, sharded_challenge_configs,
+    solution_module_of, write_challenge_config,
+)
+from .workflow import ValidationReport, WorkflowError, emit  # noqa: F401
+from .prove import ProofResult, prove_goal  # noqa: F401
+from .backend_lift import (  # noqa: F401
+    LiftOutcome, LiftProblem, LiftReport, lift_report, run_backend,
+)
+from .benchmark import (  # noqa: F401
+    BenchmarkEntry, BenchmarkReport, EntryResult,
+    certifiable_seed_corpus, run_benchmark,
+)
+from .audit import (  # noqa: F401
+    AuditFinding, AuditReport, audit_lean_file, audit_lean_text,
+)
+from .formalize import (  # noqa: F401
+    FormalizeResult, Proposer, formalize, ollama_proposer,
+)
+from .tactic import discharge, discharge_json  # noqa: F401
+from .hinge import (  # noqa: F401
+    HingeFloorCertificate, hinge_floor_certificate, hinge_floor_module,
+    hinge_floor_theorem, verify_hinge_floor,
+)
+from .sonc import (  # noqa: F401
+    SONCCertificate, find_circuit_certificate, verify_circuit_certificate,
+)
+from .psd import (  # noqa: F401
+    PSDCertificate, find_psd_certificate, verify_psd_certificate,
+)
+from .pratt import (  # noqa: F401
+    PrattCertificate, find_pratt_certificate, verify_pratt_certificate,
+)
+from .emit_primality import primality_module, primality_theorem  # noqa: F401
+from .lean_lint import (  # noqa: F401
+    LeanLintError,
+    LeanLintIssue,
+    check_lean_text,
+    lint_lean_file,
+    lint_lean_text,
+)
+# VDB-weighted matching generating polynomial (2026-08-30): the coefficient vector Z_k for the
+# combinatorial extremality program (weight 1/(d_u d_v)); extends matching_free_energy.rho.
+from .weighted_matching import (  # noqa: F401
+    CoefficientwiseDomination, matching_generating_poly, weighted_Z,
+)
+# Caterpillar transfer recurrence (Pant) + Perron free energy, and majorization/Schur-convexity
+# (2026-08-30): combinatorial-program skills S0b, S1a.
+from .transfer_caterpillar import (  # noqa: F401
+    SpiderBeatsCaterpillarCertificate, TransferCaterpillarCertificate, Z_recurrence,
+    arm_balance_delta_g, caterpillar_edges, free_energy, perron_eigenvalue, two_hub_Z,
+    uniform_transfer_matrix,
+)
+from .majorization import (  # noqa: F401
+    SchurConvexityCertificate, SchurVerdict, TTransform,
+    is_schur_concave, is_schur_convex, majorization_chain, majorizes, recompose,
+)
+# VDB-weighted leaf-exchange / arm-balancing operator + ΔZ sign certificate (2026-08-30): skill S1b,
+# the local move whose exact ΔZ drives the (corrected) reduction step.
+from .vdb_exchange import (  # noqa: F401
+    LeafExchangeCertificate, apply_move, delta_Z, delta_Zk, local_delta_from_pairs,
+)
+# Star-of-cherry-brooms S(k,c) (2026-08-31): the family that beats Pant's caterpillars for the Laplacian ratio;
+# exact closed form + the c=5 branch-rate optimum (cross-exponentiated rational certificate).
+from .spider_broom import (  # noqa: F401
+    BroomOptimumCertificate, SmoothNoGoCertificate, broom_argmax_c, broom_free_energy, broom_ratio,
+    broom_rate, broom_total, c5_unimodal_witness, rate_dominates, spider_Z, spider_edges,
+)
+# Branch potential ell(B) = log total(B) - |B| F* (2026-08-31): the additive form of the BG upper bound;
+# the branch-ceiling reduces to broom-dominance per size + the proven broom c=5 optimum.
+from .branch_potential import (  # noqa: F401
+    F_STAR, branch_ell, branch_ell_by_vertex, branch_total, broom_dominance_holds,
+    broom_edges, broom_optimum_prime,
+)
+# Tie-regime campaign (2026-08-31): uniform-hub potential + the arithmetic cherry-worst reduction.
+from .tie_regime import (  # noqa: F401
+    CHERRY, ExtremalityPriceMapCertificate, HighDegreeTailCertificate, MdGeometricTailCertificate,
+    MdStepCertificate, MixedHubKKTCertificate, FreeClosureCertificate, MonotoneTailCertificate,
+    NearBroomUnimodalityCertificate, TieCherryWorstCertificate, TieSlackCertificate, binding_j, broom_child,
+    cherry_is_kkt_argmax, cherry_vs_broom_ratio, child_value, child_x, envelope_tail_case,
+    mixed_lambda, slack_g, slack_hub_bound, slack_linobj, small_degree_threshold, uniform_hub_ell,
+    y_floor,
+)
+# AXLE-inspired infrastructure (2026-09-03): structured Lean verification against a
+# persistent pre-built environment, and a gap-driven emitter loop (sorry -> extract
+# goal -> route-match -> fill).  See docs/VERIFY_AND_GAPFILL.md.
+from .verify import VerifyResult, verify_lean  # noqa: F401
+from .repair import repair_lean, verify_with_repair  # noqa: F401
+from .gap_fill import (  # noqa: F401
+    Gap, EnclosureSpec, FillResult, extract_gaps, extract_sorry_goals,
+    match_log_enclosure, pick_route, fill_gap, register_matcher,
+)
+from .bundle import parse_theorems, merge_bundle, bundle_stats, topo_sort_blocks  # noqa: F401
+from .cert_deps import extract_deps, DepGraph, minimal_snippet  # noqa: F401
+from .normalize import normalize_lean, canonical_statement, theorem2sorry  # noqa: F401
+from .cert_meta import (  # noqa: F401
+    CertIndex, CertMeta, extract_cert_meta, measure_heartbeats, type_hash,
+)
+from .statement_match import (  # noqa: F401
+    StatementMatchResult, statement_match_check, def_identity_check,
+)
+# AXLE third-tour #5/#6 (parallel-integration): the first-class environment registry
+# and the mechanical verify-guarded proof simplifier.  Additive new modules.
+from .environment import (  # noqa: F401
+    Environment, UnknownEnvironmentError, discover_environments, get_environment,
+    list_environments, clear_environments, register_environment, resolve,
+    mathlib_built, default_examples_root,
+)
+from .simplify import (  # noqa: F401
+    HaveStep, SimplifyResult, SimplifyStep, simplify_proof, remove_unused_haves,
+    find_have_steps, unused_have_steps,
+)
+from .negative_control import (  # noqa: F401
+    NegativeControlResult, assert_kernel_rejects, log_combination_negative_control,
+)
+from .signature_gate import (  # noqa: F401
+    SignatureMatch, SignatureResult, build_sig_guards, check_signatures,
+    forall_type, sig_guard_name,
+)
+# Generic kernel-gated negative control (AXLE `disprove`, generalized to every
+# emitter): the engine + the per-emitter adapter registry.  Importing the adapters
+# package runs each adapter's register(...) so ADAPTERS is populated on `import
+# telperion` (the emitter-sensitivity gate relies on this).  See docs.
+from .negative_control_harness import (  # noqa: F401
+    NegativeControlAdapter, GenericNegativeControlResult, generic_negative_control,
+    assert_kernel_accepts, build_single_instance_family, emit_via_single_instance_family,
+    register, registered_adapters, ADAPTERS,
+)
+from . import negctrl_adapters  # noqa: F401  (registers all first-party adapters)
+
+# The Brualdi-Goldwasser research lab lives under telperion.bg (opt-in).  The bg-named modules
+# `bg_bulk_discharge` and `bg_upper_bound` (composed reduction skeleton) are opt-in too -- import them
+# directly (`from telperion.bg_upper_bound import UpperBoundReduction`), not via `import telperion`, so the
+# core/bg boundary (test_core_boundary) stays clean.

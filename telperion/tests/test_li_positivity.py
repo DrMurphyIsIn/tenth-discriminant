@@ -1,0 +1,167 @@
+"""Li positivity-ladder emitter (RH-roadmap Track 2).
+
+Certifies the n-th Li-criterion rung `0 ≤ (taylorCoeff riemannXi n).re` from a
+certified positive rational lower bound (the Arb enclosure = trust-seam hypothesis
+`hlo`), feeding the upstream `LiCriterion.li_criterion_rh_iff`. Finite prefix, NOT RH.
+"""
+import sys
+from pathlib import Path
+
+import pytest
+import sympy as sp
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from telperion import (  # noqa: E402
+    LiPositivityLadderEmitter,
+    ValidationReport,
+    certify,
+    emit,
+    li_positivity_family,
+    li_rung_certificate,
+)
+from telperion.family import GridSpec  # noqa: E402
+from telperion.lean import LeanProfile  # noqa: E402
+from telperion.lean_lint import lint_lean_text  # noqa: E402
+
+
+# The emitted rungs cite riemannXi / taylorCoeff, so the profile imports the
+# upstream LiCriterion library (which supplies them) — the honest real config.
+_PROFILE = LeanProfile(namespace=("Li",),
+                       imports=("Mathlib", "Lc.LiCriterion.XiOrderBridge"))
+
+
+def _emit(fam):
+    report = emit(certify(fam), _PROFILE,
+                  [LiPositivityLadderEmitter()], ValidationReport(checks=(("li", True),)))
+    return next(iter(report.files.values()))
+
+
+def test_certificate_requires_positive_lower_bound():
+    assert li_rung_certificate(3, sp.Rational(1, 1000)).n == 3
+    for bad in (0, sp.Rational(-1, 10)):
+        try:
+            li_rung_certificate(3, bad)
+            raised = False
+        except ValueError:
+            raised = True
+        assert raised, f"lo={bad} (non-positive) must be refused"
+    # negative rung refused
+    try:
+        li_rung_certificate(-1, sp.Rational(1, 2))
+        raised = False
+    except ValueError:
+        raised = True
+    assert raised
+
+
+def test_certify_refuses_nonpositive_bound_family():
+    fam = li_positivity_family("Bad", GridSpec([("_", [0])]), lambda pt: "li_bad",
+                               spec=lambda pt: (2, sp.Rational(-1, 5)))
+    try:
+        certify(fam)
+        raised = False
+    except Exception:
+        raised = True
+    assert raised
+
+
+def test_emit_cites_xi_coefficient_and_is_load_bearing():
+    fam = li_positivity_family("L", GridSpec([("n", [0, 1, 2])]),
+                               lambda pt: f"li_rung_{pt['n']}",
+                               spec=lambda pt: (pt["n"], sp.Rational(1, 100)))
+    text = _emit(fam)
+    # references the ACTUAL xi Taylor coefficient (non-vacuous), not an abstract real
+    assert "taylorCoeff riemannXi 0" in text
+    assert "taylorCoeff riemannXi 2" in text
+    assert "theorem li_rung_1" in text
+    # the trust seam is explicit and the kernel step is the trivial le_trans
+    assert "hlo" in text and "le_trans" in text and "norm_num" in text
+    # ties to the upstream reduction in the provenance comment
+    assert "li_criterion_rh_iff" in text
+    errors = [i for i in lint_lean_text(text) if i.severity == "error"]
+    assert errors == [], errors
+    # deterministic
+    assert _emit(fam) == text
+
+
+def test_emitter_is_classified():
+    from telperion.emitter_sensitivity import REGISTRY, unclassified_emitters
+    assert "LiPositivityLadderEmitter" in REGISTRY
+    assert "LiPositivityLadderEmitter" not in set(unclassified_emitters())
+
+
+# --- ladder finish (2026-09-09): refutation atom + generated N=20 example ----
+
+def test_refutation_atom_shape():
+    """The falsifiability face: a certified NEGATIVE upper bound on any rung
+    refutes RH outright through the upstream equivalence.  Never expected to
+    fire; emitted once per generated file as the honest contrapositive."""
+    from telperion.emit_li_positivity import li_refutation_atom_lean
+
+    txt = li_refutation_atom_lean()
+    assert "theorem li_neg_refutes_rh" in txt
+    assert "¬RiemannHypothesis" in txt or "\\u00acRiemannHypothesis" in txt
+    # Proved through the upstream reduction, term-mode (no tactic fragility):
+    assert "li_criterion_rh_iff.mp" in txt
+    assert "not_le.mpr (lt_of_le_of_lt hhi hneg)" in txt
+    # Hypotheses: an upper enclosure endpoint and its negativity.
+    assert "(taylorCoeff riemannXi n).re ≤ hi" in txt
+    assert "hi < 0" in txt
+
+
+def test_generated_ladder_has_twenty_rungs_and_refutation_atom():
+    pytest.importorskip("flint")
+    import importlib.util as _u
+    gen_path = (Path(__file__).resolve().parents[1]
+                / "examples" / "li_positivity" / "generate.py")
+    spec = _u.spec_from_file_location("li_positivity_generate", gen_path)
+    mod = _u.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    text = mod.build()
+    assert text.count("theorem li_rung_") == 20
+    assert text.count("theorem li_neg_refutes_rh") == 1
+    assert "import Lc.LiCriterion.XiOrderBridge" in text
+    assert "open LiCriterion" in text
+    # Real enclosure endpoints, not the hand-picked 1/100 placeholder:
+    assert "(1 / 100 : ℝ)" not in text
+
+
+# --- B1 throughput (2026-09-17): exact certificate conversion + bundle face -----
+
+def test_certificate_converts_fraction_exactly_not_via_nsimplify():
+    """Large 12-significant-digit literals (rungs n >~ 150) sent `sp.nsimplify` into
+    its closed-form search (radicals -> TypeError; a nearby different rational would
+    have been silent).  Fractions must round-trip EXACTLY."""
+    from fractions import Fraction
+    lo = Fraction(306655764851, 1000000000)  # the shape of a rung-199 literal
+    cert = li_rung_certificate(199, lo)
+    assert cert.lo == sp.Rational(306655764851, 1000000000)
+    assert (cert.lo.p, cert.lo.q) == (lo.numerator, lo.denominator)
+
+
+def test_certificate_refuses_float_bound():
+    with pytest.raises(TypeError, match="REFUSED"):
+        li_rung_certificate(0, 0.0230957)
+
+
+def test_bundle_face_packages_the_same_literals_once():
+    """The bundle face carries the SAME N bounds as one list + one hypothesis."""
+    pytest.importorskip("flint")
+    import importlib.util as _u
+    gen_path = (Path(__file__).resolve().parents[1]
+                / "examples" / "li_positivity" / "generate.py")
+    spec = _u.spec_from_file_location("li_positivity_generate", gen_path)
+    mod = _u.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    los = mod.lower_bounds(5)
+    bundle = mod.build_bundle(5, los=los)
+    ladder = mod.build(5, los=los)
+    assert bundle.count("theorem ") == 4  # length, pos, prefix, tail
+    assert "def LiBundleHyp : Prop" in bundle and "by decide" in bundle
+    assert "∀ n, n < 5 → 0 ≤ (taylorCoeff riemannXi n).re" in bundle
+    for lo in los:  # every ladder literal appears verbatim as a (num, den) row
+        assert f"({lo.numerator}, {lo.denominator})" in bundle
+        assert f"({lo.numerator} / {lo.denominator})" in ladder
+    # the 20-rung default is unchanged
+    assert mod.N_RUNGS == 20 and mod.prec_bits_for(20) == mod.PREC_BITS

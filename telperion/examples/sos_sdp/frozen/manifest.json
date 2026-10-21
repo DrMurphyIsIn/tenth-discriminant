@@ -1,0 +1,9 @@
+{
+  "family": "SOSSDP",
+  "input_hash": "a4f4d696c2e006c1cb99eb8cca7007d9e4b15fb78bde4cee1722e9e9fdab75b9",
+  "tool_version": "0.1.6",
+  "files": [
+    "SOSSDP.lean"
+  ],
+  "n_theorems": 3
+}

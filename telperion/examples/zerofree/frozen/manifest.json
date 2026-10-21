@@ -1,0 +1,9 @@
+{
+  "family": "ZeroFree",
+  "input_hash": "aff367d6470249e10782df5c16629151268f5c23de8004a57320def64f50b5ae",
+  "tool_version": "0.1.6",
+  "files": [
+    "ZeroFree.lean"
+  ],
+  "n_theorems": 2
+}

@@ -1,0 +1,9 @@
+{
+  "family": "Cone",
+  "input_hash": "bf84342189b5fa1940e2433a36dc7a83620ecbf795828ae974ca4a227b32cbe0",
+  "tool_version": "0.1.6",
+  "files": [
+    "Cone.lean"
+  ],
+  "n_theorems": 3
+}

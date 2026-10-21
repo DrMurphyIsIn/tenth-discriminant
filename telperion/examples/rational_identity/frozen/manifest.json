@@ -1,0 +1,9 @@
+{
+  "family": "RationalIdentity",
+  "input_hash": "7360ada79d0ec8f5dc5bf3ebcec9665fe1b573f93447ee6b88a3dd1cd60eb6bc",
+  "tool_version": "0.1.6",
+  "files": [
+    "RationalIdentity.lean"
+  ],
+  "n_theorems": 2
+}

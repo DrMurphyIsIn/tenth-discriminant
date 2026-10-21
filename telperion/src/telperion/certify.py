@@ -1,0 +1,1381 @@
+"""Symbolic certification: the gate between a family definition and emission.
+
+certify() proves, in sympy over exact rationals, that every instance of the
+family carries a Polya certificate (all-nonnegative-coefficient numerator over
+a factored positive denominator), and — for bilinear families — that the
+declared before/after difference IS the bilinear form of its four corner
+certificates.  Nothing can be emitted without the CertifiedFamily witness this
+function returns; a failure raises CertificationError naming every failing
+(grid point, corner).
+
+Trust note: none of this is trusted.  The Lean kernel re-proves every emitted
+claim from scratch; these checks exist to catch errors before a CI round-trip,
+not to establish truth.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Sequence
+
+import sympy as sp
+
+from .family import BoxAxis, GridPoint, InequalityFamily
+
+
+class CertificationError(Exception):
+    """One or more instances failed certification; .failures lists them all."""
+
+    def __init__(self, failures: list[tuple[dict, str]]):
+        self.failures = failures
+        lines = "\n".join(f"  {pt}: {msg}" for pt, msg in failures)
+        super().__init__(f"{len(failures)} instance(s) failed certification:\n{lines}")
+
+
+@dataclass(frozen=True)
+class PolyaCertificate:
+    """num/den for one nonnegativity claim: num has all-nonnegative integer
+    coefficients; den factors positively (sign pre-normalized)."""
+
+    expr: sp.Expr           # the certified expression (0 <= expr)
+    numerator: sp.Expr      # expanded, all-nonneg coefficients
+    denominator: sp.Expr    # positive by factored structure
+    lift_n: int = 0         # Polya lift exponent (0 = direct certificate)
+
+
+@dataclass(frozen=True)
+class BilinearDecomposition:
+    """after - before = c1 + c2*q + c3*r + c4*(q*r) with q, r the box symbols."""
+
+    c1: sp.Expr
+    c2: sp.Expr
+    c3: sp.Expr
+    c4: sp.Expr
+    q_axis: BoxAxis
+    r_axis: BoxAxis
+
+
+@dataclass(frozen=True)
+class CertifiedInstance:
+    point: dict
+    lean_name: str
+    corners: tuple[PolyaCertificate, ...]          # direct: 1; bilinear: 4 (00,01,10,11)
+    decomposition: BilinearDecomposition | None = None
+    den_atoms: tuple[sp.Expr, ...] = ()
+    equation: tuple[sp.Expr, sp.Expr] | None = None   # identity claims: (lhs, rhs)
+    witness: str | None = None                        # winning candidate label
+    # Tier-1 first-class-emitter payloads (2026-08-18).  Typed as object to keep
+    # certify.py free of arm-module import cycles; the arm's emitter reads them.
+    sos: object | None = None            # SOSCertificate (kind="sos")
+    tight: tuple = ()                    # tight-variety square bases (SDP dual)
+    bracket: object | None = None        # BracketSpec + certified rational heart
+    valuation: object | None = None      # tuple[ValuationFact, ...] (kind="valuation")
+    payload: object | None = None        # generic first-class-emitter certificate
+                                         # (BG-derived shapes via family.special)
+
+
+@dataclass(frozen=True)
+class CertifiedFamily:
+    """The witness that certification ran green.  Only certify() constructs this."""
+
+    family: InequalityFamily
+    instances: tuple[CertifiedInstance, ...]
+    checks_passed: int
+    subdivisions: tuple = ()   # subdivision trees (see certify's bilinear path)
+    timings: tuple = ()        # (lean_name, seconds) when profiled
+
+    def __post_init__(self):
+        if not getattr(_construction_guard, "open", False):
+            raise RuntimeError(
+                "CertifiedFamily may only be constructed by certify()"
+            )
+
+    def witness_table(self) -> dict[str, str]:
+        """lean_name -> winning witness label (the deloading_winner_table
+        pattern), for export beside the frozen output."""
+        return {
+            i.lean_name: i.witness for i in self.instances if i.witness is not None
+        }
+
+
+class _Guard:
+    open = False
+
+
+_construction_guard = _Guard()
+
+
+_ACTIVE_CACHE = None
+
+
+# Tier-1 first-class-emitter kinds (2026-08-18): certify() delegates each grid
+# point to the arm module's certify_*_point, which returns (CertifiedInstance,
+# n_checks) or raises ValueError (a refusal — the negative control).  Local
+# imports keep certify.py free of arm-module import cycles.
+_SPECIAL_KINDS = (
+    "sos", "bracket", "valuation",
+    # BG-derived first-class emitters (2026-08-19), dispatched via family.special.
+    "cone", "unimodal", "lattice_box", "logconcave", "telescope",
+    "monotone_tail", "interlacing",
+    # Tier-2 literature-derived emitters (2026-08-19).
+    "putinar", "wz",
+    # Tier-3 literature-derived emitters (2026-08-20).
+    "handelman", "nullstellensatz",
+    # Tier-4 refutation emitter (2026-08-20).
+    "infeasible",
+    # Tier-7 runway emitters (2026-08-20).
+    "bernstein", "rational_sos", "sturm_positive",
+    # Tier-5 beyond-positivity emitters (2026-08-20).
+    "consequence", "sos_refutation", "real_nullstellensatz",
+    # Tier-6 integer-arithmetic emitter (2026-08-20): VIPR-style Chvatal-Gomory.
+    "cg_round",
+    # Facial-positivity emitter (2026-08-20): CPR Polya-with-zeros (tie-safe lift).
+    "polya_zeros",
+    # Proof-complexity-derived emitters (2026-08-20, knapsack_sos arc).
+    "rational_identity", "finite_decide", "fwd_telescope",
+    # Tier-7 combinatorial symmetric-inequality emitters (2026-08-21):
+    # tangent-line + Cauchy-Schwarz (pairwise-difference SOS).
+    "tangent", "cauchy_schwarz",
+    # Tier-8 linear-algebra certificate (2026-08-21): exact-LDLT positive-definite
+    # quadratic form (moment-matrix / Gram-bridge PSD, cvxpy-free).
+    "psd_form",
+    # Tier-9 SoS / P=NP certificate (2026-08-22): 3-XOR moment-matrix PSD via
+    # GF(2) closure -> block-rank-one SOS.
+    "xor3_moment",
+    # RH / cross-cutting emitters (2026-09-02): bilinear worst-corner box
+    # positivity, algebraic-number (sqrt) bracket, Borel-Caratheodory
+    # half-plane->disk positivity core.
+    "bilinear_corner", "algebraic_bracket", "halfplane_disk",
+    # RH wave-2 (2026-09-02): finite-argmax margin, magnitude split, disk->coord
+    # bounds, Cauchy derivative estimate, dVP log-derivative region core.
+    "finite_argmax", "magnitude_split", "disk_coord", "cauchy_deriv", "logderiv_region",
+    # Sweep-2 (2026-09-02): pseudo-expectation SoS-duality, order-balance boundary
+    # hinge, nonneg-cosine L-product, parametric-integral holomorphy.
+    "pe_duality", "order_balance", "lfunction_product", "parametric_holomorphy",
+    # BG/P=NP backlog build-out (2026-09-02): symbolic-n moment PSD, general-d
+    # polytope corner positivity, 2nd-order recurrence closed form, p-adic
+    # integrality gate, multivariate domination ratio, achievability closure,
+    # separable-convex (min/homogeneous) extremum.
+    "symmetric_quad", "polytope_max", "second_order", "integrality_gate",
+    "domination_ratio", "achievability", "separable_convex",
+    # Objective-degeneracy (scale invariance / parameter cancellation) and
+    # concave-stationary-max certificate shapes (2026-09-02).
+    "scale_invariance", "concave_stationary_max",
+    # Open-front build-out (2026-09-02): symbolic-in-n d=2 moment-matrix PSD
+    # (three-piece completing-the-square). (separable-convex MAX/vertex ships as a
+    # mode of the existing "separable_convex" kind, no new entry.)
+    "symmetric_quad_d2",
+    # BG g-step fixed-config tight-cap enclosure (2026-09-02): certifies the
+    # in-repo closure (baseOf l)^11*prodBcap l/(W(5/3)^11) <= 1 for a named config,
+    # concrete or single symbolic child. Models the proven single_child_le_one /
+    # two_child_le_one; NOT the general-arity g-lemma open core.
+    "tight_cap_enclosure",
+    # BG remaining-core shapes (2026-09-02): affine-in-parameter interval->endpoints
+    # (collapses SCLStep's price interval I), node tangent+ceiling assembly, Kelmans
+    # de-branch bilinear-corner exchange, and per-size dominance sweep.
+    "affine_param_endpoint",
+    "recursion_closure",
+    "cavity_exchange",
+    "per_size_dominance_sweep",
+    # Ported from AxiomMath/ZetaZeros (arXiv:2609.02882, 2026-09-02): curvature-sign
+    # -> boundary extremum (generalizes affine_param_endpoint), and rational enclosure
+    # of a transcendental (log for BG cells; Montgomery-Taylor C0 trig face deferred).
+    "curvature_boundary",
+    "transcendental_enclosure",
+    # F*-folding companion to transcendental_enclosure (2026-09-03): Sum c_i log(r_i) <= q
+    # by folding to log(prod r_i^c_i); tight-at-tie (no separate F* lower bound). Dogfooded
+    # against BG BGSCLSubaction.lean (regenerates log74_le_4fstar / log54_sub_fstar_le).
+    "log_combination",
+    # dVP zero-free-region frontier atoms (2026-09-05, distilled from DlvpBCSum/DlvpZetaDisk):
+    # bc_split (log-derivative combine), jensen_zero_count (Jensen zero-count for any analytic
+    # f), sphere_bound (strip-type growth -> uniform sphere bound). All self-contained.
+    "bc_split",
+    "jensen_zero_count",
+    "sphere_bound",
+    # dVP entire-part (i-b') atoms (2026-09-05, distilled from DlvpMaxMod/DlvpBCDeriv/
+    # DlvpEntireBound): max_modulus (sphere norm bound -> disk, maximum-modulus principle),
+    # bc_deriv_re (real-part -> derivative bound, Borel-Caratheodory + Cauchy), entire_part_bound
+    # (‖logDeriv g c‖ from log‖g‖ oscillation; self-contained 3-lemma preamble). All import Mathlib.
+    "max_modulus",
+    "bc_deriv_re",
+    "entire_part_bound",
+    # dVP Blaschke/two-scale atoms (2026-09-06, distilled from DlvpZeroFactor/DlvpCorrectionBound/
+    # DlvpHerglotzLower): two_scale_separation (inner-disk vs outer-sphere geometry), far_pole_sum
+    # (rational sum with poles outside the disk), herglotz_lower (keep equal-height zero, drop rest).
+    "two_scale_separation",
+    "far_pole_sum",
+    "herglotz_lower",
+    # dVP numeric-coupling cap (2026-09-07, distilled from DlvpZetaConcreteClose:hBg1_le): the
+    # entire-part geometric factor (R+z)/(R-z)² is maximised at the endpoint z=1 — the σ-independent
+    # cap ((R+1)/(R-1)²) that breaks the σ↔L fixpoint in the dVP closing.
+    "endpoint_geom_cap",
+    # Argument-principle residue/winding bridge (2026-09-06, shared with the RH
+    # zeta-zero-localization session): ∮ Σ m/(z-ρ) = 2πi·Σ m.
+    "argument_principle",
+    # Argument-principle companion atoms (2026-09-06, same RH session): full_argument_principle
+    # (residue-sum + analytic-vanishing ⟹ ∮ f = 2πi·Σ m, the completing half via Cauchy),
+    # rect_argument_principle (box-boundary Cauchy vanishing ∮_∂rect E = 0, strip counterpart),
+    # annulus_count (∮_R − ∮_r = 2πi·Σ_shell m, zero-density shell count).
+    "full_argument_principle",
+    "rect_argument_principle",
+    "annulus_count",
+    # RH-in-a-box localization capstone (Stage 3, 2026-09-06): the counting exhaustion step —
+    # total divisor = on-line count ⟹ every zero in the box is on Re=1/2 (Turing-style verification,
+    # NOT a proof of RH).  Refuses n_line > n_total and n_line != n_total.
+    "box_localization",
+    # T5 Turing-band certificate (2026-09-12): per-band total count via the RvM
+    # edge decomposition (zero_count_band_edge_decomp) with Arb-enclosed edge
+    # argument-changes; kernel statement-match gate against BandStatement.
+    "turing_band",
+    # HermitianMomentInertia family (2026-09-08, ported from anthropics/zeta-23-lean,
+    # arXiv:2608.13637): two_moment_count (§6 scalar count certificate (2−κ)N−err ≤ count,
+    # H(λ) / H_d(λ) via nlinarith off Real.sqrt_le_sqrt) and rank_trace_scalar (integrality
+    # atom 2c·x−c² ≤ x²). Positive-proportion machinery; NOT a step toward RH.
+    "two_moment_count",
+    "rank_trace_scalar",
+    # Li positivity ladder (2026-09-09, RH-roadmap Track 2): the n-th Li-criterion rung
+    # 0 ≤ (taylorCoeff riemannXi n).re from a certified positive lower bound; feeds the
+    # upstream LiCriterion.li_criterion_rh_iff. Finite prefix, NOT RH.
+    "li_positivity",
+    # Second-pass zeta-23-lean catalog emitters (2026-09-09): enclosure_interval_fold
+    # (integer near-CUE row-band checker, decide), reflection_halving (finite N≤2·N_large
+    # symmetry fold, decide), spacing_tail_bound (concrete Σδ/(gap)²≤9/δ, norm_num),
+    # autocorr_support (concrete (v⋆v)≤triangle, norm_num). Self-contained; NOT toward RH.
+    "enclosure_interval_fold",
+    "reflection_halving",
+    "spacing_tail_bound",
+    "autocorr_support",
+    # Axiom-Math bgp212 + Dyson-quasicrystal emitters (2026-09-09): rayleigh_gram
+    # (rational Gram generalized-eigenvalue cert cᵀJc−θ·cᵀIc>0, Thm 11.1 shape),
+    # polytope_moment (exact simplex-moment arithmetic, Lemma 10.1/(10.1) shape),
+    # admissible_tuple (prime-gaps k-tuple admissibility+diameter by decide, Lemma
+    # 12.1 shape), lee_yang_stable_pair (Schur–Cohn/Jury chain; KS zeros-on-line
+    # analogue BY CONSTRUCTION). Category-(b) certificates; NOT toward RH.
+    "rayleigh_gram",
+    "polytope_moment",
+    "admissible_tuple",
+    "lee_yang_stable_pair",
+    # Winding-number frontier (2026-09-06, same RH session): slit_loop_winding_zero (Rouché heart —
+    # closed loop in ‖·-1‖<r≤1 ⟹ ∮ w'/w = 0, winding 0, via clog_real + FTC-2) and box_residue_sum
+    # (box analogue of full_argument_principle, Finset-linearity plumbing conditional on the per-pole
+    # non-circular winding primitive — a genuine Mathlib gap).
+    "slit_loop_winding_zero",
+    "box_residue_sum",
+    # The winding-NONZERO primitive (2026-09-06, same RH session): ∮_∂rect (z-ρ)⁻¹ = 2πi for ρ
+    # strictly inside — from-scratch segment/log branch-split proof, closes the Mathlib gap that
+    # blocked box_residue_sum's hwind hypothesis and Rouché.
+    "rect_winding",
+    # dVP zero-factor magnitude bound (2026-09-06): two-scale log-product boundary bound
+    # log‖P c‖ - log‖P z‖ ≤ (Σ m)·(log R₀ - log(R-R₀)) — the recurring AP shape.
+    "log_product_bound",
+    # Analytic-cert-structures build (2026-09-05): box-robust separable-quadratic
+    # forall-box nonnegativity (#2, foundational) -- rigorous monomial-wise
+    # rational lower bound over a rational box, emitted via nlinarith.
+    "box_robust",
+    # Analytic-cert-structures build (2026-09-05): hyperbolicity / real-rootedness
+    # (#3, d=2) -- forall-box `roots.card = 2` via a box-robust discriminant-nonneg
+    # fact + a2 != 0 chained into the d=2 bridge lemma
+    # `hyperbolic_deg2_of_discrim_nonneg`.
+    "hyperbolicity",
+    # Zeta-zero-localization Stage 1 core (2026-09-06): on-line zero count via
+    # alternating-sign real enclosures of Lambda(1/2+it) + IVT.  Emits ">= N zeros
+    # of completedRiemannZeta on the critical line in [a,b]" (N sign changes).
+    "xi_line_zeros",
+    # Zeta-box-localization Stage 2A (2026-09-06): boundary winding count via enclosures.
+    # Emits "Bd(Lambda'/Lambda) = 2*pi*i*N" -- toy z^2 (N=2, from-scratch winding) and
+    # the Lambda [2/5,3/5]x[10,35] instance (N=5, argument-principle + per-pole primitive).
+    "winding_count",
+    # NS/Euler-derived emitters (2026-09-08), mined from OpenAI's finite-time
+    # blowup formalization (github.com/openai/NavierStokesAndEuler):
+    #   affine_ledger        -- ExponentLedger.lean: multi-parameter affine
+    #                           gain/increment bookkeeping over a box (linarith);
+    #                           margin + min-of-list (distinct from the single-
+    #                           parameter affine_param_endpoint interval collapse).
+    #   quadratic_irrational -- DiophantineGraph.lean: ℤ[√d] conjugate-norm
+    #                           lower bound 1 ≤ |p+√d q||p−√d q| (nlinarith).
+    "affine_ledger",
+    "quadratic_irrational",
+    #   gevrey_majorant      -- Euler/EulerProof.lean: the Gevrey-2 factorial-
+    #                           majorant calculus R^(n+d)((n+d)!)^2 (shift /
+    #                           convolution-3 / geometric gain / triangular
+    #                           recurrence closure), Nat.choose+factorial.
+    "gevrey_majorant",
+    #   sqrt_root_elimination -- ConeAlgebra.lean true_cone_iff: v < E - u*sqrt(rad)
+    #                           <-> (v < E and 0 < Q), certificate = the exact ring
+    #                           identity (E-v)^2 - u^2*rad = Q.
+    "sqrt_root_elimination",
+    # NS/Euler round-2 build-out (2026-09-08): open-closed barrier bootstrap
+    # (first topological shape), log-eps cutoff witness optimization (any
+    # rational theta in (0,1]), zero-tolerant log-convexity interpolation,
+    # finite-prefix absorption (eventually-bounded -> globally, explicit C).
+    "continuous_barrier",
+    "log_eps_optimize",
+    "logconvex_interp",
+    "finite_prefix_absorption",
+    # EdgeWeightJets.lean: |p(x)| <= ||p||_1 * T^deg (generic Polynomial R atom
+    # + concrete scalar instances with exact mass/degree certification).
+    "coefficient_mass",
+    # NS/Euler wave-3 (2026-09-08): Leibniz multilinear perturbation envelope,
+    # exact-invariant polynomially-weighted geometric closure (remainder
+    # synthesis), two-point moment feasibility witness (rank-2 pseudo-
+    # expectation, dual of the SOS shapes).
+    "multilinear_perturbation",
+    "poly_geom_closure",
+    "twopoint_moment",
+    # Unit-modulus conjugate-pair SOS (2026-09-11): for |u| = 1, 2 - u^m - conj(u^m) = ‖1 - u^m‖²,
+    # the manifest square behind on-line Riemann-zero Li positivity (RvMOnLinePositivity) and the
+    # "+" side of the Weil-form (1,1) signature. Hermitian SOS, NOT a step toward RH.
+    "unit_modulus_sos",
+    # NS/Euler wave-4 (2026-09-09): 2x2 solution-entry bound (scalar, no Matrix),
+    # ratio-recurrence telescoping (factorial/geometric/index normal forms),
+    # monomial budget ladder (symbolic-base exponent absorption), rpow exponent
+    # budget (k-power collapse, linarith at the exponent level).
+    "two_row_solve",
+    "ratio_telescope",
+    "monomial_ladder",
+    "rpow_budget",
+    # NS/Euler wave-5 (2026-09-09): comparability/Lipschitz envelope atoms
+    # (rpow both-signs, sqrt conjugate-multiply, 1+x^2 denominator kill),
+    # discrete-moment atoms (simplex second moment + squareDecay convolution
+    # calculus incl. the reciprocal-square telescope), and parameterized
+    # poly-exp absorption exp(-1/(2lam))/lam^m <= (4m)^m exp(-1/(4lam)).
+    "comparability_envelope",
+    "discrete_moment",
+    "poly_exp_absorption",
+    # MIRRORMERE W3d (2026-09-18): exp-Laurent identities in e^d, e^(-d)
+    # certified as an exact reduction modulo the single relation
+    # e^d * e^(-d) = 1 (the Face 4 <-> Face 1 recurrence-deficit rows).
+    "exp_laurent_identity",
+    # NS/Euler wave-6 (2026-09-09, campaign closeout): graded-convolution
+    # endpoint identities, power-tower recurrence closure, Faa di Bruno
+    # partition-sum bound, forbidden-factor word invariant (first discrete
+    # axis), low-order + geometric-tail hybrid, eventual scaling threshold.
+    "graded_convolution",
+    "power_tower",
+    "partition_composition",
+    "regular_word",
+    "low_order_tail",
+    "eventual_threshold",
+    # PROGRAM ANDÚRIL × MIRRORMERE emitters (2026-09-14), promoting the campaign's
+    # four minted certificate shapes to first-class kinds:
+    #   bragg_amplitude       -- certified truncated diffraction sum Σ cos(γ_k·u) ∈ [A,B]
+    #                            over rational ordinate brackets (CosEnclosure base-case
+    #                            fold, the BraggH100 pipeline reduced to a small instance).
+    #   defect_witness        -- two-configuration inertia gap (BraggDefect): on-line
+    #                            functional value inside [A,B]∋0, off-line strictly below
+    #                            with a certified leakage gap.
+    #   selfinversive_rigidity -- equal-modulus real-rootedness (TwoFreqRigidity): |c₁|=|c₂|
+    #                            EXACTLY ⟹ the two-frequency sum is real-rooted.
+    #   winding_box_zero       -- Arb-trust-class winding-number box certificate for a zero
+    #                            (sidecar + documentation stub, NOT a kernel theorem).
+    "bragg_amplitude",
+    "defect_witness",
+    "selfinversive_rigidity",
+    #   disjoint_discs        -- MIRRORMERE E4b isolation INSTANCE (OfflineDiscs): explicit
+    #                            strip points + explicit rational radius, pairwise (2r)^2 <
+    #                            dist^2 and strict strip margins, all norm_num-decided.
+    "disjoint_discs",
+    #   twofreq_offline       -- the COMPLEMENT of selfinversive_rigidity: |c1|^2 != |c2|^2
+    #                            EXACTLY ==> the two-frequency sum is NOT real-rooted (and,
+    #                            for the Euler-factor family, every zero sits at Im x = 1/2).
+    "twofreq_offline",
+    "winding_box_zero",
+    #   grid_modulus_nonvanishing -- Lipschitz-net ZERO-FREENESS certificate (NOT a count):
+    #                            |f'| <= M on a convex box, a delta-net grid with |f| >= L
+    #                            at every node, and the gap M*delta < L.  Ships the exact
+    #                            rational arithmetic as kernel theorems; the |f|/|f'| numeric
+    #                            facts stay OPEN Lean hypotheses (mpmath-numeric trust class).
+    "grid_modulus_nonvanishing",
+    # RH SEVEN-FACES instruments (2026-09-14, face-emitters agent): per-instance,
+    # kernel-checkable shadows of four RH faces.  Each carries the transcendental /
+    # numeric fact as an Arb-enclosure HYPOTHESIS (the trust seam); the kernel proves
+    # only the trivial chaining.  A finite rung per face, NOT a step toward RH.
+    #   robin_growth  -- Face 2 (temperedness): σ(n) < e^γ·n·log log n for n > 5040
+    #                    (Robin 1984, RH ⟺ ∀ such n).  Exact σ(n) < certified Arb
+    #                    lower bound on the RHS, chained by lt_of_lt_of_le.
+    #   baez_duarte   -- Face 6 (spectral): a rational UPPER bound on the
+    #                    Nyman–Beurling–Báez-Duarte distance d²_N (RH ⟺ d²_N → 0),
+    #                    from an explicit coefficient vector's certified Gram value.
+    #   lehmer_pair   -- Face 5 (de Bruijn–Newman): a certified de Bruijn–Newman Λ
+    #                    lower bound from a close ("Lehmer") consecutive-zero pair.
+    #   bagchi_recurrence -- Face 4 (recurrence): a certified sup bound
+    #                    sup_{s∈K}|ζ(s+iτ) − target(s)| < ε on a rational grid
+    #                    (Bagchi 1981, RH ⟺ ζ strongly recurrent); Arb-trust class.
+    "robin_growth",
+    "baez_duarte",
+    "lehmer_pair",
+    "bagchi_recurrence",
+    # Route P Brick D3 part 2 (2026-09-12, Dyson-quasicrystal diffraction): the order-n log-prime
+    # (von Mangoldt / Bragg) amplitude certificate — truncated Bragg partial sum at a fixed base
+    # point s0>1, net of a certified tail, clears the explicit archimedean floor -(1+Re taylorCoeff
+    # Γℝ n).  A FINITE rational inequality (category-b); the passage to the companion coefficient and
+    # the Route-P falsifiability atom is the CONDITIONAL, RH-hard exhaustion seam (never discharged).
+    "bragg_floor",
+    # Interval-inertia certificate (2026-09-18): the exact signature (posIndex, defect)
+    # shared by EVERY Hermitian matrix inside a rational interval box, via RHLinalg's
+    # Sylvester subspace bounds.  Island-pinned to the ported RHLinalg block (v4.32.0).
+    # Zhu's one-stroke window reduction (2026-09-19, arXiv:2608.24827 Thm 1.1): a finite
+    # Arb-certified Legendre-block floor lam0 lifted to a floor on the Weil form over the WHOLE
+    # window supp f in [-L,L], carrying beta* = log(T#/2pi) - 1/T# - A_L and the tail constants
+    # eps_d / eps_b.  The emitter RE-DERIVES A_L and beta* (the retraction guard).  Category-b.
+    "window_form_floor",
+    "interval_gram_inertia",
+    # E8 Weil pairing (2026-09-18): the Arb-enclosed value of archSide - primeSide for a
+    # concrete compactly supported test function (and the k x k cross-correlation Gram),
+    # emitted as a NAMED-HYPOTHESIS seam whose kernel consequence is positivity / a positive
+    # 2x2 Sylvester minor.  Finite category-b; conjecture1_proved = False.
+    "weil_form_enclosure",
+    # MIRRORMERE exp-enclosure (2026-09-18): rational brackets of Real.exp at a rational point
+    # from Real.exp_bound -- reflects BraggDefect's Arb `hexp` seam into the kernel and brackets
+    # the recurrence deficit e^d + e^-d - 2.  A finite arithmetic fact; nothing about RH.
+    "exp_enclosure",
+    # exp_threshold (2026-09-22, SHAPES_AUDIT_48H section 2 rank 5; B N2, C 4.5): from a rational
+    # or symbolic threshold on the Gaussian width to exponential domination via `1 + t <= e^t`
+    # (linear / log bundles reading a nested-max threshold with the `max 1` guard folded in, plus
+    # the product / inverse / shifted-rate atoms).  Elementary real inequalities; nothing about RH.
+    "exp_threshold",
+    # enclosure_tree (2026-09-22, SHAPES_AUDIT_48H section 2 rank 1; A N2/N3/N4, B C2, C 4.7,
+    # D 4): rational two-sided enclosures of an expression tree over {+, -, *, /, ^, sqrt, log,
+    # exp, pi, arctan, rationals} by an exact interval fold (one theorem per non-linear node,
+    # shared subtrees once), the pi-face rate corollary, and the log/sqrt face.  Finite
+    # arithmetic facts about real constants; nothing about RH.
+    "enclosure_tree",
+    # mobius_tangent_cell (2026-09-29):
+    # "linear + concave logs + one Mobius term <= 0" on a rational interval, by tangent-line
+    # cells whose convex majorant is checked at the two cell endpoints (bisection generator, one
+    # theorem per cell, union by a le_or_lt chain).  Elementary one-variable inequalities;
+    # nothing about RH.
+    "mobius_tangent_cell",
+    # concave_pooled_induction (2026-09-29): a bound on a branching (tree) recursion via a
+    # concave one-scalar witness checked at the pooled mean for m = 1..M plus a one-variable
+    # tail for every m > M.  Method: concave-witness induction.  Dogfood: the classical
+    # matching message.
+    # Nothing about BG or RH.
+    "concave_pooled_induction",
+    # affine_hull_dominance (2026-09-30): the exact maximum over all trees on n vertices of a
+    # positive multilinear tree recursion (vector states), by convex-hull pruning with explicit
+    # convex-combination domination witnesses checked by decide; one generic exchange induction.
+    # Dogfood: the Randic-weighted matching sum.  Nothing about any open problem.
+    "affine_hull_dominance",
+    # gap_budget_multiplicity (2026-09-29): pruning a multiset optimisation by a tangent-price
+    # gap budget (caps, exclusions, a decided knapsack) with the budget from a separable or
+    # c * log concave model and enclosure_tree bounds on the gaps.  Dogfood: the classical
+    # max-product partition.  Elementary real inequalities; nothing about RH.
+    "gap_budget_multiplicity",
+    # single_crossing_ladder (2026-09-30): consecutive members of a parametric family of
+    # log-sums cross exactly once (derivative numerator with one certified sign change,
+    # rational bracket values from enclosure_tree log atoms), the breakpoints increase, and
+    # the best-member ladder follows over the window.  Dogfood: the arm ladder of the
+    # matching sum.  Elementary one-variable facts; nothing about RH.
+    "single_crossing_ladder",
+    # factored_endpoint_enclosure (2026-10-01): 0 <= F on closed boxes touching a singular
+    # endpoint l = s, from a polynomial lower bound Q <= D F (log atoms by Taylor with signed
+    # remainder), the exact factorization Q = (l - s)^k H and H >= 0 per box (Bernstein).
+    # Dogfood: classical log / rational / Pade bounds near 0 and a synthetic two-variable F.
+    # Elementary real inequalities; nothing about RH.
+    "factored_endpoint_enclosure",
+    # typed_cavity_induction (2026-10-01): a finite type table (degree groups x message-sum
+    # bins, per-type bounds and message intervals) is an inductive invariant of a branching
+    # recursion over every finite rooted tree; enumeration over child-type multisets, a
+    # tangent band and an analytic tail.  Dogfood: the Balister-Bollobas-Gerke half-tree
+    # recursion for R_{-1} (published beta_3, beta_4).  Elementary; nothing about RH.
+    "typed_cavity_induction",
+    # anchored_monotone_extension (2026-10-01): a parametric recursion on finite rooted trees is
+    # differentiable with an explicit log-derivative recursion (derivative prelude), a two-row
+    # inductive invariant with finitely many polynomial checks gives lam D_b <= n_b c(lam) on
+    # [lam0, oo), so T_b / N(lam, n_b) is antitone and an anchor bounds the half-line.
+    # Dogfood: the hard-core recursion and a synthetic matching-type sum recursion.
+    "anchored_monotone_extension",
+    # zero_sum_majorant (2026-09-22, SHAPES_AUDIT_48H section 2 rank 2 = audit C shape A merged
+    # with audit B N5): a zero-supported family is summable through a finite ordinate window
+    # plus the local-count tail m(rho) C/(1 + |gamma_rho|^2) (the RvMBridgeXi.zeroBoundAt atom).
+    # The per-instance certificate is ONE two-variable strip inequality, certified as an exact
+    # nonnegative (Bernstein / Polya) combination closed by `ring`; the tail_envelope mode
+    # carries the consumer face and the rate-splitting companion.  Nothing about RH.
+    "zero_sum_majorant",
+    # MIRRORMERE leakage dictionary (2026-09-19, ROUTE A item A2b): the log-derivative
+    # coefficient functional at a COMPOSITE index -- a completely-multiplicative amplitude
+    # certifies b n = 0, a non-multiplicative one is certified to LEAK (and is thereby refused
+    # complete multiplicativity).  Exact symbolic divisor recursion; nothing about RH.
+    "leakage_dictionary",
+    # preordering_multiplier (2026-09-22, SHAPES_AUDIT_48H section 2 rank 3; D 3.1, B C3, C 5.3):
+    # 0 <= p on {g_i >= 0} for POLYNOMIAL generators, via a positive multiplier M = kappa g_j^e
+    # and the exact constant-coefficient identity M p = sum c_alpha prod g_i^{alpha_i} (c >= 0),
+    # plus a certified single-point zero locus of M.  The combination handelman (linear
+    # generators, no multiplier), polya_zeros (simplex only) and rational_sos (no generator
+    # hypotheses) each miss.  Finite real polynomial inequalities; nothing about RH.
+    "preordering_multiplier",
+    # Shapes-audit rank 4 (2026-09-22, B N3 / B D7 / C 2.10 / D 2.2): real and imaginary
+    # parts (and the norm_sq / norm_exp faces) of a complex polynomial expression, the
+    # `simp only [Complex.*_re, ...]; ring` bookkeeping of every complex-analysis island, and
+    # the B D7 cast face `p = ((P : R) : C)` (`push_cast; ring`, then `Complex.ofReal_re`).
+    # Split computed by sympy, re-verified by an independent exact engine; nothing about RH.
+    "complex_re_im_split",
+)
+
+# kind -> "module:certify_point_fn" for the generic (family.special) emitters.
+_SPECIAL_DISPATCH = {
+    "cone": ("emit_cone", "certify_cone_point"),
+    "unimodal": ("emit_unimodal", "certify_unimodal_point"),
+    "lattice_box": ("emit_lattice_box", "certify_lattice_box_point"),
+    "logconcave": ("emit_logconcave", "certify_logconcave_point"),
+    "telescope": ("emit_telescope", "certify_telescope_point"),
+    "monotone_tail": ("emit_monotone_tail", "certify_monotone_tail_point"),
+    "interlacing": ("emit_interlacing", "certify_interlacing_point"),
+    "putinar": ("emit_constrained_sos", "certify_putinar_point"),
+    "wz": ("emit_wz", "certify_wz_point"),
+    "handelman": ("emit_handelman", "certify_handelman_point"),
+    "nullstellensatz": ("emit_nullstellensatz", "certify_nullstellensatz_point"),
+    "infeasible": ("emit_infeasible", "certify_infeasible_point"),
+    "bernstein": ("emit_bernstein", "certify_bernstein_point"),
+    "rational_sos": ("emit_rational_sos", "certify_rational_sos_point"),
+    "sturm_positive": ("emit_sturm_positive", "certify_sturm_positive_point"),
+    "consequence": ("emit_consequence", "certify_consequence_point"),
+    "sos_refutation": ("emit_sos_refutation", "certify_sos_refutation_point"),
+    "real_nullstellensatz": ("emit_real_nullstellensatz", "certify_real_nullstellensatz_point"),
+    "cg_round": ("emit_cg_round", "certify_cg_round_point"),
+    "polya_zeros": ("emit_polya_zeros", "certify_polya_zeros_point"),
+    "rational_identity": ("emit_rational_identity", "certify_rational_identity_point"),
+    "finite_decide": ("emit_finite_decide", "certify_finite_decide_point"),
+    "fwd_telescope": ("emit_fwd_telescope", "certify_fwd_telescope_point"),
+    "tangent": ("emit_tangent", "certify_tangent_point"),
+    "cauchy_schwarz": ("emit_cs", "certify_cs_point"),
+    "psd_form": ("emit_psd_form", "certify_psd_point"),
+    "xor3_moment": ("emit_xor3", "certify_xor3_point"),
+    "bilinear_corner": ("emit_bilinear_corner", "certify_bilinear_corner_point"),
+    "algebraic_bracket": ("emit_algebraic_bracket", "certify_algebraic_bracket_point"),
+    "halfplane_disk": ("emit_halfplane_disk", "certify_halfplane_disk_point"),
+    "finite_argmax": ("emit_finite_argmax", "certify_finite_argmax_point"),
+    "magnitude_split": ("emit_magnitude_split", "certify_magnitude_split_point"),
+    "disk_coord": ("emit_disk_coord", "certify_disk_coord_point"),
+    "cauchy_deriv": ("emit_cauchy_deriv", "certify_cauchy_deriv_point"),
+    "logderiv_region": ("emit_logderiv_region", "certify_logderiv_region_point"),
+    "pe_duality": ("emit_pe_duality", "certify_pe_duality_point"),
+    "order_balance": ("emit_order_balance", "certify_order_balance_point"),
+    "lfunction_product": ("emit_lfunction_product", "certify_lfunction_product_point"),
+    "parametric_holomorphy": ("emit_parametric_holomorphy", "certify_parametric_holomorphy_point"),
+    "symmetric_quad": ("emit_symmetric_quad", "certify_symmetric_quad_point"),
+    "polytope_max": ("emit_polytope_max", "certify_polytope_max_point"),
+    "second_order": ("emit_second_order", "certify_second_order_point"),
+    "integrality_gate": ("emit_integrality_gate", "certify_integrality_gate_point"),
+    "domination_ratio": ("emit_domination_ratio", "certify_domination_ratio_point"),
+    "achievability": ("emit_achievability", "certify_achievability_point"),
+    "separable_convex": ("emit_separable_convex", "certify_separable_convex_point"),
+    "scale_invariance": ("emit_scale_invariance", "certify_scale_invariance_point"),
+    "concave_stationary_max": ("emit_concave_stationary_max", "certify_concave_stationary_max_point"),
+    "symmetric_quad_d2": ("emit_symmetric_quad_d2", "certify_symmetric_quad_d2_point"),
+    "tight_cap_enclosure": ("emit_tight_cap_enclosure", "certify_tight_cap_enclosure_point"),
+    "affine_param_endpoint": ("emit_affine_param_endpoint", "certify_affine_param_endpoint_point"),
+    "recursion_closure": ("emit_recursion_closure", "certify_recursion_closure_point"),
+    "cavity_exchange": ("emit_cavity_exchange", "certify_cavity_exchange_point"),
+    "per_size_dominance_sweep": ("emit_per_size_dominance_sweep", "certify_per_size_dominance_sweep_point"),
+    "curvature_boundary": ("emit_curvature_boundary", "certify_curvature_boundary_point"),
+    "transcendental_enclosure": ("emit_transcendental_enclosure", "certify_transcendental_enclosure_point"),
+    "log_combination": ("emit_log_combination", "certify_log_combination_point"),
+    "bc_split": ("emit_bc_split", "certify_bc_split_point"),
+    "jensen_zero_count": ("emit_jensen_zero_count", "certify_jensen_zero_count_point"),
+    "sphere_bound": ("emit_sphere_bound", "certify_sphere_bound_point"),
+    # Length-3 entries carry the emitter class name too, enabling `emitter_for(kind)`
+    # (the certify()/emit() symmetry). Length-2 entries remain valid (certify-only).
+    # HermitianMomentInertia family (ported from anthropics/zeta-23-lean, §6 + §3).
+    "two_moment_count":
+        ("emit_hermitian_moment", "certify_two_moment_count_point", "TwoMomentCountEmitter"),
+    "rank_trace_scalar":
+        ("emit_hermitian_moment", "certify_rank_trace_scalar_point", "RankTraceScalarEmitter"),
+    # Li positivity ladder (RH-roadmap Track 2, onto nicholasbulka/li-criterion-rh-equivalence-lean).
+    "li_positivity":
+        ("emit_li_positivity", "certify_li_positivity_point", "LiPositivityLadderEmitter"),
+    # Second-pass zeta-23-lean catalog emitters (2026-09-09).
+    "enclosure_interval_fold":
+        ("emit_enclosure_fold", "certify_enclosure_interval_fold_point", "EnclosureIntervalFoldEmitter"),
+    "reflection_halving":
+        ("emit_reflection_halving", "certify_reflection_halving_point", "ReflectionHalvingEmitter"),
+    "spacing_tail_bound":
+        ("emit_spacing_tail", "certify_spacing_tail_bound_point", "SpacingTailBoundEmitter"),
+    "autocorr_support":
+        ("emit_autocorr_support", "certify_autocorr_support_point", "AutocorrSupportEmitter"),
+    # Axiom-Math bgp212 + Dyson-quasicrystal emitters (2026-09-09).
+    "rayleigh_gram":
+        ("emit_rayleigh_gram", "certify_rayleigh_gram_point", "RayleighGramEmitter"),
+    "polytope_moment":
+        ("emit_polytope_moment", "certify_polytope_moment_point", "PolytopeMomentEmitter"),
+    "admissible_tuple":
+        ("emit_admissible_tuple", "certify_admissible_tuple_point", "AdmissibleTupleEmitter"),
+    "lee_yang_stable_pair":
+        ("emit_lee_yang", "certify_lee_yang_stable_pair_point", "LeeYangStablePairEmitter"),
+    "max_modulus": ("emit_max_modulus", "certify_max_modulus_point", "MaxModulusEmitter"),
+    "bc_deriv_re": ("emit_bc_deriv_re", "certify_bc_deriv_re_point", "BCDerivReEmitter"),
+    "entire_part_bound":
+        ("emit_entire_part_bound", "certify_entire_part_bound_point", "EntirePartBoundEmitter"),
+    "two_scale_separation":
+        ("emit_two_scale_separation", "certify_two_scale_separation_point", "TwoScaleSeparationEmitter"),
+    "unit_modulus_sos":
+        ("emit_unit_modulus_sos", "certify_unit_modulus_point", "UnitModulusSOSEmitter"),
+    "endpoint_geom_cap":
+        ("emit_endpoint_geom_cap", "certify_endpoint_geom_cap_point", "EndpointGeomCapEmitter"),
+    "far_pole_sum": ("emit_far_pole_sum", "certify_far_pole_sum_point", "FarPoleSumEmitter"),
+    "herglotz_lower": ("emit_herglotz_lower", "certify_herglotz_lower_point", "HerglotzLowerEmitter"),
+    "argument_principle":
+        ("emit_argument_principle", "certify_argument_principle_point", "ArgumentPrincipleEmitter"),
+    "full_argument_principle":
+        ("emit_full_argument_principle", "certify_full_argument_principle_point",
+         "FullArgumentPrincipleEmitter"),
+    "rect_argument_principle":
+        ("emit_rect_argument_principle", "certify_rect_argument_principle_point",
+         "RectArgumentPrincipleEmitter"),
+    "annulus_count":
+        ("emit_annulus_count", "certify_annulus_count_point", "AnnulusCountEmitter"),
+    "box_localization":
+        ("emit_box_localization", "certify_box_localization_point", "BoxLocalizationEmitter"),
+    "turing_band":
+        ("emit_turing_band", "certify_turing_band_point", "TuringBandEmitter"),
+    "slit_loop_winding_zero":
+        ("emit_slit_loop_winding_zero", "certify_slit_loop_winding_zero_point",
+         "SlitLoopWindingZeroEmitter"),
+    "box_residue_sum":
+        ("emit_box_residue_sum", "certify_box_residue_sum_point", "BoxResidueSumEmitter"),
+    "rect_winding":
+        ("emit_rect_winding", "certify_rect_winding_point", "RectWindingEmitter"),
+    "log_product_bound":
+        ("emit_log_product_bound", "certify_log_product_bound_point", "LogProductBoundEmitter"),
+    "box_robust": ("emit_box_robust", "certify_box_robust_point"),
+    "hyperbolicity": ("emit_hyperbolicity", "certify_hyperbolicity_point"),
+    "xi_line_zeros":
+        ("emit_xi_line_zeros", "certify_xi_line_zeros_point", "XiLineZerosEmitter"),
+    "winding_count":
+        ("emit_winding_count", "certify_winding_count_point", "WindingCountEmitter"),
+    # NS/Euler-derived emitters (2026-09-08), mined from OpenAI's finite-time
+    # blowup formalization (github.com/openai/NavierStokesAndEuler).
+    "affine_ledger":
+        ("emit_ns_ledger", "certify_affine_ledger_point", "AffineLedgerEmitter"),
+    "quadratic_irrational":
+        ("emit_quadratic_irrational", "certify_quadratic_irrational_point",
+         "QuadraticIrrationalEmitter"),
+    "gevrey_majorant":
+        ("emit_gevrey_majorant", "certify_gevrey_majorant_point",
+         "GevreyMajorantEmitter"),
+    "sqrt_root_elimination":
+        ("emit_sqrt_root_elimination", "certify_sqrt_root_elim_point",
+         "SqrtRootEliminationEmitter"),
+    "continuous_barrier":
+        ("emit_continuous_barrier", "certify_continuous_barrier_point",
+         "ContinuousBarrierEmitter"),
+    "log_eps_optimize":
+        ("emit_log_eps_optimize", "certify_log_eps_optimize_point",
+         "LogEpsOptimizeEmitter"),
+    "logconvex_interp":
+        ("emit_logconvex_interp", "certify_logconvex_interp_point",
+         "LogConvexInterpEmitter"),
+    "finite_prefix_absorption":
+        ("emit_finite_prefix_absorption", "certify_finite_prefix_absorption_point",
+         "FinitePrefixAbsorptionEmitter"),
+    "coefficient_mass":
+        ("emit_coefficient_mass", "certify_coefficient_mass_point",
+         "CoefficientMassEmitter"),
+    "multilinear_perturbation":
+        ("emit_multilinear_perturbation", "certify_multilinear_perturbation_point",
+         "MultilinearPerturbationEmitter"),
+    "poly_geom_closure":
+        ("emit_poly_geom_closure", "certify_poly_geom_closure_point",
+         "PolyGeomClosureEmitter"),
+    "twopoint_moment":
+        ("emit_twopoint_moment", "certify_twopoint_moment_point",
+         "TwoPointMomentEmitter"),
+    "two_row_solve":
+        ("emit_two_row_solve", "certify_two_row_solve_point", "TwoRowSolveEmitter"),
+    "ratio_telescope":
+        ("emit_ratio_telescope", "certify_ratio_telescope_point", "RatioTelescopeEmitter"),
+    "monomial_ladder":
+        ("emit_monomial_ladder", "certify_monomial_ladder_point", "MonomialLadderEmitter"),
+    "rpow_budget":
+        ("emit_rpow_budget", "certify_rpow_budget_point", "RpowBudgetEmitter"),
+    "comparability_envelope":
+        ("emit_comparability_envelope", "certify_comparability_envelope_point",
+         "ComparabilityEnvelopeEmitter"),
+    "discrete_moment":
+        ("emit_discrete_moment", "certify_discrete_moment_point",
+         "DiscreteMomentEmitter"),
+    "poly_exp_absorption":
+        ("emit_poly_exp_absorption", "certify_poly_exp_absorption_point",
+         "PolyExpAbsorptionEmitter"),
+    "exp_laurent_identity":
+        ("emit_exp_laurent_identity", "certify_exp_laurent_identity_point",
+         "ExpLaurentIdentityEmitter"),
+    "graded_convolution":
+        ("emit_graded_convolution", "certify_graded_convolution_point",
+         "GradedConvolutionEmitter"),
+    "power_tower":
+        ("emit_power_tower", "certify_power_tower_point", "PowerTowerEmitter"),
+    "partition_composition":
+        ("emit_partition_composition", "certify_partition_composition_point",
+         "PartitionCompositionEmitter"),
+    "regular_word":
+        ("emit_regular_word", "certify_regular_word_point", "RegularWordEmitter"),
+    "low_order_tail":
+        ("emit_low_order_tail", "certify_low_order_tail_point", "LowOrderTailEmitter"),
+    "eventual_threshold":
+        ("emit_eventual_threshold", "certify_eventual_threshold_point",
+         "EventualThresholdEmitter"),
+    # PROGRAM ANDÚRIL × MIRRORMERE emitters (2026-09-14).
+    "bragg_amplitude":
+        ("emit_bragg_amplitude", "certify_bragg_amplitude_point", "BraggAmplitudeEmitter"),
+    "defect_witness":
+        ("emit_defect_witness", "certify_defect_witness_point", "DefectWitnessEmitter"),
+    "selfinversive_rigidity":
+        ("emit_selfinversive_rigidity", "certify_selfinversive_rigidity_point",
+         "SelfInversiveRigidityEmitter"),
+    "disjoint_discs":
+        ("emit_disjoint_discs", "certify_disjoint_discs_point", "DisjointDiscsEmitter"),
+    "twofreq_offline":
+        ("emit_twofreq_offline", "certify_twofreq_offline_point", "TwoFreqOfflineEmitter"),
+    "winding_box_zero":
+        ("emit_winding_box_zero", "certify_winding_box_zero_point", "WindingBoxZeroEmitter"),
+    "grid_modulus_nonvanishing":
+        ("emit_grid_modulus_nonvanishing", "certify_grid_modulus_nonvanishing_point",
+         "GridModulusNonvanishingEmitter"),
+    # RH SEVEN-FACES instruments (2026-09-14, face-emitters agent).
+    "robin_growth":
+        ("emit_robin_growth", "certify_robin_growth_point", "RobinGrowthEmitter"),
+    "baez_duarte":
+        ("emit_baez_duarte", "certify_baez_duarte_point", "BaezDuarteEmitter"),
+    "lehmer_pair":
+        ("emit_lehmer_pair", "certify_lehmer_pair_point", "LehmerPairEmitter"),
+    "bagchi_recurrence":
+        ("emit_bagchi_recurrence", "certify_bagchi_recurrence_point",
+         "BagchiRecurrenceEmitter"),
+    # Route P Brick D3 part 2 (Dyson-quasicrystal diffraction; onto RvMRoutePFalsify /
+    # RvMCompanionBraggLimit, pinned in the li_positivity island lakefile).
+    "bragg_floor":
+        ("emit_bragg_floor", "certify_bragg_floor_point", "BraggFloorEmitter"),
+    # Interval-Gram inertia (2026-09-18): kernel-certified (posIndex, defect) of every
+    # Hermitian matrix in a rational interval box (RHInertia prelude over RHLinalg).
+    # Zhu window-form floor (arXiv:2608.24827 Thm 1.1); onto the WeilExplicit / WeilForm
+    # vocabulary of RH_limit_explicit_formula.
+    "window_form_floor":
+        ("emit_window_form_floor", "certify_window_form_floor_point",
+         "WindowFormFloorEmitter"),
+    "interval_gram_inertia":
+        ("emit_interval_gram_inertia", "certify_interval_gram_inertia_point",
+         "IntervalGramInertiaEmitter"),
+    # concave_pooled_induction (tree recursion bound by a concave pooled-mean witness).
+    "concave_pooled_induction":
+        ("emit_concave_pooled_induction", "certify_concave_pooled_induction_point",
+         "ConcavePooledInductionEmitter"),
+    # affine_hull_dominance (exact tree maxima by convex-hull pruning of vector states).
+    "affine_hull_dominance":
+        ("emit_affine_hull_dominance", "certify_affine_hull_dominance_point",
+         "AffineHullDominanceEmitter"),
+    # E8 Weil pairing enclosure (onto the WeilExplicit vocabulary of RH_limit_explicit_formula).
+    "weil_form_enclosure":
+        ("emit_weil_form_enclosure", "certify_weil_form_enclosure_point",
+         "WeilFormEnclosureEmitter"),
+    # MIRRORMERE exp-enclosure (rational Real.exp brackets via Real.exp_bound; the
+    # BraggDefect hexp seam, the QC_RECURRENCE deficit row, the ZooDH cosh input).
+    "exp_enclosure":
+        ("emit_exp_enclosure", "certify_exp_enclosure_point", "ExpEnclosureEmitter"),
+    # exp_threshold (threshold-to-exponential-domination bundles and atoms, Real.add_one_le_exp).
+    "exp_threshold":
+        ("emit_exp_threshold", "certify_exp_threshold_point", "ExpThresholdEmitter"),
+    # enclosure_tree (rational enclosures of expression trees over transcendental atoms; the
+    # pi-face rate corollary; the log/sqrt face).
+    "enclosure_tree":
+        ("emit_enclosure_tree", "certify_enclosure_tree_point", "EnclosureTreeEmitter"),
+    # mobius_tangent_cell (tangent-line cells with a Mobius term, convex majorant at endpoints).
+    "mobius_tangent_cell":
+        ("emit_mobius_tangent_cell", "certify_mobius_tangent_cell_point",
+         "MobiusTangentCellEmitter"),
+    # gap_budget_multiplicity (tangent-price gap budget: caps, exclusions, knapsack).
+    "gap_budget_multiplicity":
+        ("emit_gap_budget_multiplicity", "certify_gap_budget_multiplicity_point",
+         "GapBudgetMultiplicityEmitter"),
+    # single_crossing_ladder (single crossing + increasing breakpoints + best-member ladder).
+    "single_crossing_ladder":
+        ("emit_single_crossing_ladder", "certify_single_crossing_ladder_point",
+         "SingleCrossingLadderEmitter"),
+    # factored_endpoint_enclosure (factorization + box sign through the endpoint).
+    "factored_endpoint_enclosure":
+        ("emit_factored_endpoint_enclosure", "certify_factored_endpoint_enclosure_point",
+         "FactoredEndpointEnclosureEmitter"),
+    # typed_cavity_induction (a type table as an inductive invariant over all trees).
+    "typed_cavity_induction":
+        ("emit_typed_cavity_induction", "certify_typed_cavity_induction_point",
+         "TypedCavityInductionEmitter"),
+    # anchored_monotone_extension (derivative prelude + two-row invariant + anchored extension).
+    "anchored_monotone_extension":
+        ("emit_anchored_monotone_extension", "certify_anchored_monotone_extension_point",
+         "AnchoredMonotoneExtensionEmitter"),
+    # zero_sum_majorant (the strip certificate composed with the RvMBridgeXi.zeroBoundAt atom of
+    # the rvm_bridge island; the tail_envelope face is Mathlib-only).
+    "zero_sum_majorant":
+        ("emit_zero_sum_majorant", "certify_zero_sum_majorant_point",
+         "ZeroSumMajorantEmitter"),
+    # MIRRORMERE leakage dictionary (ROUTE A item A2b): re-derived log-derivative coefficient
+    # rows at a composite index, over the island's LeakageDictionary vocabulary.
+    "leakage_dictionary":
+        ("emit_leakage_dictionary", "certify_leakage_dictionary_point",
+         "LeakageDictionaryEmitter"),
+    # preordering_multiplier (SHAPES_AUDIT_48H_2026-09-22 section 2 rank 3): positivity on a
+    # semialgebraic set with polynomial generators, a positive multiplier and a certified
+    # multiplier zero locus.  Dogfooded on the Li box rungs Re Q_3 / Q_4 / Q_5 (LiBoxRungs).
+    "preordering_multiplier":
+        ("emit_preordering_multiplier", "certify_preordering_multiplier_point",
+         "PreorderingMultiplierEmitter"),
+    # Shapes-audit rank 4: real/imaginary-part splits and cast identities of complex
+    # polynomial expressions (dogfood: E6Bridge5 / 7 / 11 / 14 / 28 on the rvm island).
+    "complex_re_im_split":
+        ("emit_complex_re_im_split", "certify_complex_re_im_split_point",
+         "ComplexReImSplitEmitter"),
+}
+
+
+def _certify_special_point(family, pt, name):
+    """Dispatch a first-class-emitter kind to its arm; (instance, checks)."""
+    import importlib
+
+    kind = family.kind
+    if kind == "sos":
+        from .emit_sos import certify_sos_point as _cp
+    elif kind == "bracket":
+        from .emit_bracket import certify_bracket_point as _cp
+    elif kind == "valuation":
+        from .emit_padic import certify_valuation_point as _cp
+    elif kind in _SPECIAL_DISPATCH:
+        mod_name, fn_name = _SPECIAL_DISPATCH[kind][:2]
+        _cp = getattr(importlib.import_module(f".{mod_name}", __package__), fn_name)
+    else:  # pragma: no cover — guarded by caller
+        raise ValueError(f"not a first-class-emitter kind: {kind}")
+    return _cp(family, pt, name)
+
+
+def emitter_for(kind: str):
+    """Lazily resolve and instantiate the Emitter for a first-class ``kind``.
+
+    Closes the certify()/emit() asymmetry: `certify` already auto-dispatches a
+    kind to its ``certify_*_point`` via ``_SPECIAL_DISPATCH``; this does the same
+    for the emitter class, so a driver can `emit` a family without hardcoding the
+    emitter.  Requires the ``_SPECIAL_DISPATCH[kind]`` entry to carry an optional
+    THIRD element — the emitter class name in the arm module.  Uses the same lazy
+    local import as ``_certify_special_point`` (no eager arm-module imports, so no
+    import cycles).  Raises ``KeyError`` if the kind is unknown and ``ValueError``
+    if it has no registered emitter class.
+    """
+    import importlib
+
+    entry = _SPECIAL_DISPATCH[kind]
+    if len(entry) < 3 or not entry[2]:
+        raise ValueError(
+            f"kind {kind!r} has no registered emitter class in _SPECIAL_DISPATCH "
+            f"(add a third tuple element to enable emitter_for)"
+        )
+    mod_name, _fn_name, cls_name = entry[:3]
+    cls = getattr(importlib.import_module(f".{mod_name}", __package__), cls_name)
+    return cls()
+
+
+def polya_certify(
+    expr: sp.Expr, syms: Sequence[sp.Symbol], lift_max: int = 0
+) -> PolyaCertificate:
+    """Certify 0 <= expr for nonnegative syms via nonneg-num / positive-den form.
+
+    With lift_max > 0, a numerator refusal triggers Pólya lifting: multiply
+    num AND den by (1 + Σsyms)^N (N ≤ lift_max) — the lifted pair is again a
+    Polya certificate.  Lifting certifies strict positivity only; claims
+    touching an equality case never lift (see lift.py).
+
+    Raises ValueError (with a reason) if the expression has no such form —
+    that is a refusal, not a soundness event.
+    """
+    if _ACTIVE_CACHE is not None:
+        from .cache import cert_key
+
+        key = cert_key(expr, lift_max)
+        got = _ACTIVE_CACHE.get(key)
+        if got is not None:
+            if not got.get("ok"):
+                raise ValueError(got["reason"])
+            return PolyaCertificate(
+                expr=expr,
+                numerator=sp.sympify(got["num"]),
+                denominator=sp.sympify(got["den"]),
+                lift_n=got["lift_n"],
+            )
+    # exactly the origin generator's normal form: together -> fraction -> expand
+    # (no simplify() — it can re-split the fraction and wreck the sign structure)
+    num, den = sp.fraction(sp.together(expr))
+    num, den = sp.expand(num), sp.expand(den)
+    if syms:
+        pd = sp.Poly(den, *syms)
+        if all(c < 0 for c in pd.coeffs()):
+            num, den = sp.expand(-num), sp.expand(-den)
+        pn = sp.Poly(num, *syms)
+        bad = [
+            (m, c)
+            for m, c in zip(pn.monoms(), pn.coeffs())
+            if c < 0 or sp.Integer(c) != c
+        ]
+        lift_n = 0
+        if bad and lift_max > 0:
+            from .lift import polya_lift
+
+            lifted = polya_lift(num, syms, lift_max)
+            if lifted is not None:
+                lift_n, num = lifted
+                lifter = sp.expand((1 + sp.Add(*syms)) ** lift_n)
+                den = sp.expand(den * lifter)
+                bad = []
+        if bad:
+            reason = f"numerator not all-nonneg-integer: {bad[:3]}"
+            if _ACTIVE_CACHE is not None:
+                from .cache import cert_key
+
+                _ACTIVE_CACHE.put(cert_key(expr, lift_max), {"ok": False, "reason": reason})
+            raise ValueError(reason)
+        const, factors = sp.factor_list(den)
+        if const <= 0:
+            raise ValueError(f"denominator constant {const} <= 0")
+        for base, _ in factors:
+            pb = sp.Poly(base, *syms)
+            if not all(c > 0 for c in pb.coeffs()):
+                raise ValueError(f"denominator factor {base} not all-positive")
+    else:
+        lift_n = 0
+        if den < 0:
+            num, den = -num, -den
+        if num < 0:
+            raise ValueError(f"negative constant {num}/{den}")
+    if _ACTIVE_CACHE is not None:
+        from .cache import cert_key
+
+        _ACTIVE_CACHE.put(
+            cert_key(expr, lift_max),
+            {"ok": True, "num": sp.srepr(num), "den": sp.srepr(den), "lift_n": lift_n},
+        )
+    return PolyaCertificate(expr=expr, numerator=num, denominator=den, lift_n=lift_n)
+
+
+def _dual_engine_check(family, pt, trials: int = 3) -> int:
+    """Cross-check the sympy target against the family's independent
+    (pure-Fraction) implementation at seeded exact points."""
+    import random
+    from fractions import Fraction
+
+    if family.independent_target is None or family.target is None:
+        return 0
+    rng = random.Random(hash(str(sorted(pt.items()))) & 0xFFFF)
+    target = family.target(pt)
+    for _ in range(trials):
+        point = {
+            str(s): Fraction(rng.randint(0, 60), rng.randint(1, 6))
+            for s in family.symbols
+        }
+        sym_val = target.subs({s: sp.Rational(point[str(s)]) for s in family.symbols})
+        ind_val = family.independent_target(pt, point)
+        if sym_val != sp.Rational(ind_val):
+            raise ValueError(
+                f"DUAL-ENGINE DISAGREEMENT at {point}: sympy={sym_val}, "
+                f"independent={ind_val} — one implementation is wrong"
+            )
+    return trials
+
+
+def _pin_checks(family, pt, cert) -> int:
+    """The honesty declarations, enforced.  Returns the number of checks run;
+    raises ValueError on a wrong tie declaration, an OVERCLAIMING certificate
+    (positive slack at a declared tie), or an anchor mismatch."""
+    checks = 0
+    target = family.target(pt) if family.target is not None else None
+    if family.ties is not None and target is not None:
+        for tie in family.ties(pt):
+            tval = sp.simplify(target.subs(tie))
+            if tval != 0:
+                raise ValueError(
+                    f"declared tie {tie} is not tight: target = {tval}"
+                )
+            nval = sp.simplify(cert.numerator.subs(tie))
+            if nval != 0:
+                raise ValueError(
+                    f"OVERCLAIM: certificate has slack {nval} at declared tie "
+                    f"{tie} — the certificate does not achieve the tie"
+                )
+            checks += 2
+    if family.anchors is not None and target is not None:
+        for subs, val in family.anchors(pt):
+            got = sp.simplify(target.subs(subs) - val)
+            if got != 0:
+                raise ValueError(
+                    f"anchor mismatch at {subs}: off by {got} from declared {val}"
+                )
+            checks += 1
+    return checks
+
+
+def profile_report(cf: CertifiedFamily, top: int = 10) -> str:
+    """The cost ledger: total, mean, and the hottest cells."""
+    if not cf.timings:
+        return "no timings recorded (certify with profile=True)"
+    total = sum(dt for _, dt in cf.timings)
+    hot = sorted(cf.timings, key=lambda x: -x[1])[:top]
+    lines = [
+        f"certified {len(cf.timings)} instance(s) in {total:.1f}s "
+        f"(mean {total / len(cf.timings):.2f}s); hottest:"
+    ]
+    lines += [f"  {n}: {dt:.2f}s" for n, dt in hot]
+    return "\n".join(lines)
+
+
+def restrict_instances(cf: CertifiedFamily, indices) -> CertifiedFamily:
+    """A CertifiedFamily view holding a subset of instances (for per-unit
+    rendering and sharding).  Internal: preserves the construction guard."""
+    _construction_guard.open = True
+    try:
+        return CertifiedFamily(
+            family=cf.family,
+            instances=tuple(cf.instances[i] for i in indices),
+            checks_passed=cf.checks_passed,
+        )
+    finally:
+        _construction_guard.open = False
+
+
+def _certify_box(family, pt, name, qa, ra, checks_box, depth, force_depth):
+    """Certify one (possibly subdivided) box.  Returns (instances, tree, checks).
+
+    tree: {"name", "q_axis", "r_axis"} for a leaf, plus {"axis", "mid",
+    "children"} for an internal split node."""
+    from .family import BoxAxis
+
+    q, r = qa.symbol, ra.symbol
+    diff = sp.expand(sp.together(family.after(pt) - family.before(pt)))
+    pdiff = sp.Poly(diff, q, r)
+    if pdiff.total_degree() > 2 or any(m[0] > 1 or m[1] > 1 for m in pdiff.monoms()):
+        raise ValueError("difference is not bilinear in the box symbols")
+    c1 = pdiff.coeff_monomial(1)
+    c2 = pdiff.coeff_monomial(q)
+    c3 = pdiff.coeff_monomial(r)
+    c4 = pdiff.coeff_monomial(q * r)
+    if sp.simplify(diff - (c1 + c2 * q + c3 * r + c4 * q * r)) != 0:
+        raise ValueError("bilinear decomposition self-check failed")
+    checks = 1
+    corner_vals = [(qa.lo, ra.lo), (qa.lo, ra.hi), (qa.hi, ra.lo), (qa.hi, ra.hi)]
+    certs, failed = [], []
+    for idx, (qv, rv) in enumerate(corner_vals):
+        try:
+            certs.append(
+                polya_certify(
+                    c1 + c2 * qv + c3 * rv + c4 * qv * rv,
+                    family.symbols,
+                    lift_max=family.auto_lift,
+                )
+            )
+            checks += 1
+        except ValueError as e:
+            failed.append((idx, str(e)))
+    must_split = force_depth > 0
+    if failed and depth <= 0 and not must_split:
+        raise ValueError(f"corner {failed[0][0]:02b}: {failed[0][1]}")
+    if failed or must_split:
+        # split axis: prefer the axis whose hi-corner failed; alternate under force
+        if failed:
+            axis = "q" if any(idx >= 2 for idx, _ in failed) else "r"
+        else:
+            axis = "q" if force_depth % 2 == 1 else "r"
+        if axis == "q":
+            mid = (qa.lo + qa.hi) / 2
+            subs = [
+                (f"{name}_qL", BoxAxis(q, qa.lo, mid, qa.lo_is_floor), ra),
+                (f"{name}_qR", BoxAxis(q, mid, qa.hi, True), ra),
+            ]
+        else:
+            mid = (ra.lo + ra.hi) / 2
+            subs = [
+                (f"{name}_rL", qa, BoxAxis(r, ra.lo, mid, ra.lo_is_floor)),
+                (f"{name}_rR", qa, BoxAxis(r, mid, ra.hi, True)),
+            ]
+        instances, children = [], []
+        for sub_name, sqa, sra in subs:
+            sub_inst, sub_tree, sub_checks = _certify_box(
+                family, pt, sub_name, sqa, sra, checks_box,
+                depth - 1, max(force_depth - 1, 0),
+            )
+            instances.extend(sub_inst)
+            children.append(sub_tree)
+            checks += sub_checks
+        tree = {
+            "name": name, "point": dict(pt), "q_axis": qa, "r_axis": ra,
+            "axis": axis, "mid": mid, "children": children,
+        }
+        return instances, tree, checks
+    decomp = BilinearDecomposition(c1, c2, c3, c4, qa, ra)
+    atoms = tuple(family.den_atoms(pt)) if family.den_atoms is not None else ()
+    inst = CertifiedInstance(
+        point=dict(pt), lean_name=name, corners=tuple(certs),
+        decomposition=decomp, den_atoms=atoms,
+    )
+    return [inst], {"name": name, "point": dict(pt), "q_axis": qa, "r_axis": ra}, checks
+
+
+_FORK_STATE: dict = {}
+
+
+def _certify_point(args):
+    """Per-point worker (fork-inherited family via _FORK_STATE in parallel mode)."""
+    pt, force_subdivide = args
+    family = _FORK_STATE["family"]
+    name = family.lean_name(pt)
+    try:
+        if family.kind in _SPECIAL_KINDS:
+            inst, n = _certify_special_point(family, pt, name)
+            return ("ok", [inst], None, n)
+        if family.kind == "equation":
+            lhs, rhs = family.equation(pt)
+            if sp.simplify(sp.together(lhs - rhs)) != 0:
+                raise ValueError("identity self-check failed: lhs - rhs != 0")
+            atoms = tuple(family.den_atoms(pt)) if family.den_atoms is not None else ()
+            inst = CertifiedInstance(
+                point=dict(pt), lean_name=name, corners=(),
+                decomposition=None, den_atoms=atoms, equation=(lhs, rhs),
+            )
+            return ("ok", [inst], None, 1)
+        if family.kind == "witness":
+            cands = list(family.witnesses(pt))
+            cert, win, reasons = None, None, []
+            for label, cand in cands:
+                try:
+                    cert = polya_certify(cand, family.symbols, lift_max=family.auto_lift)
+                    win = label
+                    break
+                except ValueError as we:
+                    reasons.append(f"{label}: {we}")
+            if cert is None:
+                tag = (
+                    "PROVEN IMPOSSIBLE: the declared-COMPLETE candidate "
+                    "space is exhausted"
+                    if family.witnesses_complete
+                    else "no certifiable witness"
+                )
+                raise ValueError(
+                    f"{tag} among {len(cands)} candidate(s); "
+                    + " | ".join(reasons[:3])
+                )
+            atoms = tuple(family.den_atoms(pt)) if family.den_atoms is not None else ()
+            inst = CertifiedInstance(
+                point=dict(pt), lean_name=name, corners=(cert,),
+                decomposition=None, den_atoms=atoms, witness=win,
+            )
+            return ("ok", [inst], None, 1)
+        if family.kind == "direct":
+            cert = polya_certify(
+                family.target(pt), family.symbols, lift_max=family.auto_lift
+            )
+            n_pin = _pin_checks(family, pt, cert) + _dual_engine_check(family, pt)
+            atoms = tuple(family.den_atoms(pt)) if family.den_atoms is not None else ()
+            inst = CertifiedInstance(
+                point=dict(pt), lean_name=name, corners=(cert,),
+                decomposition=None, den_atoms=atoms,
+            )
+            return ("ok", [inst], None, 1 + n_pin)
+        qa, ra = family.box(pt)
+        sub_inst, tree, box_checks = _certify_box(
+            family, pt, name, qa, ra, 0, family.auto_subdivide, force_subdivide
+        )
+        return ("ok", sub_inst, tree if "children" in tree else None, box_checks)
+    except (ValueError, sp.PolynomialError) as e:
+        return ("fail", dict(pt), str(e), 0)
+
+
+def certify(
+    family: InequalityFamily,
+    progress=None,
+    force_subdivide: int = 0,
+    workers: int = 1,
+    cache_dir=None,
+    profile: bool = False,
+    budget_seconds: float | None = None,
+) -> CertifiedFamily:
+    """Run every self-check for every grid point; return the emission witness.
+
+    progress: optional callable (i, total, point) invoked before each instance
+    — long certifications (the R47 table runs ~6 min) should not be silent.
+
+    workers > 1 certifies grid points in parallel via fork-context
+    multiprocessing (fork inherits the family's closures; unavailable on
+    platforms without fork — falls back to serial).
+
+    cache_dir enables the persistent certification cache (a performance
+    layer only — the drift net and the kernel remain the arbiters).
+
+    profile records per-instance wall time on the result (`timings`; see
+    profile_report).  budget_seconds aborts a serial run that exceeds the
+    budget, reporting progress and the hottest cells so far — the R7 972-cell
+    lesson: never grind blind."""
+    global _ACTIVE_CACHE
+    if cache_dir is not None:
+        from .cache import DiskCache
+
+        _ACTIVE_CACHE = DiskCache(cache_dir)
+    if workers > 1:
+        import multiprocessing as mp
+
+        try:
+            ctx = mp.get_context("fork")
+        except ValueError:
+            ctx = None
+        if ctx is not None:
+            pts = list(family.grid.points())
+            names = [family.lean_name(pt) for pt in pts]
+            dupes = {n for n in names if names.count(n) > 1}
+            if dupes:
+                raise CertificationError(
+                    [({}, f"duplicate lean_name {n!r}") for n in sorted(dupes)]
+                )
+            _FORK_STATE["family"] = family
+            try:
+                with ctx.Pool(workers) as pool:
+                    results = pool.map(
+                        _certify_point, [(pt, force_subdivide) for pt in pts]
+                    )
+            finally:
+                _FORK_STATE.pop("family", None)
+            instances, failures, trees, checks = [], [], [], 0
+            for status, a, b, c in results:
+                if status == "ok":
+                    instances.extend(a)
+                    if b is not None:
+                        trees.append(b)
+                    checks += c
+                else:
+                    failures.append((a, b))
+            if failures:
+                raise CertificationError(failures)
+            _construction_guard.open = True
+            try:
+                return CertifiedFamily(
+                    family=family,
+                    instances=tuple(instances),
+                    checks_passed=checks,
+                    subdivisions=tuple(trees),
+                )
+            finally:
+                _construction_guard.open = False
+    instances: list[CertifiedInstance] = []
+    failures: list[tuple[dict, str]] = []
+    subdivision_trees: list[dict] = []
+    checks = 0
+    seen_names: set[str] = set()
+    total = family.grid.size()
+
+    import time as _time
+
+    timings: list = []
+    t_start = _time.monotonic()
+    for i, pt in enumerate(family.grid.points(), 1):
+        if progress is not None:
+            progress(i, total, dict(pt))
+        if budget_seconds is not None and _time.monotonic() - t_start > budget_seconds:
+            hot = sorted(timings, key=lambda x: -x[1])[:5]
+            raise CertificationError(
+                [({}, f"BUDGET EXCEEDED after {i - 1}/{total} instances "
+                      f"({_time.monotonic() - t_start:.0f}s); hottest: "
+                      + ", ".join(f"{n}={dt:.1f}s" for n, dt in hot))]
+            )
+        _t0 = _time.monotonic() if profile else 0.0
+        name = family.lean_name(pt)
+        if name in seen_names:
+            failures.append((dict(pt), f"duplicate lean_name {name!r}"))
+            continue
+        seen_names.add(name)
+        try:
+            if family.kind in _SPECIAL_KINDS:
+                inst, n = _certify_special_point(family, pt, name)
+                instances.append(inst)
+                checks += n
+            elif family.kind == "equation":
+                lhs, rhs = family.equation(pt)
+                if sp.simplify(sp.together(lhs - rhs)) != 0:
+                    raise ValueError("identity self-check failed: lhs - rhs != 0")
+                checks += 1
+                atoms = (
+                    tuple(family.den_atoms(pt)) if family.den_atoms is not None else ()
+                )
+                instances.append(
+                    CertifiedInstance(
+                        point=dict(pt), lean_name=name, corners=(),
+                        decomposition=None, den_atoms=atoms, equation=(lhs, rhs),
+                    )
+                )
+            elif family.kind == "witness":
+                cands = list(family.witnesses(pt))
+                cert = None
+                reasons = []
+                for label, cand in cands:
+                    try:
+                        cert = polya_certify(
+                            cand, family.symbols, lift_max=family.auto_lift
+                        )
+                        win = label
+                        break
+                    except ValueError as we:
+                        reasons.append(f"{label}: {we}")
+                if cert is None:
+                    tag = (
+                        "PROVEN IMPOSSIBLE: the declared-COMPLETE candidate "
+                        "space is exhausted"
+                        if family.witnesses_complete
+                        else "no certifiable witness"
+                    )
+                    raise ValueError(
+                        f"{tag} among {len(cands)} candidate(s); "
+                        + " | ".join(reasons[:3])
+                    )
+                checks += 1
+                atoms = (
+                    tuple(family.den_atoms(pt)) if family.den_atoms is not None else ()
+                )
+                instances.append(
+                    CertifiedInstance(
+                        point=dict(pt), lean_name=name, corners=(cert,),
+                        decomposition=None, den_atoms=atoms, witness=win,
+                    )
+                )
+            elif family.kind == "direct":
+                cert = polya_certify(
+                    family.target(pt), family.symbols, lift_max=family.auto_lift
+                )
+                checks += 1 + _pin_checks(family, pt, cert) + _dual_engine_check(family, pt)
+                atoms = (
+                    tuple(family.den_atoms(pt)) if family.den_atoms is not None else ()
+                )
+                instances.append(
+                    CertifiedInstance(
+                        point=dict(pt), lean_name=name, corners=(cert,),
+                        decomposition=None, den_atoms=atoms,
+                    )
+                )
+            else:
+                qa, ra = family.box(pt)
+                sub_inst, tree, box_checks = _certify_box(
+                    family, pt, name, qa, ra, 0,
+                    family.auto_subdivide, force_subdivide,
+                )
+                checks += box_checks
+                instances.extend(sub_inst)
+                if "children" in tree:
+                    subdivision_trees.append(tree)
+        except (ValueError, sp.PolynomialError) as e:
+            failures.append((dict(pt), str(e)))
+        if profile:
+            timings.append((name, _time.monotonic() - _t0))
+
+    if failures:
+        raise CertificationError(failures)
+
+    _construction_guard.open = True
+    try:
+        return CertifiedFamily(
+            family=family,
+            instances=tuple(instances),
+            checks_passed=checks,
+            subdivisions=tuple(subdivision_trees),
+            timings=tuple(timings),
+        )
+    finally:
+        _construction_guard.open = False

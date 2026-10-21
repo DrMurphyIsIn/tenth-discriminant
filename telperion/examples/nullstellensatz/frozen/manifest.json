@@ -1,0 +1,9 @@
+{
+  "family": "Nullstellensatz",
+  "input_hash": "662c716728d101907982bd5a279b5f2462bb625744ef7c170ed1b3d69f2e3dec",
+  "tool_version": "0.1.6",
+  "files": [
+    "Nullstellensatz.lean"
+  ],
+  "n_theorems": 2
+}

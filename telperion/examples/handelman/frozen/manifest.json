@@ -1,0 +1,9 @@
+{
+  "family": "Handelman",
+  "input_hash": "e57fd9554ae7ce9a66312376d1ac765339d04e21962c531cdeef273f8b401502",
+  "tool_version": "0.1.6",
+  "files": [
+    "Handelman.lean"
+  ],
+  "n_theorems": 4
+}

@@ -1,0 +1,9 @@
+{
+  "family": "Bernstein",
+  "input_hash": "41b88eb42e14176e753521ba9c0f1dd4ae3c8eaab95478d1abe05ccaa13706e5",
+  "tool_version": "0.1.6",
+  "files": [
+    "Bernstein.lean"
+  ],
+  "n_theorems": 3
+}

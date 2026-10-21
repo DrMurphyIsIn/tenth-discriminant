@@ -1,0 +1,9 @@
+{
+  "family": "FwdTelescope",
+  "input_hash": "35549f8fbd066214ad20e4525563907165ba7b34dad1172645e891bcf864605f",
+  "tool_version": "0.1.6",
+  "files": [
+    "FwdTelescope.lean"
+  ],
+  "n_theorems": 4
+}
