@@ -48,8 +48,8 @@ real character attached to K.
 
 ## What is not done yet
 
-- The Lean formalization (`formalization/`). Its first step is a one-screen statement using only Mathlib definitions, reviewed
-  before any proof is built on it.
+- The Lean proof (`formalization/`). The statement is written and reviewed, a one-screen theorem using only Mathlib definitions
+  (see `formalization/README.md`); the proof is not.
 - The certificate generators for the numerical inequalities, and the witness primes (`certificates/`).
 - The human-readable write-up (`notes/`).
 
