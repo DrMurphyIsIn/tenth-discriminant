@@ -29,7 +29,8 @@ We have kept the first proof exactly as it was. It is the comparison point: the 
 says what it costs to take the L-function out of the closure.
 
 The repository has a third entry, which goes past class number one. In [`hcn/`](hcn/README.md) the first proof's route is extended
-from one ideal class to every class, and proves, again kernel-checked and again without Heegner, Baker or Stark, that the
+from one ideal class to every class, and proves, again kernel-checked and again without Heegner's method (no j-invariant or
+singular moduli occur in the closure), linear forms in logarithms, or Gross–Zagier, that the
 imaginary quadratic fields of class number at most two are exactly the 27 known ones, and those of class number two exactly the
 eighteen:
 
@@ -191,7 +192,7 @@ the comments of Tao's challenge:
 
 1. **ζ_K splits into class sums.** ζ_K(s) = Σ_C ½ Z_{Q_C}(s), one Epstein zeta function per ideal class, where Q_C is the norm
    form of a Hermite basis of an ideal in C⁻¹, with leading coefficient between 1 and (2/3)√d (Minkowski).
-2. **Chowla–Selberg for every positive definite form**, with a sharp remainder bound, continues each class sum to s = 7/8.
+2. **Chowla–Selberg for every positive definite form**, with an explicit remainder bound, continues each class sum to s = 7/8.
 3. **The threshold.** With the 7/8 theorem, as in the first proof, class number at most two forces d ≤ 4777. To close there,
    the positive y = 0 term of the non-principal class has to be kept.
 4. **The finite range.** Below 4778, a short certificate built from the principal norm form alone shows class number at least

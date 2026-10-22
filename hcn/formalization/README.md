@@ -1,7 +1,8 @@
 # hcn/formalization/
 
 This is the Lean 4 project of the class number two proof. It proves `HCN.classNumber_le_two_iff` and
-`HCN.classNumber_eq_two_iff` without Heegner, Baker or Stark. It is pinned exactly as the first proof in
+`HCN.classNumber_eq_two_iff` without Heegner's method (no j-invariant or singular moduli occur in the closure), linear forms
+in logarithms, or Gross–Zagier. It is pinned exactly as the first proof in
 [`../../formalization/`](../../formalization/README.md) is:
 - Lean v4.34.1;
 - openai/math at commit [`adc7f124`](https://github.com/openai/math/tree/adc7f1241b42e322a6451854ab7e4b4c146bf78a), which provides
@@ -24,7 +25,7 @@ This is the Lean 4 project of the class number two proof. It proves `HCN.classNu
 
 | Step of the argument | Module | Main declarations |
 |---|---|---|
-| Chowla–Selberg for a general positive form `a x² + b x y + c y²`, with the sharp remainder bound `Bg` and its monotonicity in `a`; it specializes to the first proof's formula at `a = 1` | `HCN.Statements.GeneralCS`, with helpers `HCN.CS.Form`, `.Slice`, `.MainTerm`, `.Remainder`, `.Mono` | `CS_main_general`, `norm_Eg_seven_eighths_le`, `Bg_mono`, `CS_main_principal` |
+| Chowla–Selberg for a general positive form `a x² + b x y + c y²`, with the explicit remainder bound `Bg` and its monotonicity in `a`; it specializes to the first proof's formula at `a = 1` | `HCN.Statements.GeneralCS`, with helpers `HCN.CS.Form`, `.Slice`, `.MainTerm`, `.Remainder`, `.Mono` | `CS_main_general`, `norm_Eg_seven_eighths_le`, `Bg_mono`, `CS_main_principal` |
 | `ζ_K` as a sum over the nonzero ideals | `HCN.Epstein.IdealZeta` | `hasSum_dedekindZeta` |
 | The partition `ζ_K = Σ_C ½ Z_{Q_C}`, with Hermite bases and representatives of norm at most `(2/3)√d` | `HCN.Statements.ClassPartition` | `exists_isHermite`, `hasSum_classSum`, `exists_classReps` |
 | The numerics at `s = 7/8`: for every real `D ≥ 4778`, the bound for the principal class and the bound for the sum are positive | `HCN.Numerics.Threshold` | `Pv_pos_and_add_Tv_pos` |
@@ -99,7 +100,9 @@ were on macOS, with a pass-through shim in its place, so they were **not sandbox
 ## The published files and the checked files
 
 The run of record was made on a tree whose comments still carried internal references (plan section numbers, the names of work
-tracks and review items, private paths). We removed those from the comments and docstrings, and changed nothing else; the
-generators were changed in the same way, so that they now produce the published files. The vendored first-proof modules are
-the already-published copies, which differ from the copies in the run of record only in comments. [`VERIFICATION.md`](VERIFICATION.md)
-records how we checked all of this on the compiled declarations.
+tracks and review items, private paths). We removed those from the comments and docstrings, and corrected one docstring figure
+in `HCN.Numerics.Threshold`; nothing else in the Lean sources changed. The generators were changed in the same way, so that
+they now produce the published files. The build configuration (`lakefile.lean`, `lake-manifest.json`) is replaced by the
+public one, which takes openai/math from git instead of a local checkout. The vendored first-proof modules are the
+already-published copies, which differ from the copies in the run of record only in comments. [`VERIFICATION.md`](VERIFICATION.md)
+records how we checked all of this on the compiled declarations, and a fresh Comparator run on the published files.

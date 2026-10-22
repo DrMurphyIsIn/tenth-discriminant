@@ -9,8 +9,10 @@ fields of class number at most two are exactly the 27 known ones:
 > and it has class number exactly two if and only if m is one of those eighteen.
 
 The theorem is classical: Baker and Stark solved the class number two problem in 1971. What is new here is a proof by the
-route of the first entry, extended from one class to every class, and checked by two kernels. Like the first proof, it uses no
-Heegner points, no modular functions and no linear forms in logarithms. Its deep input is OpenAI's theorem that no Dirichlet
+route of the first entry, extended from one class to every class, and checked by two kernels. Like the first proof, it does
+not use Heegner's method (no j-invariant or singular moduli occur in the closure), linear forms in logarithms, or the
+Gross–Zagier formula. It does use modular objects: the Jacobi theta function and its modular transformation, and, through
+OpenAI's proof of the 7/8 theorem, non-holomorphic Eisenstein series with their automorphy. Its deep input is OpenAI's theorem that no Dirichlet
 L-function vanishes when Re s > 7/8, and the Lean proof of that theorem is inside the checked closure, not assumed.
 
 There are two ways in:
@@ -40,7 +42,8 @@ make provable:
    Minkowski's bound, in Mathlib's form, gives N(J) ≤ (2/3)√d. The principal class has a_C = 1.
 2. **Chowla–Selberg for every positive definite form.** Each ½ Z_{Q_C} continues to s = 7/8 as a_C^(−7/8) ζ(7/4), plus a
    negative multiple of ζ(3/4) of size about d^(−3/8), plus a remainder bounded by an explicit function of a_C that increases
-   with a_C. The remainder bound is sharper than the first proof's, and the formula specializes to the first proof's at a = 1.
+   with a_C. The remainder bound keeps the first proof's kernel bound, with its halved exponent, and splits the double sum more
+   sharply; the formula specializes to the first proof's at a = 1.
 3. **The threshold.** At s = 7/8 the left side is ζ(7/8) L(7/8, χ) ≤ 0, by the 7/8 theorem. If the class number is at most
    two and d ≥ 4778, the right side is positive. So class number at most two forces **d ≤ 4777**. To close at 4778 with the
    first proof's enclosures, the positive y = 0 term of the non-principal class has to be kept: without it the margin is about
@@ -151,8 +154,11 @@ The details are in the paper's verification section. In brief:
 - **Independent replay.** A separate AI review session rebuilt the project, re-ran Comparator with its own build of nanoda, and
   ran five controls of its own; both kernels accepted the theorems again. It is an AI review, not a referee's report.
 - **The published files are the checked files.** Before publishing we removed internal references from the Lean comments and
-  docstrings, and only there. [`formalization/VERIFICATION.md`](formalization/VERIFICATION.md) records how we checked that the
-  published modules compile to exactly the same declarations as the checked ones, and the build of a fresh copy.
+  docstrings, and corrected one docstring figure (the worst cases at d = 4778 in `HCN.Numerics.Threshold`); nothing else in
+  the Lean sources changed. The build configuration is replaced by a public one, with openai/math from git at the pinned
+  commit. [`formalization/VERIFICATION.md`](formalization/VERIFICATION.md) records how we checked that the published modules
+  compile to exactly the same declarations as the checked ones, the build of a fresh copy, and a fresh Comparator run on the
+  published challenge and tampered statements.
 
 ## What is and is not claimed
 

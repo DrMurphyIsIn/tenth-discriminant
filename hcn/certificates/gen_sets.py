@@ -148,9 +148,10 @@ The import closure is Mathlib alone (Lean v4.34.1, Mathlib d13f23b, the openai/m
 these statements, the Mathlib definitions they use (`NumberField`, `NumberField.classNumber`, `Module.finrank`,
 `Squarefree`), the Lean kernel and nanoda, and the axioms `propext`, `Classical.choice`, `Quot.sound`.
 
-Template: `CN1.classNumber_eq_one_iff` (CN1Challenges/ClassNumberOne.lean). The same conventions: `m` is the
-radicand, not the discriminant (`|disc ℚ(√-m)| = m` if `m ≡ 3 (mod 4)` and `4m` otherwise); `Squarefree m` forces
-`m ≠ 0`, so `α` is irrational and `K ≅ ℚ(√-m)`. The first nine elements of the 27-element set are CN-1's set.
+Template: `CN1.classNumber_eq_one_iff` (the first proof's CN1Challenges/ClassNumberOne.lean). The same conventions:
+`m` is the radicand, not the discriminant (`|disc ℚ(√-m)| = m` if `m ≡ 3 (mod 4)` and `4m` otherwise); `Squarefree m`
+forces `m ≠ 0`, so `α` is irrational and `K ≅ ℚ(√-m)`. The first nine elements of the 27-element set are CN-1's set.
+The three tampered statements in HCNNegControls/Tamper/ are made from this file by hcn/certificates/gen_controls.py.
 -/
 
 open NumberField
