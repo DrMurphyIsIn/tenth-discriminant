@@ -1,0 +1,14 @@
+{
+  "challenge_module": "CN1Challenges.ClassNumberOne",
+  "solution_module": "ELEM.Main",
+  "theorem_names": [
+    "CN1.classNumber_eq_one_iff"
+  ],
+  "definition_names": [],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": true
+}

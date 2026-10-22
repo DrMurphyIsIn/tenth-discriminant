@@ -1,0 +1,72 @@
+%=====================================================================================================
+\appendix
+\section{Remarks on the Siegel-zero determinant arguments}\label{app:siegel}
+%=====================================================================================================
+
+The determinant route formalized in this paper descends from the recent arguments excluding Landau--Siegel zeros: OpenAI's \cite{OAIsiegel}, Banks's exposition \cite{Banks2026}, Kerr's pigeonhole version \cite{Kerr2026} and Green's derivative determinant \cite{Green2026v1,Green2026}. Tao has sketched Green's formulation as an instance of the ``adelic polynomial method'' \cite{TaoSketch2026}. On 18 October 2026 (UTC) he worked through Kerr's preprint and the first version of Green's in a public chat session on the SAIR Open Math OS \cite{OMOSsession2026}, which his post links in its AI disclosure. This appendix records a proposition and three remarks prompted by the questions asked in that session.
+
+\emph{Nothing in this appendix is formalized, and none of it is part of the kernel-checked theorem of this paper.} Proposition~\ref{prop:gram} has a proof below. \Cref{rem:weight} is an accounting of Kerr's constants. \Cref{rem:green} reports posted, unrefereed statements of Green and checks only two of their parameter conditions. \Cref{rem:strength} recalls a standard deduction and adds a heuristic comparison of orders of magnitude. This appendix was checked only by a separate AI review session, not by a referee.
+
+\emph{Notation.} In this appendix only, the symbols $q$, $\chi$, $K$, $O$, $N$, $D$, $Q$, $B$, $S$, $r$ and $L_D$ have the meanings they have in Kerr's paper, recalled below, and in \cref{rem:green} the symbols $R$, $S$, $N$, $n$ and $J$ have Green's meanings; none of them carries its meaning from the body of this paper. In particular $q$ is a fundamental discriminant, of either sign, and not the absolute discriminant of the imaginary quadratic field of the body.
+
+\subsection*{Kerr's setting}
+We use Kerr's notation \cite[\S1, (2)--(8), Lemmas~2--5]{Kerr2026}. Let $q \notin \{1, 8\}$ be a fundamental discriminant and $\chi = (q/\cdot)$, a nonprincipal real character. Let $K = \Q(\sqrt q, \sqrt 2)$, a biquadratic field because $q \notin \{1, 8\}$, and $O = \Z[\sqrt q, \sqrt 2]$. Let $\sigma, \tau$ be the automorphisms with $\sigma(\sqrt q) = -\sqrt q$, $\sigma(\sqrt2) = \sqrt2$, $\tau(\sqrt q) = \sqrt q$ and $\tau(\sqrt2) = -\sqrt2$. For $n \in \{0,\dots,N-1\}^4$ put $\theta_n = n_1 + n_2\sqrt q + n_3\sqrt2 + n_4\sqrt{2q}$. Let $L_D$ be the free $O$-module spanned by the monomials $x_1^i x_2^j x_3^k$ with $i + 8(j+k) \le D$, of rank $r$. Let $S$ be a finite set of primes with $p > 8$, $p \nmid 2q$ and $\chi(p) = -1$, and for $p \in S$ put $E_p = \sum_{i+8(j+k)\le D} \lfloor i/p \rfloor$. Let $W = \sum_{i+8(j+k)\le D} (i+j+k)$, and let $B \ge 1$ bound every conjugate of $\theta_n$, $\sigma\theta_n$ and $\sigma\tau\theta_n$ (Kerr takes $B = 8N\sqrt{|q|}$). Let $T \colon L_D \to O^{N^4}$ be the $O$-linear evaluation map $f \mapsto \big(f(\theta_n, \sigma\theta_n, \sigma\tau\theta_n)\big)_n$.
+
+Kerr finds two polynomials of small height that agree modulo a large modulus $P$ at every grid point, by pigeonhole, and then uses the norm to upgrade the congruence to vanishing. Green's argument \cite[\S\S2, 4, 5]{Green2026v1}, itself presented as a variant of OpenAI's proof, instead compares the archimedean and $p$-adic sizes of one Gram determinant. In the session \cite{OMOSsession2026} Tao asked whether Kerr's argument could be phrased through an adelic Minkowski theorem, the adelic covolume of the image lattice being at least $1$ (02:06 UTC), and then outlined one: the product of the archimedean covolume of the image lattice and the $p$-adic volumes of its $p$-adic closures is bounded below, the archimedean covolume is bounded above through the monomial basis, and the $p$-adic volumes through the Frobenius congruences (04:34 UTC). At 05:55 UTC he asked whether the $p$-adic counterpart could be the square root of the $p$-adic norm of $\det T^*T$. The proposition below carries out this outline on Kerr's lattice, with Green's Gram determinant. The determinant is never evaluated. It is a positive integer; Hadamard's inequality bounds it above, and its $p$-adic divisibility in Kerr's basis bounds it below.
+
+\begin{proposition}[Gram-determinant form of Kerr's Lemma~5]\label{prop:gram}
+If
+\[
+  \sum_{p\in S} E_p \log p \;>\; W \log B + \frac{r}{2}\,\log\!\big(8N^4|q|\big),
+\]
+then there is a nonzero $F \in L_D$ with $F(\theta_n, \sigma\theta_n, \sigma\tau\theta_n) = 0$ for every $n \in \{0,\dots,N-1\}^4$.
+\end{proposition}
+
+\begin{proof}
+Suppose instead that $T$ is injective. The field $K$ is Galois over $\Q$ with abelian Galois group, so complex conjugation restricts to an automorphism $c$ of $K$ with $c(O) = O$ that commutes with every embedding $\iota\colon K \to \C$. Hence
+\[
+  \langle x, y\rangle \;:=\; \sum_{n} \operatorname{Tr}_{K/\Q}\big(x_n\, c(y_n)\big) \;=\; \sum_n \sum_{\iota} \iota(x_n)\,\overline{\iota(y_n)}
+\]
+is a positive definite inner product on $K^{N^4}$, rational-valued, and integer-valued on $O^{N^4}$.
+
+Let $b$ run over the $4r$ elements $u\, x_1^i x_2^j x_3^k$ with $u \in \{1, \sqrt q, \sqrt 2, \sqrt{2q}\}$, a $\Z$-basis of $L_D$, and let $\mathcal G = (\langle Tb, Tb'\rangle)_{b,b'}$. Since $T$ is injective on $L_D$, the vectors $Tb$ are $\Q$-linearly independent, so $\mathcal G$ is an integer matrix with $\det \mathcal G \ge 1$.
+
+\emph{Archimedean bound.} Every conjugate of $u$ has absolute value at most $\sqrt{2|q|}$. Every conjugate of the $n$-th entry of $T(u\,x_1^ix_2^jx_3^k)$ therefore has absolute value at most $\sqrt{2|q|}\,B^{i+j+k}$, and so $\langle Tb, Tb\rangle \le 4N^4 \cdot 2|q| \cdot B^{2(i+j+k)}$. Hadamard's inequality for Gram matrices gives
+\[
+  \log \det \mathcal G \;\le\; \sum_b \log\langle Tb, Tb\rangle \;\le\; 4r\log\big(8N^4|q|\big) + 8\,W\log B .
+\]
+
+\emph{$p$-adic bound.} Fix $p \in S$, let $\ell = 2$ or $3$ according as $(2/p) = 1$ or $-1$, and pass to Kerr's basis $G_{ijk} = x_1^v(x_1^p - x_\ell)^e x_2^j x_3^k$, where $i = pe + v$ and $0 \le v < p$ \cite[Lemma~2]{Kerr2026}. The polynomials $G_{ijk}$ have integer coefficients, and the change of basis from the monomials is unitriangular. So the $\Z$-bases $\{u\,x_1^ix_2^jx_3^k\}$ and $\{u\,G_{ijk}\}$ are related by an integer matrix of determinant $1$, and the two Gram determinants agree. By the Frobenius congruences (3)--(4) of \cite{Kerr2026}, every entry of $T(u\,G_{ijk})$ lies in $p^{\lfloor i/p\rfloor}O$; this is the step displayed in Kerr's proof of his Lemma~4. Since $c(pO) = pO$ and $\operatorname{Tr}_{K/\Q}(O) \subseteq \Z$, the $(b,b')$ entry of the new Gram matrix is divisible by $p^{e_b + e_{b'}}$, where $e_b = \lfloor i/p\rfloor$ for $b = u\,G_{ijk}$. Taking $p^{e_b}$ out of row $b$ and out of column $b$ for every $b$ shows that $p^{2\sum_b e_b} = p^{8E_p}$ divides $\det \mathcal G$. The primes in $S$ are distinct, so $\prod_{p\in S} p^{8E_p}$ divides $\det \mathcal G$, and since $\det \mathcal G \ge 1$,
+\[
+  8\sum_{p\in S} E_p\log p \;\le\; \log\det \mathcal G .
+\]
+Combining the two bounds contradicts the hypothesis.
+\end{proof}
+
+Kerr's inequality (11) reads $\sum_{p\in S}E_p\log p > W\log B + r\log(32r\sqrt{|q|})$. The proposition's term $\tfrac r2 \log(8N^4|q|)$ is at most Kerr's $r\log(32r\sqrt{|q|})$ exactly when $N^4 \le 128 r^2$, in which $q$ cancels; with Kerr's choice of $D$ this holds for $N \ge 129$. So, with Kerr's choices of $N$, $B$, $D$, $Q$ and $S$ and $N$ sufficiently large, his hypothesis~(9) implies (11) (proof of his Lemma~5), and (11) implies the hypothesis of the proposition. The rest of his argument is unchanged: it uses only that $F$ is nonzero, lies in $L_D$ and vanishes on the grid, and no bound on the height of $F$, because Masser's zero estimate \cite{Masser1981}, in the form of \cite[Lemma~6]{Kerr2026}, with \cite[Lemma~7]{Kerr2026}, bounds only the degree. In adelic terms the proof uses only that $\det \mathcal G$ is a nonzero integer: $|\det \mathcal G|_\infty \prod_{p\in S}|\det \mathcal G|_p \ge 1$, with the archimedean factor bounded above by Hadamard and each $p$-adic factor bounded above through the Frobenius congruences. In Green's setting over $\Q(\sqrt d)$, the nonvanishing of the determinant comes from his Lemma~3.1 in place of Masser's theorem, and the rows carry $z$-derivatives.
+
+\begin{remark}[The weight $8$]\label{rem:weight}
+In Kerr's Lemma~2 the weight $8$ is tied to the condition $p > 8$. With a general weight $\kappa$ in place of $8$, expanding $(x_1^p - x_\ell)^e$ produces monomials of weight $i + \kappa(j+k) - (p-\kappa)s$ for $0 \le s \le e$, so the change of basis stays inside the region $i + \kappa(j+k) \le D$ exactly when $p \ge \kappa$; for $\kappa = 8$ and $p$ prime this is $p > 8$. The ratio $W/\sum i$ of archimedean cost to $p$-adic gain is $1 + 2/\kappa + o(1)$; for $\kappa = 8$ the same region sums give Kerr's $r = D^3/384 + O(D^2)$, $W = 5D^4/6144 + O(D^3)$ and $E_p = D^4/(1536p) + O(D^3)$. The primes $p < \kappa$ must be left out of $S$, which costs $\sum_{p<\kappa}\log p/p = \log \kappa + O(1)$, a bounded amount for fixed $\kappa$. Masser's exponent enters through $\log Q = \mu\log N + O(\log\log N)$ with $\mu = 4/3$ \cite[Lemma~7, proof of Theorem~1]{Kerr2026}, while $\log B = \log N + O(\log|q|)$. So, in the normalization $\Sigma(X) \le c\log X$ of \cref{rem:green}, this accounting gives $c = (1 + 2/\kappa)/\mu$ up to lower-order terms. That is $15/16$ for $\kappa = 8$, against $39/40 = (13/10)/\mu$ from the constant $13/10$ printed in Kerr's hypothesis~(9), and it approaches $1/\mu = 3/4$ as $\kappa \to \infty$, for Kerr's arrangement with multiplicity one. The values $1 + 2/\kappa$, $15/16$ and $3/4$ were computed in the session, at 02:21 and 18:59 UTC \cite{OMOSsession2026}. The point added here is that the weight forces $p \ge \kappa$.
+\end{remark}
+
+\begin{remark}[Green's two versions]\label{rem:green}
+Write $\Sigma(X) = \sum_{p\le X,\ \chi(p)=-1} \log p/p$ and $X = |q|^C$. Green's first version \cite{Green2026v1}, the one discussed in the session, takes, in his notation (where $S$ is a degree bound, not the set of primes above), $R = X$, $S = \lfloor X/C\rfloor$ and $N = X^{2/3}$, with $N$ derivatives at each of $N^2$ points. It states $\Sigma(X) \le \tfrac34\log X + O_C(1)$, and its final display gives $(1 + \tfrac1C)(\tfrac23 + \tfrac1{2C})\log X + O_C(1)$, the $\tfrac23$ that Tao noted in the session (18:57 UTC). Green's second version \cite{Green2026}, posted after the session ended, decouples the number of derivatives from the grid. It takes $C$ a sufficiently large even integer, $R = X$, $S = J = \lfloor X/C\rfloor$ and $N = 2X^{1/2}$, and states
+\[
+  \Sigma(X) \;\le\; \Big(\frac12 + O\big(\tfrac1C\big)\Big)\log X + O_C(1)
+\]
+\cite[Theorem~1.1]{Green2026}, working in $\Q(\sqrt d)$ throughout. We checked only two of its parameter conditions. With $n = N^2 = 4X$, its nonsingularity condition reads $nJ - 2RS - J(R+S) = J(X - J) > 0$, and its Schwartz--Zippel hypothesis $J \ge N$ holds exactly when $X \ge 4C^2$. Tao's sketch \cite{TaoSketch2026}, posted the next day, presents Green's formulation and states the bound $\Sigma(x) \le \tfrac12\log x + O(\log|q|) + O(\log\log x)$ (Tao writes $D$ for our $q$). In a comment on that post (19 October 2026), Tao writes that it appears one can bring the constant of the biquadratic arguments without Green's multiplicity arbitrarily close to $\tfrac12$ by adjoining enough further square roots, an observation first made, to his knowledge, by Alex Pascadi.
+\end{remark}
+
+\begin{remark}[What $\tfrac12 + O(1/C)$ buys; heuristic]\label{rem:strength}
+Let $\beta \in (0,1)$ be a real zero of $L(s,\chi)$ and put $\delta = (1-\beta)\log |q|$. The analytic input of these arguments is the one-sided bound
+\[
+  \sum_{p\le X,\ \chi(p)=1} \frac{\log p}{p} \;\ll\; \log |q| + (1-\beta)(\log X)^2 \qquad (X \ge 3)
+\]
+of \cite[Lemma~1]{Kerr2026}, with explicit constants in \cite[Lemma~2.1]{Banks2026}. When $\delta$ is small, it makes the primes with $\chi(p) = -1$ carry almost all of the weight $\log p/p$ up to $X$, for every $X$ from a large power of $|q|$ up to $\exp(\eta/(1-\beta))$ with $\eta$ small. Because of the term $\log|q|$, it forces nothing for the primes below a small power of $|q|$. Combined with Green's bound, it gives $\delta \ge c$ for large $|q|$, with an absolute constant $c > 0$; this deduction is standard \cite[\S1]{Green2026}, \cite{OAIsiegel}, \cite[\S1.3]{Banks2026}, and $\delta \ge c$ is the statement that there are no Landau--Siegel zeros \cite[Theorem~1]{Kerr2026}, \cite[Theorem~1.1]{Banks2026}.
+
+The rest of this remark is a heuristic. If $\beta$ dominated the explicit formula, one would expect
+\[
+  \Sigma(X) \;=\; \tfrac12\log X + \frac{1 - X^{-(1-\beta)}}{2(1-\beta)} + O(\log |q|),
+\]
+where the error term collects the primes below a fixed power of $|q|$, the conductor and the other zeros. The middle term is about $\tfrac12\log X$ when $(1-\beta)\log X$ is small, and about $1/(2(1-\beta)) = \log |q|/(2\delta)$ when it is large. So a zero with $\delta \asymp 1$ changes $\Sigma(X)$ by an amount of order $\log |q|$. That is the order of the error term $O(1/C)\log X = O(\log |q|)$ in Green's bound, and of the error term in the display. Heuristically, then, a bound $\Sigma(X) \le \tfrac12\log X + O(\log |q|)$ gives $\delta \ge c$ with a fixed constant $c > 0$, depending on the implied constants and not growing as $C \to \infty$; this is again the statement that there are no Landau--Siegel zeros.
+\end{remark}
