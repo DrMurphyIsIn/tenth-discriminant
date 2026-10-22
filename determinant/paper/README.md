@@ -45,7 +45,7 @@ have not compared the two arguments ourselves. The paper records Green's, van Di
 about AI use word for word, and notes where the companion extends their lemmas (the full ring of integers, a single maximal
 minor, and the prime 2).
 
-## How it was checked, and what is still open
+## How it was checked
 
 All eight steps are proved, each with the three standard axioms, and an independent AI review session (not a referee) has
 checked the interface and all eight steps. The assembled theorem then went through one frozen run of record. Comparator
@@ -72,8 +72,13 @@ export of the theorem's closure (`determinant/formalization/VERIFICATION.md` has
 lakefile in about 3.4 minutes: about 150 seconds to download Mathlib's prebuilt files from its official cache, then 8,980
 jobs in about 53 seconds. Mathlib itself is not recompiled; its compiled files are re-checked through the Comparator export.
 
-Two things are still open, and the paper marks each with a bold **[PENDING: …]** placeholder: the author's own check of the
-record, and continuous integration (GitHub Actions in the public repository).
+The author read back the final paper and the verification record on 22 October 2026, and approved them.
+
+Continuous integration is green. The workflow "determinant proof" (`.github/workflows/determinant.yml`) runs on a
+GitHub-hosted `ubuntu-latest` runner with Mathlib from its official cache. On 22 October 2026 it passed at commit
+`413d3b142`, on both the push and the pull-request trigger (about four and three minutes). `lake build ELEM CN1Challenges`
+completed all 8,982 jobs, the only `sorry` warning was the challenge statement's, and an axiom check importing only `ELEM.Main`
+found exactly `[propext, Classical.choice, Quot.sound]`. That is also the Linux build; the fresh-copy build above was on macOS.
 
 ## Checking the theorem yourself: one rule
 

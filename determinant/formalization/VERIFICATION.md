@@ -109,8 +109,9 @@ After the build, in the same copy:
 - the workflow's own build step, `lake build ELEM CN1Challenges`, then succeeded (exit 0, 8,982 jobs), and `check_no_sorry.sh`
   passed on its log, which has exactly one `sorry` warning, at `CN1Challenges/ClassNumberOne.lean:32:8`, the statement.
 
-What this did not test: Linux (the GitHub Actions workflow will be the first Linux build), and Comparator inside the fresh copy.
-The workflow in `../../.github/workflows/determinant.yml` has not run yet; it can only run once the repository is pushed.
+What this did not test: Linux, and Comparator inside the fresh copy. The workflow in `../../.github/workflows/determinant.yml`
+had not run when this build was made, because it can only run on GitHub. It has since passed on a GitHub-hosted Ubuntu runner, on 22 October 2026 at commit `413d3b142`, on both the push and the pull-request trigger; the paper's
+§7.8 records the runs. That was the first Linux build.
 
 ## 3. The sieve chunks and the axiom check
 

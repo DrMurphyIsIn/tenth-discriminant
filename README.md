@@ -163,8 +163,8 @@ modular-form modules or from outside Mathlib, and twelve recorded checks, contro
 review session then replayed those checks with its own build of the project's modules and of nanoda: both kernels accepted the
 theorem again, its own closure audit agreed, and five further controls of its own failed as required. The published files compile
 to exactly the same declarations as the checked ones, and a fresh copy builds from the public lakefile in about three and a half
-minutes; the second paper's §7.6 records both. Still open, as its §7.7 says, are the author's own check of the record and
-continuous integration on GitHub.
+minutes; the second paper's §7.6 records both. The author read back the final paper and the verification record on
+22 October 2026 and approved them, and the GitHub Actions workflow passed on a clean Linux runner the same day (§7.7 and §7.8).
 
 ## Building and checking it yourself
 

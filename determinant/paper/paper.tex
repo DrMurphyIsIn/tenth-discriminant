@@ -70,7 +70,6 @@
            {⁴}{{$^4$}}1 {⁵}{{$^5$}}1 {⌊}{{$\lfloor$}}1 {⌋}{{$\rfloor$}}1 {₊}{{$_+$}}1}
 
 % Results that do not exist yet. Every use is replaced by the recorded value before release.
-\newcommand{\pending}[1]{\textbf{[PENDING: #1]}}
 
 \title{Class number one without $L$-functions:\\ a kernel-checked determinant proof}
 \author{Peter W. Murphy}
@@ -530,7 +529,7 @@ theorem classNumber_eq_one_iff (K : Type*) [Field K] [NumberField K]
 \section{Verification}\label{sec:verification}
 %=====================================================================================================
 
-This section reports the run of record: one frozen source tree, on which every check below was made. The md5 of every source file, of the build configuration and of the tools was recorded before the run and again after it, and the tree did not change. The build products of the glue, of the main module and of the controls were deleted first, so that Comparator's own build recompiled them from the recorded sources. Everything here is taken from the logs of that run and from the review files. The items still open are listed in \cref{sec:pending}.
+This section reports the run of record: one frozen source tree, on which every check below was made. The md5 of every source file, of the build configuration and of the tools was recorded before the run and again after it, and the tree did not change. The build products of the glue, of the main module and of the controls were deleted first, so that Comparator's own build recompiled them from the recorded sources. Everything here is taken from the logs of that run and from the review files. A fresh build, the author's check and continuous integration follow in \cref{sec:freshbuild,sec:authorcheck,sec:ci}.
 
 \subsection{Every step is proved, with standard axioms}
 
@@ -597,15 +596,15 @@ The replay's caveats are these. Comparator and lean4export were the same binarie
 
 \paragraph{The published files are the checked files.} Before publication, internal references were removed from the comments and docstrings of the Lean files, and nothing else. The published sources therefore differ from the verified ones in comments only. Built side by side against the same Mathlib, the two trees give a byte-identical lean4export export of the closure of \lean{CN1.classNumber_eq_one_iff} (md5 \lean{5b1cacd1}, about $528$\,MB), the export that Comparator's kernels replay. The proof routed through a postulated axiom is not published, because a file that declares a false axiom does not belong in a public library. The method, with a control in which a one-line change to a proof term is detected, is in \lean{determinant/formalization/VERIFICATION.md} in the repository.
 
-\paragraph{A fresh build.} A copy of the published formalization, with no build state, was built from its public lakefile, which requires Mathlib \lean{d13f23b} from git. The Mathlib cache directory was empty, so Mathlib's prebuilt \lean{.olean} files were fetched over the network: \lean{lake exe cache get} downloaded $8{,}908$ files in about $150$ seconds. Then \lean{lake build}, whose default target is \lean{ELEM}, exited $0$ after $8{,}980$ jobs in about $53$ seconds, and building the challenge and the two tampered statements took $10$ seconds more. From nothing to a built proof took about $3.4$ minutes and about $8$\,GB of disk, on an Apple M3 Ultra (32 cores, 96\,GB). Afterwards every package was at its pinned revision with no local changes, and \lean{#print axioms CN1.classNumber_eq_one_iff}, in a file importing only \lean{ELEM.Main}, printed the three standard axioms. Mathlib itself was not recompiled: its compiled files came from the official Mathlib cache, and they are re-checked through the Comparator export of \cref{sec:comparator}. This build was not tested on Linux, and Comparator was not run inside the fresh copy.
+\paragraph{A fresh build.} A copy of the published formalization, with no build state, was built from its public lakefile, which requires Mathlib \lean{d13f23b} from git. The Mathlib cache directory was empty, so Mathlib's prebuilt \lean{.olean} files were fetched over the network: \lean{lake exe cache get} downloaded $8{,}908$ files in about $150$ seconds. Then \lean{lake build}, whose default target is \lean{ELEM}, exited $0$ after $8{,}980$ jobs in about $53$ seconds, and building the challenge and the two tampered statements took $10$ seconds more. From nothing to a built proof took about $3.4$ minutes and about $8$\,GB of disk, on an Apple M3 Ultra (32 cores, 96\,GB). Afterwards every package was at its pinned revision with no local changes, and \lean{#print axioms CN1.classNumber_eq_one_iff}, in a file importing only \lean{ELEM.Main}, printed the three standard axioms. Mathlib itself was not recompiled: its compiled files came from the official Mathlib cache, and they are re-checked through the Comparator export of \cref{sec:comparator}. That fresh copy was built on macOS; the Linux build is the continuous-integration run of \cref{sec:ci}. Comparator was not run inside the fresh copy.
 
-\subsection{What is pending}\label{sec:pending}
+\subsection{The author's check}\label{sec:authorcheck}
 
-The following items had no result when this version was written.
-\begin{enumerate}[label=(\roman*),nosep]
-\item The author's own check of the final record \pending{author's check}.
-\item Continuous integration, as GitHub Actions in the public repository \pending{CI}.
-\end{enumerate}
+The author read back the final paper and the verification record on 22 October 2026, and approved them.
+
+\subsection{Continuous integration}\label{sec:ci}
+
+The public repository runs the workflow \lean{determinant proof} (\lean{.github/workflows/determinant.yml}) on a GitHub-hosted \lean{ubuntu-latest} runner, with Mathlib from its official cache. On 22 October 2026 it passed at commit \lean{413d3b142}, on both the push and the pull-request trigger (runs \lean{39820561684}, about four minutes, and \lean{39820562159}, about three minutes). In each run, \lean{lake build ELEM CN1Challenges} reported ``Build completed successfully (8982 jobs)''; a check of the build log found that the only \lean{sorry} warning is the one in the challenge statement; and an axiom check in a file importing only \lean{ELEM.Main} printed ``\lean{'CN1.classNumber_eq_one_iff' depends on axioms: [propext, Classical.choice, Quot.sound]}'', which the workflow accepts only if the whole list, however Lean wraps it, consists of these three axioms.
 
 \paragraph{Caveats.} The Comparator runs described here are local and unsandboxed: the sandboxing layer that Comparator normally uses was replaced by a pass-through \lean{landrun} shim on this machine, as in the first project. The Comparator, lean4export and nanoda binaries are shared with the checks of the first project. The dependency \lean{.olean} files, for Mathlib \lean{d13f23b} and its dependencies, come from a package tree shared with the replay of the first project, and were not rebuilt for this run. The nine packages of the project's manifest are at their pinned revisions and clean, and Comparator's export and its replay through both kernels re-check the full exported closure, Mathlib included. The tampered statements are verbatim copies of the first project's, and their header comment still names the first project's solution module. The logs, the source manifest and the tool hashes are available on request.
 
@@ -674,8 +673,6 @@ The determinant proof uses the \emph{engine} of the recent work instead of its c
 We do not claim that the proof is elementary. Its closure contains measure theory, integration, the Minkowski convex-body theorem and Mathlib's Gamma function, as \cref{sec:framing} explains. The claim is the absence of $L$-functions, zeta functions and zero-free theorems from the closure, and it is a claim about constants, not about imports.
 
 We do not claim the mathematics. The argument is that of the companion note (twinheterodox/tenth-discriminant, companions/elementary, commit 64694aae), built from the contributions credited in \cref{sec:credit}. That note is not refereed, and its own statement that it passed independent verification names no reviewer. We describe it as formalized by us, not as verified by anyone else. Neither do we claim the theorem, which is classical \cite{Heegner1952,Baker1966,Stark1967}.
-
-The author's own check of the record and continuous integration had not been done when this version was written. They are marked pending in \cref{sec:pending}, and none of the claims above depends on them.
 
 Nothing here bears on the Riemann hypothesis, or on Siegel zeros. The proof uses no $L$-function at all.
 

@@ -177,8 +177,10 @@ source file, of the build configuration and of every tool was recorded before an
   an AI review, not a referee's report.
 
 The paper's §7.6 summarizes the check that the published files are the checked ones, and the fresh build, both recorded in full
-in [`formalization/VERIFICATION.md`](formalization/VERIFICATION.md). What is still open is listed in its §7.7: the author's own
-check of the record, and continuous integration on GitHub.
+in [`formalization/VERIFICATION.md`](formalization/VERIFICATION.md). The author read back the final paper and the verification
+record on 22 October 2026 and approved them (§7.7). The GitHub Actions workflow
+[`determinant.yml`](../.github/workflows/determinant.yml) passed on a clean Linux runner the same day, on both the push and the
+pull-request trigger: the build, the check that the only `sorry` is the challenge's, and the axiom check (§7.8).
 
 ## What is and is not claimed
 
