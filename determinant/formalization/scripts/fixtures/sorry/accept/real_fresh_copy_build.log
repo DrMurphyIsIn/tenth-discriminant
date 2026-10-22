@@ -1,0 +1,187 @@
+⚠ [8937/8982] Replayed ELEM.Divisibility.Rows
+warning: ELEM/Divisibility/Rows.lean:128:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: ELEM/Divisibility/Rows.lean:164:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: ELEM/Divisibility/Rows.lean:167:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: ELEM/Divisibility/Rows.lean:175:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: ELEM/Divisibility/Rows.lean:207:89: `if_true` has been deprecated: Use `ite_true` instead
+warning: ELEM/Divisibility/Rows.lean:212:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+⚠ [8953/8982] Replayed CN1.Foundations.Basic
+warning: CN1/Foundations/Basic.lean:51:0: automatically included section variable(s) unused in theorem `CN1.Foundations.omega_of_three_mod_four`:
+  [NumberField K]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [NumberField K] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Basic.lean:54:0: automatically included section variable(s) unused in theorem `CN1.Foundations.omega_of_not_three_mod_four`:
+  [NumberField K]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [NumberField K] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+⚠ [8954/8982] Replayed CN1.Foundations.Character
+warning: CN1/Foundations/Character.lean:231:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Character.lean:233:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Character.lean:281:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Character.lean:282:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+⚠ [8955/8982] Replayed CN1.Foundations.Splitting
+warning: CN1/Foundations/Splitting.lean:132:0: automatically included section variable(s) unused in theorem `CN1.Foundations.minpoly_omegaInt`:
+  hK
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hK in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Splitting.lean:137:21: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Foundations/Splitting.lean:179:0: automatically included section variable(s) unused in theorem `CN1.Foundations.monicFactorsMod_of_root`:
+  hK
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hK in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Splitting.lean:192:0: automatically included section variable(s) unused in theorem `CN1.Foundations.monicFactorsMod_of_no_root`:
+  hK
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hK in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Splitting.lean:278:6: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Splitting.lean:278:17: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Splitting.lean:303:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Splitting.lean:303:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Splitting.lean:306:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Splitting.lean:306:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+⚠ [8957/8982] Replayed CN1.Finite.Params
+warning: CN1/Finite/Params.lean:31:52: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Finite/Params.lean:39:21: `if_true` has been deprecated: Use `ite_true` instead
+⚠ [8959/8982] Replayed CN1.Finite.SplitPrime
+warning: CN1/Finite/SplitPrime.lean:76:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/SplitPrime.lean:77:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/SplitPrime.lean:103:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/SplitPrime.lean:104:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+⚠ [8960/8982] Replayed CN1.Finite.Converse
+warning: CN1/Finite/Converse.lean:77:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:78:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:114:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:115:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:116:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:119:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:169:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:187:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:193:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:199:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:205:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:211:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:184:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Finite/Converse.lean:190:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Finite/Converse.lean:187:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:193:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:199:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:205:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:211:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+⚠ [8981/8982] Replayed CN1Challenges.ClassNumberOne
+warning: CN1Challenges/ClassNumberOne.lean:32:8: declaration uses `sorry`
+Build completed successfully (8982 jobs).

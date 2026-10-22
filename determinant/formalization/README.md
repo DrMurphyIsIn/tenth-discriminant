@@ -55,7 +55,7 @@ You need [elan](https://github.com/leanprover/elan) and git. From this directory
 
 ```sh
 lake exe cache get                    # download Mathlib's build cache
-lake build ELEM CN1Challenges         # the proof and the statement; plain `lake build` builds ELEM
+lake build ELEM CN1 CN1Challenges     # the proof, every vendored module, the statement; plain `lake build` builds ELEM
 ```
 
 No patches are needed, and nothing outside Mathlib and its own dependencies is fetched. **Do not run `lake update`**: it would move
@@ -66,15 +66,19 @@ count.
 
 ```sh
 printf 'import ELEM.Main\n\n#print axioms CN1.classNumber_eq_one_iff\n' > AxiomCheck.lean
-lake env lean AxiomCheck.lean > axioms.out 2>&1
-scripts/check_axioms.sh axioms.out
+lake env lean AxiomCheck.lean > axioms.out 2>&1 && scripts/check_axioms.sh axioms.out
 ```
 
 This should print `OK: CN1.classNumber_eq_one_iff depends only on: propext Classical.choice Quot.sound`.
-[`scripts/check_axioms.sh`](scripts/check_axioms.sh) joins the output into one line before reading it, because Lean prints a long
-axiom list one entry per line, and a line-based check would miss an entry on a continuation line.
-[`scripts/check_no_sorry.sh`](scripts/check_no_sorry.sh) checks a build log for `sorry` outside `CN1Challenges`. The GitHub Actions
-workflow in [`../../.github/workflows/determinant.yml`](../../.github/workflows/determinant.yml) runs both after a clean build.
+[`scripts/check_axioms.sh`](scripts/check_axioms.sh) removes all whitespace, because Lean prints a long axiom list one entry per
+line, and then requires the *whole* output to be one report for `CN1.classNumber_eq_one_iff` whose entries are all among the three
+standard axioms. Anything else fails: an error line, a second report, or an axiom whose name contains a bracket. (Lean prints some
+names unescaped, such as one whose root starts with `#`, and an earlier version of this script, which read the list after the last
+`[`, could be fooled that way.) [`scripts/check_no_sorry.sh`](scripts/check_no_sorry.sh) requires a build log that reports success
+and contains exactly one `sorry`, the challenge statement's. [`scripts/test_checks.sh`](scripts/test_checks.sh) runs both scripts
+over the accept and reject cases in [`scripts/fixtures/`](scripts/fixtures), real Lean output among them. The GitHub Actions
+workflow in [`../../.github/workflows/determinant.yml`](../../.github/workflows/determinant.yml) runs the self-test first, then
+both checks after a clean build of `ELEM`, `CN1` and `CN1Challenges`.
 
 **The one rule.** Do not write a file that imports `ELEM.Main` together with `CN1Challenges.ClassNumberOne` or any module under
 `ELEMNegControls/`. All of them declare `CN1.classNumber_eq_one_iff`, and Lean silently merges same-type declarations on import:
@@ -101,7 +105,7 @@ an independent reimplementation of the kernel. The configurations of the run of 
 Each permits only `propext`, `Quot.sound` and `Classical.choice`, with nanoda switched on. To run them:
 1. Build Comparator at tag v4.34.0 with toolchain v4.34.1, together with its `lean4export`, and build nanoda.
 2. Set `COMPARATOR_LEAN4EXPORT` and `COMPARATOR_NANODA` to those binaries, and `COMPARATOR_LANDRUN` to landrun.
-3. Build the modules (`lake build ELEM CN1Challenges ELEMNegControls`), then from this directory run
+3. Build the modules (`lake build ELEM CN1 CN1Challenges ELEMNegControls`), then from this directory run
    `lake env comparator comparator/<config>.json`.
 
 landrun is Linux-only. Our runs were on macOS, with a pass-through shim in its place, so they were **not sandboxed**. In the run of

@@ -1,0 +1,237 @@
+✔ [2895/2909] Built ELEM.Size.Leibniz (2.6s)
+✔ [2896/2909] Built ELEM.Defs (2.5s)
+✔ [2897/2909] Built ELEM.Divisibility.Det (2.5s)
+✔ [2898/2909] Built ELEM.Primes.Numerics (3.2s)
+✔ [2899/2909] Built ELEM.Hypotheses (3.7s)
+✔ [2900/2909] Built ELEM.Size.Embedding (4.1s)
+✔ [2901/2910] Built ELEM.Frobenius (4.6s)
+✔ [2902/3083] Built ELEM.Primes.SumLogDivSq (5.2s)
+✔ [3932/4045] Built ELEM.Primes.Theta (2.0s)
+⚠ [6274/6351] Built ELEM.Divisibility.Rows (4.9s)
+warning: ELEM/Divisibility/Rows.lean:128:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: ELEM/Divisibility/Rows.lean:164:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: ELEM/Divisibility/Rows.lean:167:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: ELEM/Divisibility/Rows.lean:175:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: ELEM/Divisibility/Rows.lean:207:89: `if_true` has been deprecated: Use `ite_true` instead
+warning: ELEM/Divisibility/Rows.lean:212:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+✔ [8933/8982] Built ELEM.Divisibility.Count (6.8s)
+✔ [8934/8982] Built ELEM.Primes.Mertens (5.0s)
+✔ [8935/8982] Built ELEM.Endpoint.Monotone (3.0s)
+✔ [8936/8982] Built ELEM.Nonvanishing.Minor (2.4s)
+✔ [8938/8982] Built ELEM.Count.Lattice (7.4s)
+✔ [8939/8982] Built ELEM.Nonvanishing.Hermite (2.6s)
+✔ [8940/8982] Built ELEM.Size.Bound (19s)
+✔ [8941/8982] Built ELEM.Nonvanishing.Params (3.8s)
+✔ [8942/8982] Built ELEM.Primes.LemmaTwo (3.1s)
+✔ [8943/8982] Built ELEM.Divisibility.Main (7.0s)
+✔ [8944/8982] Built ELEM.Count.Partial (4.9s)
+⚠ [8945/8982] Built CN1Challenges.ClassNumberOne (5.0s)
+warning: CN1Challenges/ClassNumberOne.lean:32:8: declaration uses `sorry`
+⚠ [8947/8982] Built CN1.Finite.Params (5.8s)
+warning: CN1/Finite/Params.lean:31:52: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Finite/Params.lean:39:21: `if_true` has been deprecated: Use `ite_true` instead
+✔ [8948/8982] Built ELEM.Endpoint.Comparison (12s)
+✔ [8949/8982] Built ELEM.Nonvanishing.Main (2.9s)
+✔ [8950/8982] Built CN1.Finite.Elementary (8.8s)
+✔ [8951/8982] Built ELEM.Primes (2.9s)
+✔ [8952/8982] Built ELEM.Divisibility (4.2s)
+✔ [8953/8982] Built ELEM.Endpoint (2.5s)
+⚠ [8954/8982] Built CN1.Foundations.Basic (13s)
+warning: CN1/Foundations/Basic.lean:51:0: automatically included section variable(s) unused in theorem `CN1.Foundations.omega_of_three_mod_four`:
+  [NumberField K]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [NumberField K] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Basic.lean:54:0: automatically included section variable(s) unused in theorem `CN1.Foundations.omega_of_not_three_mod_four`:
+  [NumberField K]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [NumberField K] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+✔ [8955/8982] Built ELEM.Count.SplitBound (7.0s)
+⚠ [8956/8982] Built CN1.Finite.Converse (10s)
+warning: CN1/Finite/Converse.lean:77:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:78:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:114:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:115:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:116:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:119:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:169:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:187:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:193:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:199:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:205:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:211:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:184:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Finite/Converse.lean:190:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Finite/Converse.lean:187:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:193:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:199:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:205:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:211:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+⚠ [8957/8982] Built CN1.Finite.SplitPrime (8.4s)
+warning: CN1/Finite/SplitPrime.lean:76:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/SplitPrime.lean:77:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/SplitPrime.lean:103:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/SplitPrime.lean:104:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+✔ [8958/8982] Built CN1.Foundations.Discr (8.1s)
+⚠ [8959/8982] Built CN1.Foundations.Character (9.9s)
+warning: CN1/Foundations/Character.lean:231:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Character.lean:233:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Character.lean:281:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Character.lean:282:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+✔ [8960/8982] Built CN1.Finite.Witnesses.Chunk4 (6.7s)
+✔ [8961/8982] Built ELEM.Sieve.Defs (7.7s)
+✔ [8962/8982] Built CN1.Finite.Witnesses.Chunk3 (7.4s)
+✔ [8963/8982] Built CN1.Finite.Witnesses.Chunk2 (7.1s)
+✔ [8964/8982] Built CN1.Finite.Witnesses.Chunk1 (7.3s)
+✔ [8965/8982] Built ELEM.Count.AuxPrime (19s)
+⚠ [8966/8982] Built CN1.Foundations.Splitting (11s)
+warning: CN1/Foundations/Splitting.lean:132:0: automatically included section variable(s) unused in theorem `CN1.Foundations.minpoly_omegaInt`:
+  hK
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hK in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Splitting.lean:137:21: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Foundations/Splitting.lean:179:0: automatically included section variable(s) unused in theorem `CN1.Foundations.monicFactorsMod_of_root`:
+  hK
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hK in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Splitting.lean:192:0: automatically included section variable(s) unused in theorem `CN1.Foundations.monicFactorsMod_of_no_root`:
+  hK
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hK in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Splitting.lean:278:6: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Splitting.lean:278:17: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Splitting.lean:303:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Splitting.lean:303:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Splitting.lean:306:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Splitting.lean:306:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+✔ [8967/8982] Built ELEM.Sieve.Chunk3 (8.3s)
+✔ [8968/8982] Built ELEM.Sieve.Chunk2 (7.0s)
+✔ [8969/8982] Built ELEM.Sieve.Chunk7 (8.9s)
+✔ [8970/8982] Built ELEM.Sieve.Chunk5 (6.0s)
+✔ [8971/8982] Built ELEM.Sieve.Chunk4 (7.2s)
+✔ [8972/8982] Built ELEM.Sieve.Chunk6 (7.2s)
+✔ [8973/8982] Built ELEM.Sieve.Chunk1 (7.1s)
+✔ [8974/8982] Built ELEM.Count (2.4s)
+✔ [8975/8982] Built ELEM.Sieve.Chunk0 (5.8s)
+✔ [8976/8982] Built CN1.Finite.Witnesses (8.6s)
+✔ [8977/8982] Built ELEM.Sieve.Range (4.3s)
+✔ [8978/8982] Built CN1.Finite.Bridge (4.2s)
+✔ [8979/8982] Built ELEM.Sieve.Main (4.0s)
+✔ [8980/8982] Built ELEM.Glue (6.6s)
+✔ [8981/8982] Built ELEM.Main (3.8s)
+Build completed successfully (8982 jobs).
+info: ELEM/Glue.lean:1:0: 'x' depends on axioms: [sorryAx]

@@ -19,8 +19,8 @@ Before publishing we removed those, from comments and docstrings only. Nothing e
 - **28 differ in comments and docstrings only**: 20 `ELEM` modules, and the 8 generated sieve chunks, whose header comment now
   names `determinant/certificates/gen_sieve.py` instead of a private path. The docstring of `CN1.classNumber_eq_one_iff` in
   `ELEM/Main.lean`, which must match the challenge's, was not touched.
-- **One checked file is not published:** the negative control that proves the theorem from a postulated false bound
-  (`ELEMNegControls/FakeBound.lean` in the run of record). As for the first proof, a file that declares a false axiom does not
+- **One checked file is not published:** the negative control that proves the theorem from a postulated false bound. As for
+  the first proof, a file that declares a false axiom does not
   belong in a public library. Nothing else imports it.
 - **The lakefile** differs as build configuration must: the checked tree pointed `packagesDir` at a local, already-built package
   directory, and the public one fetches Mathlib from git at the same revision; its comments were rewritten; and its control
@@ -40,8 +40,8 @@ modules `SAME`, and the false-bound control as present only in the checked tree.
 package directory (the one the run of record used), and compared what Lean produced:
 
 1. **The checked tree (A)**: a copy of the frozen sources with their original lakefile and manifest.
-2. **The published tree (B)**: a copy of this directory, with one line added to its lakefile and manifest pointing `packagesDir`
-   at the same package directory, so that both builds use the same compiled Mathlib.
+2. **The published tree (B)**: a copy of this directory, with one line added to its lakefile, and the `packagesDir` line of its
+   manifest changed, so that both point `packagesDir` at the same package directory, so that both builds use the same compiled Mathlib.
 
 Each tree was built with `lake build ELEM CN1` (exit 0; 8,982 jobs; all 57 modules of `ELEM` and `CN1` compiled from source in
 each). Then, in each:
@@ -94,7 +94,7 @@ through elan.
 | `lake build` (the default target, `ELEM`) | 0 | 52.5 s | 8,980 jobs: "Build completed successfully (8980 jobs)." |
 | `lake build CN1Challenges ELEMNegControls` (the statement and the two tampered statements) | 0 | 10.4 s | 8,928 jobs, almost all already up to date |
 
-So a clean copy goes from nothing to a built proof in about three and a half minutes on this machine (Apple M3 Ultra, 32 cores,
+So a clean copy goes from nothing to a built proof in about 3.4 minutes (202 s) on this machine (Apple M3 Ultra, 32 cores,
 96 GB, macOS 26.6), most of it the download; the project's own modules compile in under a minute. The fetch used about 8 GB of
 disk.
 
@@ -104,10 +104,12 @@ After the build, in the same copy:
   LeanSearchClient `ddf04cf3` and Cli `e92c9f15`;
 - `#print axioms CN1.classNumber_eq_one_iff`, in a file whose only import is `ELEM.Main`, printed
   `'CN1.classNumber_eq_one_iff' depends on axioms: [propext, Classical.choice, Quot.sound]`, and `scripts/check_axioms.sh` passed;
-- `scripts/check_no_sorry.sh` passed on the log of `lake build` (no `sorry` warning at all), and, as it should, failed on the log
-  of the second build, which reports the `sorry` of each tampered statement;
-- the workflow's own build step, `lake build ELEM CN1Challenges`, then succeeded (exit 0, 8,982 jobs), and `check_no_sorry.sh`
-  passed on its log, which has exactly one `sorry` warning, at `CN1Challenges/ClassNumberOne.lean:32:8`, the statement.
+- the build of the workflow at that time, `lake build ELEM CN1Challenges`, then succeeded (exit 0, 8,982 jobs). Its log has
+  exactly one `sorry` warning, at `CN1Challenges/ClassNumberOne.lean:32:8`, the statement, and `scripts/check_no_sorry.sh` passes
+  on it. The log of plain `lake build` has no `sorry` warning at all, because it does not build the challenge, and the log of the
+  build that includes the tampered statements has three; the current script rejects both, as it should (all three logs are
+  fixtures in `scripts/fixtures/sorry/`). The workflow now builds `ELEM CN1 CN1Challenges`, so that every vendored module,
+  `CN1.Foundations.Ramified` included, is compiled too.
 
 What this did not test: Linux, and Comparator inside the fresh copy. The workflow in `../../.github/workflows/determinant.yml`
 had not run when this build was made, because it can only run on GitHub. It has since passed on a GitHub-hosted Ubuntu runner, on 22 October 2026 at commit `413d3b142`, on both the push and the pull-request trigger; the paper's
@@ -118,10 +120,24 @@ had not run when this build was made, because it can only run on GitHub. It has 
 - `../certificates/regenerate_and_diff.sh` regenerates the eight sieve chunks from `gen_sieve.py` and finds them byte-identical to
   the files in `ELEM/Sieve/`. Before we edited the generator's comments and the header line it writes, the original generator
   reproduced the checked chunks byte for byte, and both negative controls as well.
-- [`scripts/check_axioms.sh`](scripts/check_axioms.sh), which the GitHub Actions workflow runs, was tested on real `#print axioms`
-  output: the run of record's output (passes), a theorem whose axiom list Lean wrapped over three lines (fails, naming all three
-  axioms, although a line-based check would have seen only the first line), and the three standard axioms (passes). It was also
-  tested on constructed outputs with `sorryAx`, `Lean.ofReduceBool` or a postulated axiom on a continuation line, an unclosed list,
-  an empty list and a Lean error; it fails on each. [`scripts/check_no_sorry.sh`](scripts/check_no_sorry.sh) passes on the run of
-  record's build log, and fails on a log with a `sorry` warning outside `CN1Challenges` (in both of Lean's message formats) and on
-  the build log of the tampered statements.
+- **The two check scripts, and a correction.** The first published version of
+  [`scripts/check_axioms.sh`](scripts/check_axioms.sh) read the axiom list after the *last* `[` in Lean's output. The independent
+  review showed, with real Lean v4.34.1 output, that this can be fooled: Lean prints an axiom named `«#evil[»` unescaped, as
+  `[#evil[, propext, Classical.choice, Quot.sound]`, and the old script then saw only the three standard axioms. The theorem
+  itself was never affected (its real output is the standard three, and Comparator checks the axioms independently), but the
+  repository's only automated axiom gate was weaker than described. The script now requires the whole output, with whitespace
+  removed, to be exactly one report for `CN1.classNumber_eq_one_iff` over `propext`, `Classical.choice` and `Quot.sound`, with
+  only an optional `info:` position prefix. [`scripts/check_no_sorry.sh`](scripts/check_no_sorry.sh) was tightened at the same
+  time: it now requires a log that reports a successful build and contains exactly one `sorry`, the challenge statement's, and it
+  fails closed on a missing, empty or failed-build log.
+- **The self-test.** [`scripts/test_checks.sh`](scripts/test_checks.sh) runs both scripts over the 52 fixtures in
+  [`scripts/fixtures/`](scripts/fixtures), sorted into `accept/` and `reject/`, and over a missing file. The fixtures whose names
+  begin with `real_` are captured output: the CI run's and the fresh build's axiom reports and build logs, the run of record's
+  axiom log, the `«#evil[»` attack and a three-line wrapped list printed by real Lean, and the build log that includes the tampered
+  statements. The others are constructed: `sorryAx`, `Lean.ofReduceBool` and `native_decide` auxiliary axioms, on one line and on
+  continuation lines; look-alike names; duplicated, second and foreign reports; unclosed and empty lists; error lines; an empty
+  file; a wrong theorem name; and sorry warnings in every position and format. All 54 cases behave as expected. Run against the
+  two earlier versions of the scripts, the same self-test reports 16 cases wrong, among them the `«#evil[»` attack. The workflow
+  runs the self-test before it builds anything. Run locally in the fresh copy of section 2, the revised workflow's steps all
+  passed: the self-test, the sieve regeneration, `lake build ELEM CN1 CN1Challenges` (exit 0, 8,984 jobs, now including
+  `CN1.Foundations.Ramified`), the sorry check and the axiom check.

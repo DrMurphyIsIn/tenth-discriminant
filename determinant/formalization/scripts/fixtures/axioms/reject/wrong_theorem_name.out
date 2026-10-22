@@ -1,0 +1,1 @@
+'CN1.classNumberEqOne' depends on axioms: [propext, Classical.choice, Quot.sound]

@@ -1,0 +1,15 @@
+CN1.classNumber_eq_one_iff : ∀ (K : Type u_1) [inst : Field K] [inst_1 : NumberField K],
+  Module.finrank ℚ K = 2 →
+    ∀ (m : ℕ),
+      Squarefree m → (∃ α, α ^ 2 = -↑m) → (NumberField.classNumber K = 1 ↔ m ∈ {1, 2, 3, 7, 11, 19, 43, 67, 163})
+'CN1.classNumber_eq_one_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ELEM.classNumber_eq_one_iff_of_hyps' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ELEM.Primes.lemmaTwoA' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ELEM.Count.splitBound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ELEM.Count.auxPrime' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ELEM.nonvanishing' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ELEM.Size.sizeBound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ELEM.divisibilityBound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ELEM.Endpoint.endpoint' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ELEM.Sieve.sieve' depends on axioms: [propext, Classical.choice, Quot.sound]
+EXIT 0
