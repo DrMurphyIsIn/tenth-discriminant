@@ -79,7 +79,8 @@ To believe the result you need to trust the same four things as before:
 
 The list is shorter in one respect. The first proof did not ask you to trust OpenAI's 7/8 theorem, but it did put OpenAI's Lean
 proof of it, and two further analysis packages, inside the closure that the kernels checked. Here none of that is present: the
-project requires Mathlib directly, at the same revision `d13f23b` as the first entry, and nothing else.
+project requires Mathlib directly, at the same revision `d13f23b` as the first entry, and nothing else beyond Mathlib's own
+dependencies.
 
 ## Credits
 
@@ -94,7 +95,7 @@ The mathematics is not ours, and we claim no part of it. These credits follow th
   determinant argument, and the residue sieve.
 - **The derivative determinant** and its divisibility at inert primes are **Ben Green's**
   ([hexagon:2610.00311](https://hexagonmath.org/2610.00311v2), Lemma 5.1).
-- **The finite-field proof of nonvanishing** is **Roelof van Dijk's** ([hexagon:2610.00409](https://hexagonmath.org/2610.00409)).
+- **The finite-field proof of nonvanishing** is **Roelof van Dijk's** ([hexagon:2610.00409v1](https://hexagonmath.org/2610.00409v1)).
   Green noted that essentially the same argument is given in a paper posted by **Jacob Pescador**
   ([Landau–Siegel zeros and a Stepanov-type nonvanishing lemma](https://jacobpescador.github.io/ai-math/papers/landau-siegel-stepanov/));
   that overlap is Green's observation, and we have not compared the two arguments ourselves.
@@ -116,7 +117,7 @@ Everything is in [`formalization/`](formalization/README.md). In short, from tha
 
 ```sh
 lake exe cache get                    # download Mathlib's build cache
-lake build ELEM CN1Challenges         # the proof and the statement
+lake build ELEM CN1 CN1Challenges     # the proof, the vendored modules and the statement
 ```
 
 No patches and no other packages are needed. The README there lists the modules step by step, and explains how to run Comparator
@@ -164,8 +165,9 @@ source file, of the build configuration and of every tool was recorded before an
   docstrings, and only there. [`formalization/VERIFICATION.md`](formalization/VERIFICATION.md) records how we checked that the
   published modules compile to exactly the same declarations as the checked ones, and the build of a fresh copy of this
   directory.
-- **Independent replay.** A separate AI review session, not one of the sessions that wrote the proof, replayed the run of record
-  (paper, §7.5). It copied the frozen tree, checked every file against the source manifest of the run of record, and compiled all
+- **Independent replay.** A separate AI review session, not one of the sessions that wrote the proof, re-ran Comparator and the
+  closure audit of the run of record with its own build of the project and of nanoda, and ran five controls of its own (paper,
+  §7.5). It copied the frozen tree, checked every file against the source manifest of the run of record, and compiled all
   the project modules that `ELEM.Main` and the challenge need from source, the eight sieve chunks included, with no compiled file
   from the run of record. Its second kernel was its own build of nanoda. Comparator accepted the solution again under both kernels,
   in about 137 seconds and 6.3 GB. Its own closure audit, importing `ELEM.Main` alone, passed with the same verdicts; it found
@@ -213,5 +215,6 @@ by anything: where it says what a Lean lemma states, the lemma is the authority.
 
 As for the first entry, this work was done with extensive use of AI assistance (Anthropic's Claude), in separate sessions. Several
 sessions did the work, one per step of the argument. Another, independent session reviewed the plan, the interface and the
-delivered steps, and then replayed the final checks with its own build of the project and of nanoda. The mathematical route is due to the people credited above. The mathematical claims are kernel-checked; the
+delivered steps, and then re-ran Comparator and the closure audit with its own build of the project and of nanoda, and ran
+five controls of its own. The mathematical route is due to the people credited above. The mathematical claims are kernel-checked; the
 history, the attributions and the account of how the work was checked are ours, and we say how each was obtained.

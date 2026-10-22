@@ -13,14 +13,15 @@ class number one theorem itself:
 > For squarefree m ≥ 1, the field ℚ(√−m) has class number one if and only if m ∈ {1, 2, 3, 7, 11, 19, 43, 67, 163}.
 
 Neither proof uses Heegner, Baker, Stark or Gross–Zagier input. Both prove the same Lean statement, word for word, with the same
-trust base. They get there by very different routes.
+trust base. They get there by very different routes, though they are not independent of each other: they share the statement, the
+foundational modules and the converse (the Minkowski-bound proof that the nine fields do have class number one).
 
 - **The first proof** goes through OpenAI's theorem that no Dirichlet L-function vanishes when Re s > 7/8, the Chowla–Selberg
   formula evaluated at s = 7/8, and a split-prime criterion for the finitely many fields that remain. Along the way it proves, in
   Lean, the explicit bound that any tenth discriminant would have to satisfy: **d ≤ 652**. It lives in
   [`formalization/`](formalization/README.md), [`paper/`](paper/README.md) and [`notes/`](notes/README.md).
 - **The second proof, the determinant route**, has **no L-function, no zeta function and no zero-free theorem in its closure**, and
-  needs nothing outside Mathlib. It runs the engine of the recent Siegel-zero arguments, Green's derivative determinant made
+  needs nothing beyond Mathlib and its dependencies. It runs the engine of the recent Siegel-zero arguments, Green's derivative determinant made
   nonzero by van Dijk's finite-field argument, directly on class number one, and shows that a tenth discriminant would be below
   2^15; a residue sieve, checked by the kernel, does the rest. It lives in [`determinant/`](determinant/README.md).
 
@@ -60,7 +61,7 @@ To believe the result you need to trust four things:
 
 You do **not** need to trust OpenAI's 7/8 theorem, our code, or any AI. For the first proof, OpenAI's manuscript is unrefereed, but
 its Lean proof sits inside the dependency closure that the kernels checked. For the determinant route, OpenAI's proof is not in the
-closure at all, and neither is anything else from outside Mathlib.
+closure at all, and neither is anything else beyond Mathlib and its dependencies.
 
 ## The first proof: the argument in six steps
 
@@ -157,13 +158,14 @@ and cheaper than the first proof's list of witnesses. We do not call this proof 
 the Minkowski convex-body theorem and Mathlib's Gamma function. What it does not contain is any L-function, any zeta function or
 any zero-free theorem.
 
-It was checked the same way as the first proof, on one frozen tree: Comparator accepted it under nanoda and Lean's kernel, a walk
-over its closure of 69,295 constants found only the three standard axioms and nothing from Mathlib's L-series, zeta or
-modular-form modules or from outside Mathlib, and twelve recorded checks, controls included, behaved as expected. A separate AI
-review session then replayed those checks with its own build of the project's modules and of nanoda: both kernels accepted the
-theorem again, its own closure audit agreed, and five further controls of its own failed as required. The published files compile
-to exactly the same declarations as the checked ones, and a fresh copy builds from the public lakefile in about three and a half
-minutes; the second paper's §7.6 records both. The author read back the final paper and the verification record on
+It was checked the same way as the first proof, on one frozen tree: Comparator accepted it under nanoda and Lean's kernel (in
+local runs, not sandboxed), a walk over its closure of 69,295 constants found only the three standard axioms, nothing from
+Mathlib's L-series, zeta or modular-form modules and nothing beyond Mathlib and its dependencies (Lean core, Batteries, Aesop)
+apart from the project's own code, and twelve recorded checks, controls included, behaved as expected. A separate AI review session
+then re-ran Comparator and the closure audit with its own build of the project's modules and of nanoda, and ran five controls of
+its own: both kernels accepted the theorem again, its closure audit agreed, and all five controls failed as required. The
+published files compile to exactly the same declarations as the checked ones, and a fresh copy builds from the public lakefile in
+about 3.4 minutes; the second paper's §7.6 records both. The author read back the final paper and the verification record on
 22 October 2026 and approved them, and the GitHub Actions workflow passed on a clean Linux runner the same day (§7.7 and §7.8).
 
 ## Building and checking it yourself
@@ -184,14 +186,15 @@ For the determinant route, from [`determinant/formalization/`](determinant/forma
 
 ```sh
 lake exe cache get             # Mathlib build cache
-lake build ELEM CN1Challenges
+lake build ELEM CN1 CN1Challenges
 ```
 
 Its README explains the axiom check and Comparator, and one rule that matters: never import `ELEM.Main` together with the
 challenge or a control, because they declare the same theorem name. [`determinant/certificates/regenerate_and_diff.sh`](determinant/certificates/README.md)
 regenerates the sieve chunks and checks them byte for byte. A GitHub Actions workflow,
 [`.github/workflows/determinant.yml`](.github/workflows/determinant.yml), builds the determinant route from a clean checkout and
-checks the axioms of its main theorem. The first proof has no such workflow, because its build needs openai/math's patched
+checks the axioms of its main theorem. All our Comparator runs, for both proofs, were local and not sandboxed: landrun, Comparator's
+sandbox, is Linux-only, and on macOS we used a pass-through shim in its place. The first proof has no such workflow, because its build needs openai/math's patched
 dependency tree and takes about an hour even on a fast machine.
 
 ## Repository layout
@@ -298,7 +301,8 @@ This work was done with extensive use of AI assistance (Anthropic's Claude), in 
 Another, independent session reviewed the statement before the assembly that proves it was built, read every module in full before
 the run of record, and then replayed the final checks with its own build of our modules. For the determinant route, several sessions
 did the work, one per step of the argument, and an independent session reviewed the plan, the interface and each delivered step,
-and then replayed the final checks with its own build of the project and of nanoda. The mathematical routes are due to the people credited
+and then re-ran Comparator and the closure audit with its own build of the project and of nanoda, and ran five controls of its
+own. The mathematical routes are due to the people credited
 above. The mathematical claims are kernel-checked; the history, the attributions and the account of how the work was checked are
 ours, and we say how each was obtained.
 
