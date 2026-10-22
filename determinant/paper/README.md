@@ -51,7 +51,7 @@ All eight steps are proved, each with the three standard axioms, and an independ
 checked the interface and all eight steps. The assembled theorem then went through one frozen run of record. Comparator
 accepted it under both nanoda and Lean's own kernel, in about 148 seconds and 6.3 GB. A walk over its closure of 69,295
 constants found only the three standard axioms and no constant from any L-series, zeta, Euler-product or modular-form
-module. Twelve recorded checks, nine of them controls that must fail, all printed their expected lines. The paper's §7 has
+module. Twelve recorded checks, nine of them controls that had to fail, all printed their expected lines. The paper's §7 has
 the details, including where Mathlib's Gamma function enters (only through the Minkowski bound used for the nine fields) and
 the fact that Stirling's formula and Wallis are not in the closure.
 
@@ -81,8 +81,10 @@ Do not write a file that imports `ELEM.Main` together with `CN1Challenges.ClassN
 `ELEMNegControls/`. All of them declare `CN1.classNumber_eq_one_iff`, and Lean silently merges same-type declarations on
 import: `#print axioms` then reports the cached axioms of one module for the proof term of another, so a proof that uses
 `sorry` or a postulated axiom can look clean. Use Comparator (challenge `CN1Challenges.ClassNumberOne`, solution
-`ELEM.Main`), or audit the axioms by walking the closure in an environment whose only project import is `ELEM.Main`. The two
-duplicate-declaration audit controls break this rule on purpose, and they must fail.
+`ELEM.Main`), or audit the axioms by walking the closure in an environment whose only project import is `ELEM.Main`. In the
+verification run described in the paper's §7, two duplicate-declaration audit controls broke this rule on purpose, and both
+failed as they should. Those controls are not in the public tree; it carries only the two tampered statements, under
+`ELEMNegControls/Tamper/`.
 
 ## Building it
 
@@ -92,5 +94,5 @@ You need a TeX distribution with `pdflatex` and `bibtex`:
 pdflatex paper && bibtex paper && pdflatex paper && pdflatex paper
 ```
 
-The build has no errors and no undefined references. Module paths in the paper are the future public ones, under
-`determinant/formalization/ELEM/...`.
+The build has no errors and no undefined references. Module paths in the paper are the actual public ones, under
+`determinant/formalization/` in this repository (for example `determinant/formalization/ELEM/Count/Lattice.lean`).
