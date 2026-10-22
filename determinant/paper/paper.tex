@@ -1,0 +1,695 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{listings}
+\setlength{\emergencystretch}{2.5em}
+\usepackage[obeyspaces,spaces]{url} % keep the spaces inside \lean{decide +kernel}, \lean{lake build}, ...
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue}
+\usepackage[capitalise,noabbrev]{cleveref}
+% Allow URLs (and Lean names) to break at hyphens as well.
+\makeatletter\g@addto@macro\UrlBreaks{\do\-}\makeatother
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+% cleveref names shared-counter environments after the counter ("Theorem"); alias them per environment.
+\usepackage{etoolbox}
+\AtBeginEnvironment{lemma}{\crefalias{theorem}{lemma}}
+\AtBeginEnvironment{proposition}{\crefalias{theorem}{proposition}}
+\AtBeginEnvironment{corollary}{\crefalias{theorem}{corollary}}
+\AtBeginEnvironment{definition}{\crefalias{theorem}{definition}}
+\AtBeginEnvironment{remark}{\crefalias{theorem}{remark}}
+
+% Lean identifiers: typewriter, with line breaks allowed at dots and underscores.
+\DeclareUrlCommand\lean{\urlstyle{tt}}
+\newcommand{\re}{\operatorname{Re}}
+\newcommand{\im}{\operatorname{Im}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\OK}{\mathcal{O}_K}
+\newcommand{\disc}{\operatorname{disc}}
+\newcommand{\Nm}{\operatorname{N}}
+
+\definecolor{leanbg}{HTML}{F4F2EC}
+
+% The formal side of each step, set off from the mathematics.
+\newenvironment{inlean}{\par\medskip\noindent\begin{tikzpicture}\node[fill=leanbg,rounded corners=2pt,
+  inner sep=6pt,text width=\dimexpr\linewidth-12pt\relax,font=\small]\bgroup\textbf{In Lean.}\ }%
+  {\egroup;\end{tikzpicture}\par\medskip}
+
+\lstdefinelanguage{Lean}{
+  morekeywords={theorem,lemma,def,noncomputable,import,namespace,end,open,by,fun,sorry,example,variable,structure,where},
+  sensitive=true, morecomment=[l]{--}, morecomment=[s]{/-}{-/}, morestring=[b]",
+}
+\lstset{language=Lean, basicstyle=\small\ttfamily, backgroundcolor=\color{leanbg},
+  frame=single, framerule=0pt, framesep=5pt, xleftmargin=5pt, xrightmargin=5pt,
+  breaklines=true, columns=fullflexible, keepspaces=true, showstringspaces=false,
+  literate={ℝ}{{$\mathbb{R}$}}1 {ℂ}{{$\mathbb{C}$}}1 {ℕ}{{$\mathbb{N}$}}1 {ℤ}{{$\mathbb{Z}$}}1 {ℚ}{{$\mathbb{Q}$}}1
+           {∀}{{$\forall$}}1 {∃}{{$\exists$}}1 {→}{{$\to$}}1 {≠}{{$\neq$}}1 {≤}{{$\le$}}1 {≥}{{$\ge$}}1
+           {∧}{{$\wedge$}}1 {∨}{{$\vee$}}1 {¬}{{$\neg$}}1 {↔}{{$\leftrightarrow$}}1 {∈}{{$\in$}}1 {∉}{{$\notin$}}1
+           {α}{{$\alpha$}}1 {χ}{{$\chi$}}1 {σ}{{$\sigma$}}1 {ω}{{$\omega$}}1 {θ}{{$\theta$}}1 {π}{{$\pi$}}1
+           {∑}{{$\sum$}}1 {↦}{{$\mapsto$}}1 {·}{{$\cdot$}}1 {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1
+           {₀}{{$_0$}}1 {²}{{$^2$}}1 {ε}{{$\varepsilon$}}1 {𝓞}{{$\mathcal{O}$}}1 {∣}{{$\mid$}}1
+           {⊔}{{$\sqcup$}}1 {Γ}{{$\Gamma$}}1 {√}{{$\surd$}}1 {′}{{$'$}}1 {ζ}{{$\zeta$}}1
+           {⁴}{{$^4$}}1 {⁵}{{$^5$}}1 {⌊}{{$\lfloor$}}1 {⌋}{{$\rfloor$}}1 {₊}{{$_+$}}1}
+
+
+\title{Class number one without $L$-functions:\\ a kernel-checked determinant proof}
+\author{Peter W. Murphy}
+\date{October 2026 (v1.1.0)\\[2pt] \small Repository \url{https://github.com/DrMurphyIsIn/tenth-discriminant} \;$\cdot$\; DOI \url{https://doi.org/10.5281/zenodo.23563656}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We present a second proof, written in Lean~4 over Mathlib, of the class number one theorem for imaginary quadratic fields: for squarefree $m \ge 1$, the field $\Q(\sqrt{-m})$ has class number one if and only if $m \in \{1, 2, 3, 7, 11, 19, 43, 67, 163\}$. The statement is the one our first paper proved through OpenAI's $7/8$ zero-free region and the Chowla--Selberg formula. The new proof removes the $L$-function, the zeta function and the zero-free theorem from the dependency closure. It follows an argument assembled in the comments of Terence Tao's tenth-discriminant challenge and written out in a short, unrefereed note (twinheterodox/tenth-discriminant, companions/elementary, commit 64694aae). If $K$ has class number one and $q = |\disc K| \ge 2^{15}$, every prime below $q/4$ is inert and every split prime is a value of the norm form. A count of lattice points then shows that split primes are sparse, so an inert prime $R$ exists in $(q^4, q^5]$. Green's derivative determinant, taken over a grid of algebraic integers, is nonzero modulo $R$ by van Dijk's finite-field argument. Frobenius at every inert prime $p \le R$ forces it to be divisible by a large power of $p$, and its complex size is too small for that. Below $2^{15}$, a residue sieve over $4{,}095$ integers, checked by the kernel in eight chunks, and two uniform lemmas at $p = 2$ leave only the nine fields. The closure contains no constant of Mathlib's $L$-series, Euler-product, zeta or modular-form modules, and no openai/math. It does contain measure theory and integration, and, through the converse for the nine fields, the Minkowski convex-body theorem and with it Mathlib's Gamma function, so we do not call the proof elementary. Comparator accepts the assembled theorem under both nanoda and Lean's kernel (in local runs, not sandboxed). An audit of its closure, $69{,}295$ constants, finds only the three standard axioms and no constant from the denied modules, and twelve recorded checks, controls included, behave as expected. An independent AI review session re-ran Comparator and the closure audit with its own build of the project and of nanoda, and ran five controls of its own; both kernels accepted the theorem again. A full section compares the two proofs.
+\end{abstract}
+
+%=====================================================================================================
+\section{Introduction}
+%=====================================================================================================
+
+\subsection{Two proofs of the same statement}
+
+Our first paper on this problem \cite{CN1paper} gave a kernel-checked Lean proof of the class number one theorem. It followed the route worked out in the comments of Tao's tenth-discriminant challenge \cite{Tao2026}. Class number one turns the Dedekind zeta function of $K$ into an Epstein zeta function, and the Chowla--Selberg formula \cite{ChowlaSelberg1967} continues that function to $s = 7/8$. OpenAI's theorem that no Dirichlet $L$-function vanishes in $\re s > 7/8$ \cite{OAImath,OAIqrh} then forces $d = |\disc K| \le 652$, and a split-prime criterion in the spirit of Rabinowitsch \cite{Rabinowitsch1913} clears the $190$ remaining fields. OpenAI's Lean proof of the $7/8$ theorem sat inside the checked closure: $26{,}740$ of its $129{,}170$ constants came from openai/math.
+
+That proof is sound as far as the kernel is concerned. Two things about it are unsatisfying, though. Its one deep input is a zero-free half-plane whose manuscript is not refereed, so a human reader who wants to understand why the theorem is true has to take a large, new piece of analytic number theory on trust. Its closure also contains a great deal of analysis: the Riemann zeta function, Dirichlet $L$-functions, Mellin transforms, the Jacobi theta identity, Gamma-function enclosures, and through OpenAI's proof two further analysis packages. Tao, in the same thread, said he would be interested in what other approaches give for the tenth discriminant, even if the bounds are much weaker (comment 698471). Kyle Pratt asked for the ``simplest'' proof, counting both the analytic bound and the work of checking the range below it (comment 698547).
+
+This paper gives a second kernel-checked proof of the same statement that answers that request in one specific sense. There is no $L$-function, no zeta function and no zero-free theorem in its closure. We keep the first proof and its paper as they are, for comparison, and \cref{sec:comparison} sets the two side by side.
+
+\subsection{The determinant route in one paragraph}
+
+Suppose $K = \Q(\sqrt{-m})$ has class number one and $q = |\disc K| \ge 2^{15}$. Then every prime $p < q/4$ is inert in $K$: a prime ideal of norm $p$ would be principal, and no non-rational element of the ring of integers has norm below $q/4$. This forces $q$ to be a prime $\equiv 3 \pmod 8$. Every split prime is the norm of an element, so the split primes up to $t$ are bounded by a count of lattice points in an ellipse. That count is of size $\pi t/(2\sqrt q)$, which makes the split primes sparse, and a weighted Chebyshev count of all primes then produces an inert prime $R$ with $q^4 < R \le q^5$. Now take Green's derivative matrix: its rows are monomials $z^r w^s$, its columns are derivatives of order $k < J$ at the points $(z, \bar z)$ of a grid of algebraic integers, and $D_0$ is one of its maximal minors. Modulo $R$, Frobenius turns $\bar z$ into $z^R$, and a root count shows that some maximal minor $D_0$ is nonzero. At every inert prime $p \le R$, Frobenius again makes $z^p - \bar z$ divisible by $p$, and a triangular change of rows shows that $\Nm(D_0)$ is divisible by a large power of $p$. Summed over the inert primes, this lower bound on $\log \Nm(D_0)$ outgrows the upper bound that comes from the size of the entries. The two bounds are incompatible once $q \ge 2^{15}$. Below $2^{15}$, the small primes alone finish the job: an integer sieve with the primes $3, \ldots, 31$ leaves only $11, 19, 43, 67$ and $163$.
+
+\subsection{Sources and credit}\label{sec:credit}
+
+The mathematics is not ours, and we claim no part of it. The argument we formalize is written out in a short research note, which we cite by its repository, path and commit only: twinheterodox/tenth-discriminant, companions/elementary, commit 64694aae \cite{Companion}. The note states that it was prepared with OpenAI's Codex, and it is not refereed. It supplies the explicit constants, the choice of parameters and the overall assembly. It builds on contributions made in the comments of Tao's post \cite{Tao2026} and in two short papers on hexagonmath.org, which we credit at the point of use.
+\begin{itemize}[nosep]
+\item \textbf{Lior Silberman} (comment 698449): under class number one, every small prime is inert. This inertness obstruction is the starting point.
+\item \textbf{Kyle Pratt} (comment 698476): use class number one to bound the split primes by counting norm representations, and use the resulting supply of inert primes, with an auxiliary inert prime, in a determinant argument. Pratt also proposed the residue sieve for the finite range (comment 698460).
+\item \textbf{Ben Green} \cite{Green2026}: the derivative determinant, and its divisibility at inert primes (his Lemma~5.1).
+\item \textbf{Roelof van Dijk} \cite{vanDijk2026v1}: the finite-field proof that the determinant is nonzero, by reduction modulo an auxiliary inert prime. Green drew attention to it in the thread (comment 698463), and noted there that essentially the same argument is given in a paper of Jacob Pescador, which Pescador has since made public \cite{Pescador2026}. The overlap is Green's observation: we have not compared the two arguments ourselves.
+\item \textbf{Terence Tao}: the challenge.
+\end{itemize}
+Two precisions matter here. Green's Lemma~5.1 and van Dijk's nonvanishing argument are both stated for \emph{odd} inert primes, in the order $\Z[\sqrt d]$. Green bounds the $p$-adic valuation of a Gram determinant. The setting of the full ring of integers $\OK = \Z[\omega]$, the use of a single maximal minor $D_0$ in place of the Gram determinant, and the prime $p = 2$ are the companion note's own extensions (Green remarks that a minor could replace the Gram matrix, but does not carry this out). Both papers also make their own statements about AI use, which we record faithfully. Green writes that his proof ``was obtained by a `vibemathing' session with ChatGPT 6 Astra followed by rewriting the argument myself. No human originality is claimed.'' Van Dijk writes that his argument ``was discovered in discussions with GPT-6 Astra and Opus 5.5 and the new arguments should be attributed to these models.'' The paper Green points to is posted by Pescador under the byline ``GPT-6 Pro and Claude Opus 5.5'', and Pescador writes in the thread (comment 698508): ``All mathematics and text were generated by AI systems.''
+
+What this paper adds is the formalization, its verification record, and three small changes of route, each of which leaves the source's constants intact or only coarsens them:
+\begin{itemize}[nosep]
+\item the row-wise Leibniz bound in place of Hadamard's inequality (\cref{sec:size});
+\item monotonicity in $q$ through $\log t \le t - 1$, with no derivatives (\cref{sec:aux,sec:endpoint});
+\item a nonvanishing proof carried out directly over the finite field $\mathbb F_R[\omega]$, with no descent to $\Z[\omega]$ (\cref{sec:nonvanishing}).
+\end{itemize}
+
+\subsection{The claim, and how we phrase it}\label{sec:framing}
+
+The claim is this: \emph{a kernel-checked proof of the class number one theorem with no $L$-function, no zeta function and no zero-free theorem in its closure.} We do not call the proof elementary. Its closure contains Mathlib's measure theory and interval integrals (the lattice count uses $\int_0^1 \sqrt{1-x^2}\,dx = \pi/4$, and partial summation uses Abel summation). Through the converse direction, which shows that the nine fields do have class number one, it also contains the Minkowski convex-body theorem, and with it Mathlib's Gamma function. The audit of record traces the Gamma function to a single entry: the volume computations of the convex-body theorem (Mathlib's \lean{convexBodySum_volume} and its volumes of balls), reached only from the converse. No constant of the analytic steps reaches it. None of this is analytic number theory of $L$-functions, but none of it is elementary either. The plan anticipated Stirling's formula and the Wallis product as well. The route actually taken avoids both: the closure contains no module for Stirling's formula and no constant named after Wallis. The only module in it with ``Stirling'' in its name is Mathlib's combinatorial module for Stirling numbers (\cref{sec:audit}).
+
+The claim is phrased over the \emph{closure}, the set of constants the proof actually depends on, and not over the import graph. The Lean environment imports more than the proof uses: the vendored files from the first project begin with \lean{import Mathlib}, which brings in every Mathlib module, including \lean{Mathlib.NumberTheory.LSeries.RiemannZeta}. Those modules are present and unused. The audit described in \cref{sec:verification} counts the constants of the closure module by module, and finds none from the denied modules.
+
+%=====================================================================================================
+\section{The statement and the trust base}\label{sec:statement}
+%=====================================================================================================
+
+The statement is the one of the first paper, unchanged. The challenge module \lean{CN1Challenges.ClassNumberOne} is a byte-for-byte copy of the reviewed file (md5 \lean{c162eee6}), and it imports only Mathlib.
+
+\begin{lstlisting}
+theorem classNumber_eq_one_iff (K : Type*) [Field K] [NumberField K]
+    (hK : Module.finrank ℚ K = 2)
+    (m : ℕ) (hm : Squarefree m) (hsq : ∃ α : K, α ^ 2 = -(m : K)) :
+    classNumber K = 1 ↔ m ∈ ({1, 2, 3, 7, 11, 19, 43, 67, 163} : Finset ℕ) := by
+  sorry
+\end{lstlisting}
+
+\begin{theorem}[\lean{CN1.classNumber_eq_one_iff}]\label{thm:main}
+Let $K$ be a number field of degree two over $\Q$, let $m$ be a squarefree natural number, and suppose $K$ contains an element $\alpha$ with $\alpha^2 = -m$. Then $K$ has class number one if and only if $m \in \{1, 2, 3, 7, 11, 19, 43, 67, 163\}$.
+\end{theorem}
+
+The first paper explains why this phrasing pins down $K = \Q(\sqrt{-m})$, and why the squarefree hypothesis is load-bearing ($m = 4$, $K = \Q(i)$ would otherwise be a counterexample). We do not repeat that here. Because the statement is identical, a reader who has accepted it for the first proof has nothing new to check on that side. Comparator compares statements by name and by syntactic equality of the elaborated expressions, so the new proof must also be a theorem named \lean{CN1.classNumber_eq_one_iff}. In the new development it lives in the module \lean{ELEM.Main}. Its docstring and statement block are the challenge's, byte for byte, with \lean{by sorry} replaced by the proof.
+
+We write $m$ for the radicand and $q = |\disc K|$ for the absolute discriminant: $q = m$ if $m \equiv 3 \pmod 4$, and $q = 4m$ otherwise. The first paper wrote $d$; the source note writes $q$, and so do we. In Lean $q$ is the first project's \lean{CN1.Finite.dOf m}.
+
+\paragraph{What a reader has to trust.}
+\begin{itemize}[nosep]
+\item The statement above, with the Mathlib definitions it uses (\lean{NumberField}, \lean{NumberField.classNumber}, \lean{Module.finrank}, \lean{Squarefree}).
+\item The Lean~4 kernel (toolchain \lean{v4.34.1}) and, independently, the nanoda kernel \cite{nanoda}.
+\item The three standard axioms \lean{propext}, \lean{Quot.sound} and \lean{Classical.choice}.
+\end{itemize}
+The list is the same as for the first proof, minus one thing that the first proof did not need to trust but did need to check: OpenAI's Lean proof of the $7/8$ theorem is no longer in the closure at all. The project requires Mathlib directly, at the same revision \lean{d13f23b} as the first project \cite{Mathlib2020,Lean4}, and not through openai/math. Comparator accepts the assembled theorem against the challenge under both nanoda and Lean's kernel (\cref{sec:verification}).
+
+\paragraph{Module paths.} Lean names are given with their module. The modules live under \lean{determinant/formalization/} in the repository, so the module \lean{ELEM.Count.Lattice} is the file \lean{determinant/formalization/ELEM/Count/Lattice.lean}. The vendored modules keep their names from the first project: \lean{CN1.Foundations.Basic} is \lean{determinant/formalization/CN1/Foundations/Basic.lean}.
+
+%=====================================================================================================
+\section{The shape of the development}\label{sec:shape}
+%=====================================================================================================
+
+The development was built around a fixed interface, written before any of the hard proofs. The module \lean{ELEM.Defs} defines the shared objects. The module \lean{ELEM.Hypotheses} states, as propositions, the eight steps of the argument. The module \lean{ELEM.Glue} proves the challenge statement from those eight propositions, taken as explicit hypotheses. Each step was then proved separately against its fixed statement, and an independent review checked the interface (\cref{sec:review}) while most of the steps were still being proved. A step could not drift to fit its neighbours.
+
+\paragraph{The objects.} Fix $q$ and put $c = (q+1)/4$ (\lean{ELEM.cq}). The ring $\Z[\omega]$ with $\omega^2 = \omega - c$ is Mathlib's \lean{QuadraticAlgebra ℤ (-c) 1} (\lean{ELEM.OK}). For $q \equiv 3 \pmod 4$ it is the ring of integers of $\Q(\sqrt{-q})$, with $\omega = (1 + \sqrt{-q})/2$. Its norm is $Q(a, b) = a^2 + ab + cb^2$, and conjugation is Mathlib's \lean{star}, with $\bar\omega = 1 - \omega$. We call a prime $p$ \emph{inert} (\lean{ELEM.IsInert}) when $X^2 - X + c$ has no root modulo $p$. That is exactly the hypothesis under which Mathlib makes \lean{QuadraticAlgebra (ZMod p) (-c) 1} a field, so $\mathbb F_p[\omega] \cong \mathbb F_{p^2}$ (\lean{ELEM.Fp2}) costs no construction. The definition includes $p = 2$, which is inert exactly when $c$ is odd. A prime is \emph{split} (\lean{ELEM.IsSplit}) when it is not inert and differs from $q$. The three sums over primes are
+\[
+A(x) = \sum_{p \le x} \frac{\log p}{p}, \qquad I = \sum_{\substack{p \le R\\ p \text{ inert}}} \frac{\log p}{p}, \qquad S_+(X) = \sum_{\substack{p \le X\\ p \text{ split}}} \frac{\log p}{p}
+\]
+(\lean{ELEM.A}, \lean{ELEM.Iinert}, \lean{ELEM.Splus}), and $B = \sum_p (\log p)/p^2$ (\lean{ELEM.B}). The derivative matrix and its minors are defined in \cref{sec:matrix}.
+
+\paragraph{The analytic setting.} Everything the analytic steps may use about the field is collected in one structure. None of the analytic steps mentions $K$ at all.
+
+\begin{lstlisting}
+structure AnalyticSetting (q : ℕ) : Prop where
+  large : 32768 ≤ q
+  prime : q.Prime
+  mod_eight : q % 8 = 3
+  inert_of_lt : ∀ p : ℕ, p.Prime → 4 * p < q → IsInert (cq q) p
+  rep : ∀ p : ℕ, p.Prime → ¬ IsInert (cq q) p →
+    ∃ a b : ℤ, a ^ 2 + a * b + (cq q : ℤ) * b ^ 2 = p
+\end{lstlisting}
+
+\paragraph{The eight steps.} \Cref{tab:hyps} lists them, with the source's equation numbers and the section of this paper where each is proved.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{lllr}
+\toprule
+proposition & content & source & here\\
+\midrule
+\lean{LemmaTwoA} & $\log m - 7/3 < A(m) < \log m + 3/2$ & Lemma 2 & \S\ref{sec:primes}\\
+\lean{SplitBound} & $S_+(X) \le \frac{4}{5\sqrt q}(\log X)^2 + \frac{4(\log q + 1)}{q}$ for $X \ge q/4$ & (8) & \S\ref{sec:split}\\
+\lean{AuxPrime} & an inert prime $R$ with $q^4 < R \le q^5$ & Lemma 3 & \S\ref{sec:aux}\\
+\lean{Nonvanishing} & some maximal minor of $M$ is nonzero & \S4.1 & \S\ref{sec:nonvanishing}\\
+\lean{SizeBound} & upper bound for $\log\Delta/(R^2S)$ & (11) & \S\ref{sec:size}\\
+\lean{DivisibilityBound} & lower bound for $\log\Delta/(R^2S)$ & (14) & \S\ref{sec:divisibility}\\
+\lean{Endpoint} & the real-number contradiction & (15)--(17) & \S\ref{sec:endpoint}\\
+\lean{Sieve} & the residue sieve below $2^{15}$ & \S6 & \S\ref{sec:finite}\\
+\bottomrule
+\end{tabular}
+\caption[The eight propositions of ELEM.Hypotheses]{The eight propositions of \lean{ELEM.Hypotheses}. Two further propositions there, \lean{LemmaTwoTheta} and \lean{LemmaTwoB}, are proved but not used by the main theorem: the divisibility step uses finite-set forms of the same bounds.}
+\label{tab:hyps}
+\end{table}
+
+\begin{inlean}
+\lean{ELEM.classNumber_eq_one_iff_of_hyps} in \lean{ELEM.Glue} takes the eight propositions as its first arguments. Its remaining binders and its conclusion are the challenge statement, token for token. The independent review checked this by elaborating the glue against the challenge constant's own type, \lean{type_of% @CN1.classNumber_eq_one_iff.{0}}. The final theorem applies the glue to the eight proved steps: \lean{ELEM.Primes.lemmaTwoA}, \lean{ELEM.Count.splitBound}, \lean{ELEM.Count.auxPrime}, \lean{ELEM.nonvanishing}, \lean{ELEM.Size.sizeBound}, \lean{ELEM.divisibilityBound}, \lean{ELEM.Endpoint.endpoint} and \lean{ELEM.Sieve.sieve}.
+\end{inlean}
+
+%=====================================================================================================
+\section{The analytic half: no tenth discriminant above \texorpdfstring{$2^{15}$}{2\^{}15}}\label{sec:argument}
+%=====================================================================================================
+
+Throughout this section $K$ has class number one and $q = |\disc K| \ge 2^{15}$, and we derive a contradiction. Write $u = \sqrt q$ and $L = \log q$.
+
+\subsection{From class number one to the analytic setting}\label{sec:setting}
+
+\begin{proposition}[the inertness obstruction]\label{prop:obstruction}
+If $K$ has class number one, $p$ is a prime and $4p < q$, then $p$ is inert in $K$.
+\end{proposition}
+
+\begin{proof}
+A non-rational element $x + y\omega$ of $\OK$ has $y \ne 0$, and its norm is at least $q/4$. For $q \equiv 3 \pmod 4$ this follows from $4Q(x,y) = (2x + y)^2 + qy^2$. For $q = 4m$ the norm form is $x^2 + my^2 \ge m = q/4$. If $p$ were not inert, Kummer--Dedekind would give a prime ideal of norm $p$. That ideal is principal, so it has a generator of norm $p$. The generator cannot be rational, since the norm of a rational integer is a square, so its norm is at least $q/4 > p$.
+\end{proof}
+
+This is Silberman's observation, and in Lean it is exactly the split-prime criterion of the first proof (\lean{CN1.Finite.classNumber_ne_one_of_witness}), read contrapositively. From it, with $q \ge 2^{15}$:
+\begin{itemize}[nosep]
+\item $m \equiv 3 \pmod 4$, since otherwise $q = 4m$ and $2$ ramifies;
+\item $q \equiv 3 \pmod 8$, since otherwise $c$ is even and $2$ splits;
+\item $q$ is prime. The least prime factor $p$ of a composite $q$ satisfies $p^2 \le q$, hence $4p < q$. But an odd prime $p \mid q$ is not inert: $y = (p+1)/2$ is a root of $y^2 - y + c$ modulo $p$, because $4(y^2 - y + c) = p^2 + q$.
+\end{itemize}
+Finally, every non-inert prime is a value of $Q$. A root of $y^2 - y + c$ modulo $p$ gives, by Kummer--Dedekind, a prime ideal of inertia degree one above $p$, and that ideal is principal.
+
+Unlike the first proof, this one never needs the units of $\OK$. Nor does it need squarefreeness of $q$ to show that $q$ is prime: the least-prime-factor argument suffices.
+
+\begin{inlean}
+\lean{ELEM.analyticSetting_of_classNumber_eq_one} in \lean{ELEM.Glue} proves \lean{AnalyticSetting (dOf m)} from \lean{classNumber K = 1} and \lean{32768 ≤ dOf m}. The cases $p = 2$ are \lean{ELEM.isWitness_two_of_not_mod_four} (ramified) and \lean{ELEM.isWitness_two_of_mod_eight} (split). Primality uses \lean{ELEM.not_isInert_of_dvd_q}. The representation is \lean{ELEM.exists_form_eq_of_root}, which is the Kummer--Dedekind half of \lean{CN1.Finite.classNumber_ne_one_of_witness}, stopped before the contradiction. All of these rest on the vendored foundations of the first project (\lean{CN1.Foundations}, \lean{CN1.Finite}), which import only Mathlib.
+\end{inlean}
+
+\subsection{Frobenius at an inert prime}\label{sec:frobenius}
+
+One fact about finite fields is used twice, at the auxiliary prime and at every small inert prime.
+
+\begin{lemma}\label{lem:frob}
+Let $p$ be an inert prime, $p = 2$ included. Then $z^p \equiv \bar z \pmod{p\,\Z[\omega]}$ for every $z \in \Z[\omega]$.
+\end{lemma}
+
+\begin{proof}
+Work in the field $F = \mathbb F_p[\omega]$. The element $\omega^p$ is again a root of $X^2 - X + c$, so it is $\omega$ or $1 - \omega = \bar\omega$. If it were $\omega$, the map $x \mapsto x^p$ would fix $\omega$ as well as every element of $\mathbb F_p$, and $X^p - X$ would have $p + 1$ roots. So $\omega^p = \bar\omega$. Since $x^p = x$ on $\mathbb F_p$, it follows that $(x + y\omega)^p = x + y\bar\omega$.
+\end{proof}
+
+\begin{inlean}
+\lean{ELEM.pow_char_eq_star} ($w^p = \bar w$ in \lean{Fp2 c p}) and \lean{ELEM.frobenius_dvd} ($p \mid z^p - \bar z$ in \lean{OK c}), in \lean{ELEM.Frobenius}, via \lean{omega_pow_ne_omega}, \lean{omega_pow_eq_star} and the coordinatewise reduction \lean{ELEM.redHom}. Both hold for every prime $p$, so the case $p = 2$ is not treated separately.
+\end{inlean}
+
+\subsection{Chebyshev-type prime estimates}\label{sec:primes}
+
+\begin{proposition}[Lemma~2 of the source]\label{prop:lemma2}
+For real $x \ge 1$ and integers $m \ge 2$,
+\[
+\vartheta(x) < \tfrac32 x, \qquad \log m - \tfrac73 < A(m) < \log m + \tfrac32, \qquad B < \tfrac23 .
+\]
+\end{proposition}
+
+\begin{proof}
+Mathlib already proves $\vartheta(x) \le x\log 4$ from the primorial bound, and $\log 4 < 3/2$.
+
+For $B$, the source compares the odd terms with an integral. We telescope instead. For $n \ge 7$ the function $G(x) = (\log x + 1)/x$ satisfies $2\log n/n^2 \le G(n-2) - G(n)$, by $\log t \le t - 1$. Summing over odd $n$, and treating $p = 2, 3, 5$ by hand with $\log 3 < \frac53\log 2$ and $\log 5 < \frac73 \log 2$, bounds every finite sum of $(\log p)/p^2$ by a constant just below $0.6281$. The source's constant is $233/360 \approx 0.647$; both are below $2/3$.
+
+For $A(m)$, write $\log m! = \sum_p v_p(m!)\log p$. Legendre's formula gives $v_p(m!) \ge \lfloor m/p\rfloor > m/p - 1$, hence $\log m! > mA(m) - \vartheta(m)$, and with $\log m! \le m\log m$ and the bound for $\vartheta$ this is the upper bound. In the other direction, $(p-1)v_p(m!) \le m$ gives $v_p(m!) \le m/p + m/(p(p-1)) \le m/p + 2m/p^2$, so $\log m! \le mA(m) + 2mB$. Together with $m\log m - m \le \log m!$, which follows from the exponential series ($m^m/m! \le e^m$), this gives $A(m) > \log m - 1 - \frac43$, strictly because $B < 2/3$ is strict. No Stirling formula is needed.
+\end{proof}
+
+\begin{inlean}
+In \lean{ELEM.Primes.LemmaTwo}: \lean{ELEM.Primes.lemmaTwoTheta}, \lean{lemmaTwoA} and \lean{lemmaTwoB}, which prove the propositions \lean{LemmaTwoTheta}, \lean{LemmaTwoA} and \lean{LemmaTwoB} exactly. The working lemmas are \lean{theta_lt_three_halves_mul} in \lean{ELEM.Primes.Theta} (from Mathlib's \lean{Chebyshev.theta_le_log4_mul_x}), \lean{two_mul_log_div_sq_le} and \lean{sum_log_div_sq_lt_two_thirds} in \lean{ELEM.Primes.SumLogDivSq}, and \lean{mul_log_sub_le_log_factorial}, \lean{log_factorial_le_mul_log}, \lean{log_sub_lt_sum_log_div} and \lean{sum_log_div_lt_log_add} in \lean{ELEM.Primes.Mertens} (Legendre through Mathlib's \lean{sub_one_mul_padicValNat_factorial}). The divisibility step uses finite-set forms: \lean{sum_log_lt_three_halves_mul} and \lean{sum_log_div_sq_lt_two_thirds}. So Lemma~2's $\vartheta$ and $B$ parts are proved but not used by the final theorem; only the $A(m)$ part is.
+\end{inlean}
+
+\subsection{Split primes are sparse}\label{sec:split}
+
+\begin{proposition}[the split-prime count]\label{prop:count}
+In the analytic setting, for $t \ge 0$,
+\[
+\#\{p \le t \text{ prime, split}\} \le \frac{\pi t}{2u} + \frac{\sqrt t}{u}.
+\]
+\end{proposition}
+
+\begin{proof}
+A split prime $p$ is a value $Q(a, b)$, and we may take $b \ge 1$: change the signs of both $a$ and $b$ if $b < 0$, and note that $b = 0$ would make the prime $p$ a square. Then $(a, b)$ and $(-a-b, b)$ both represent $p$ with $b \ge 1$. They are distinct, since $2a + b = 0$ would give $p = qa^2$ and hence $p = q$, which is not split. So each split prime $p \le t$ accounts for two lattice points with $b \ge 1$ and $Q(a, b) \le t$. For fixed $b$, the condition is $|2a + b| \le \sqrt{4t - qb^2}$, an interval of length $\sqrt{4t - qb^2}$ in $a$, which contains at most that many integers plus one. The lengths decrease in $b$, so the sum over $1 \le b \le \sqrt{4t/q}$ is at most
+\[
+\int_0^{\sqrt{4t/q}} \sqrt{4t - qs^2}\,ds + \sqrt{4t/q} = \frac{\pi t}{u} + \frac{2\sqrt t}{u},
+\]
+where the integral comes from $\int_0^1 \sqrt{1 - x^2}\,dx = \pi/4$ by a linear substitution. Halving gives the bound.
+\end{proof}
+
+The factor $\pi/4$ is what makes the endpoint close at $2^{15}$. With the cruder count that ignores the shape of the ellipse, the same argument needs $q \ge 2^{17}$ and a sieve with primes up to $47$. The plan held that in reserve; it was not needed.
+
+\paragraph{Partial summation.} Abel summation against the count, with $f(t) = (\log t)/t$, gives for $e \le Y \le X$
+\[
+\sum_{\substack{Y < p \le X\\ p \text{ split}}} \frac{\log p}{p} \le \frac{\pi}{4u}\bigl((\log X)^2 - (\log Y)^2 + 2\log Y\bigr) + \frac{2(\log Y + 1)}{u\sqrt Y}. \tag{7}
+\]
+Here $f'(t) \le 0$ for $t \ge e$, so the count may be replaced by its bound inside the integral. The integral is computed with an explicit antiderivative, and two non-positive boundary terms are dropped, as in the source.
+
+\begin{corollary}[the split-prime bound, (8)]\label{cor:splitbound}
+In the analytic setting, for every $X \ge q/4$,
+\[
+S_+(X) \le \frac{4}{5u}(\log X)^2 + \frac{4(L + 1)}{q}.
+\]
+\end{corollary}
+
+\begin{proof}
+No split prime lies at or below $q/4$, by \cref{prop:obstruction} (and $q/4$ is not an integer). Take $Y = q/4$ in (7). Since $\log(q/4) > 2$, the term $-(\log Y)^2 + 2\log Y$ is negative. Since $\pi < 16/5$, $\pi/(4u) < 4/(5u)$. The last term is $4(\log(q/4) + 1)/q \le 4(L+1)/q$.
+\end{proof}
+
+\begin{inlean}
+\lean{ELEM.Count.card_split_le} is \cref{prop:count}, in \lean{ELEM.Count.Lattice}. It uses \lean{exists_rep_pos} (a representation with $b \ge 1$), \lean{two_mul_add_ne_zero} (the two points differ), \lean{card_box_le}, \lean{sum_rowW_le} (the row sum against the integral, through Mathlib's \lean{AntitoneOn.sum_le_integral}), and \lean{integral_sqrt_sub_mul_sq}, which rests on \lean{integral_sqrt_one_sub_sq_zero_one} and Mathlib's \lean{integral_sqrt_one_sub_sq}. Partial summation is \lean{ELEM.Count.split_weight_le} in \lean{ELEM.Count.Partial}, through Mathlib's \lean{sum_mul_eq_sub_sub_integral_mul}, with \lean{hasDerivAt_antiderivH} and \lean{boundary_identity}. \Cref{cor:splitbound} is \lean{ELEM.Count.splitBound} in \lean{ELEM.Count.SplitBound}, with \lean{splus_eq_sum_Ioc} and \lean{pi_lt_sixteen_fifths} (from Mathlib's \lean{Real.pi_lt_d2}).
+\end{inlean}
+
+\subsection{An auxiliary inert prime}\label{sec:aux}
+
+\begin{proposition}[Lemma~3 of the source]\label{prop:aux}
+In the analytic setting there is an inert prime $R$ with $q^4 < R \le q^5$.
+\end{proposition}
+
+\begin{proof}
+By \cref{prop:lemma2} at the integers $q^4$ and $q^5$, the primes in $(q^4, q^5]$ carry weight $\sum (\log p)/p > 5L - 4L - \frac{23}{6}$. By (7) with $Y = q^4$ and $X = q^5$, the split primes there carry at most $\frac{4}{5u}(9L^2 + 8L) + 2(4L+1)/(uq^2)$. The ramified prime $q$ lies below the interval. Monotonicity in $q$ gives $L/u < 7/120$ for all $q \ge 2^{15}$, and with the source's constants the split weight is at most $(\frac{41}{90} + \frac{1}{1000})L$. Since $L > 207/20$, the inert weight $L(1 - \frac{41}{90} - \frac{1}{1000}) - \frac{23}{6}$ is positive, so some prime in the interval is inert.
+\end{proof}
+
+For monotonicity, the source differentiates. We use instead, for $x \ge x_0$ with $\log x_0 \ge 2$, the inequality $\log s \le s - 1$ at $s = \sqrt{x/x_0}$, which gives $(\log x)/\sqrt x \le (\log x_0)/\sqrt{x_0}$ with no calculus.
+
+\begin{inlean}
+\lean{ELEM.Count.auxPrime} in \lean{ELEM.Count.AuxPrime}, with the derivative-free monotonicity \lean{log_div_sqrt_le} and its instance \lean{log_div_sqrt_lt} ($\log q/\sqrt q < 7/120$ for $q \ge 2^{15}$), the endpoint constants \lean{log_q0_bounds} and \lean{sqrt_q0_gt}, and the weighted prime count \lean{ELEM.Primes.log_sub_log_sub_lt_sum_Ioc}.
+\end{inlean}
+
+\subsection{The derivative matrix}\label{sec:matrix}
+
+Fix $q$ and an inert prime $R$ with $q^4 < R \le q^5$. Put
+\[
+S = \lfloor R/12\rfloor, \qquad J = \lceil R/48\rceil, \qquad N = RS, \qquad A_0 = \lceil \sqrt{R u}\,\rceil, \qquad B_0 = \lceil \sqrt{R/u}\,\rceil .
+\]
+The \emph{nodes} are the $n = (2A_0+1)(2B_0+1)$ elements $z = a + b\omega$ with $|a| \le A_0$ and $|b| \le B_0$. Since $A_0B_0 \ge R$, we have $n \ge 4R$, and so $nJ \ge RS$. The matrix $M$ has rows indexed by pairs $(r, s)$ with $0 \le r < R$, $0 \le s < S$, columns indexed by pairs (node $z$, order $k$) with $0 \le k < J$, and entries
+\[
+M_{(r,s),(z,k)} = (r)_k\, z^{r-k}\, \bar z^{\,s},
+\]
+where $(r)_k = r(r-1)\cdots(r-k+1)$ is the falling factorial. This is $\partial_z^k(z^rw^s)$ evaluated at $w = \bar z$, with no division by $k!$. The matrix has $N$ rows and $nJ \ge N$ columns. A choice $f$ of $N$ columns gives a square minor $D_0 = \det M[\cdot, f] \in \Z[\omega]$, and we put $\Delta = \Nm(D_0) = D_0\bar D_0 \in \Z$.
+
+\begin{inlean}
+In \lean{ELEM.Defs}: \lean{Sof}, \lean{Jof}, \lean{A0}, \lean{B0}, the index types \lean{Row}, \lean{Node}, \lean{Col}, the nodes \lean{node}, the matrix \lean{M}, its minors \lean{minor} and \lean{Delta}. The falling factorial is Mathlib's \lean{Nat.descFactorial}, which vanishes for $k > r$, so the truncated exponent $r - k$ is harmless. The counting facts are \lean{le_A0_mul_B0}, \lean{four_mul_le_card_node} and \lean{R_mul_Sof_le} in \lean{ELEM.Nonvanishing.Params}.
+\end{inlean}
+
+\subsection{Nonvanishing modulo the auxiliary prime}\label{sec:nonvanishing}
+
+\begin{proposition}[van Dijk's argument]\label{prop:nonvanishing}
+Some maximal minor $D_0$ of $M$ is nonzero.
+\end{proposition}
+
+\begin{proof}
+Reduce modulo $R$, coordinatewise, into the field $\mathbb F = \mathbb F_R[\omega]$. Write $x_z$ for the image of a node. By \cref{lem:frob}, the image of $\bar z$ is $x_z^R$. So the reduced matrix has entries $(r)_k\,x^{r-k}(x^R)^s$, and these are the derivative data of the one-variable monomials $X^{r + Rs}$: indeed $(r + Rs)_k \equiv (r)_k \pmod R$ for $k < R$. Suppose a combination $g$ of the reduced rows vanishes. Then $G(X) = \sum g_{r,s}X^{r+Rs}$ has degree less than $RS$, and its derivatives of every order $k < J$ vanish at every $x_z$. Since $k!$ is invertible for $k < J \le R$, each $x_z$ is a root of multiplicity at least $J$. The $x_z$ are distinct: the coordinates of the nodes run over $2A_0 + 1 \le R$ and $2B_0 + 1 \le R$ consecutive integers, so they stay distinct modulo $R$. That gives at least $nJ \ge RS$ roots, counted with multiplicity, for a polynomial of degree less than $RS$, so $G = 0$. The exponents $r + Rs$ are distinct, so $g = 0$. The reduced matrix therefore has linearly independent rows over the field $\mathbb F$. A matrix of full row rank over a field has a nonzero maximal minor. Reduction commutes with determinants, so the same minor of $M$ is nonzero.
+\end{proof}
+
+The source proves distinctness of the nodes through their complex size: a nonzero multiple of $R$ in $\OK$ has modulus at least $R$, while node differences are smaller than $2T < R$. The coordinatewise argument is shorter and needs only $16q < R$. The source also leaves implicit the passage from ``full rank modulo $R$'' to ``a nonzero minor over $\Z[\omega]$''. Here it is one ring homomorphism, and nothing has to be divided by $R$.
+
+\begin{inlean}
+\lean{ELEM.nonvanishing} in \lean{ELEM.Nonvanishing.Main}. The reduction is \lean{ELEM.map_redHom_M}, which identifies the reduced matrix with the abstract matrix \lean{ELEM.derivMatrix} with $w = x^R$, using \lean{pow_char_eq_star}. The independence is \lean{ELEM.derivMatrix_rows_linearIndependent} in \lean{ELEM.Nonvanishing.Hermite}, built on \lean{le_rootMultiplicity_of_iterate_derivative}, \lean{card_mul_le_natDegree_of_iterate_derivative}, \lean{descFactorial_add_mul_cast} and \lean{add_mul_injective}. Distinctness of the nodes is \lean{redHom_node_injective}, with \lean{two_A0_add_one_le} and \lean{two_B0_add_one_le}. Extracting a nonzero minor is \lean{ELEM.exists_det_submatrix_ne_zero} and \lean{exists_det_submatrix_ne_zero_of_map} in \lean{ELEM.Nonvanishing.Minor}. This lemma has no counterpart in Mathlib at the pin, and was the step the plan most feared.
+\end{inlean}
+
+\subsection{The size of the minor}\label{sec:size}
+
+\begin{proposition}[(11), in Leibniz form]\label{prop:size}
+For every nonzero maximal minor,
+\[
+\frac{\log\Delta}{R^2S} \le \frac{9}{16}\log R + \frac{25}{96}L + \frac{25}{24}\log 2 + \frac{6\log R}{R}.
+\]
+\end{proposition}
+
+\begin{proof}
+Embed $\Z[\omega]$ in $\C$ by $\omega \mapsto (1 + i\sqrt q)/2$. Then $|z|^2 = \Nm(z)$ and $\log\Delta = 2\log|D_0|$. Every node satisfies $|z|^2 = a^2 + ab + cb^2 \le \frac32a^2 + (c + \frac12)b^2 \le T^2$ with $T = 2\sqrt{R\sqrt q}$, so every entry of row $(r,s)$ has modulus at most $R^kT^{r - k + s} \le T^{r+s}(R/T)^J$. The row-wise Leibniz bound $|\det A| \le N!\prod_i \max_j|A_{ij}|$ then gives
+\[
+\log\Delta \le 2\log N! + 2\sum_{r,s}(r+s)\log T + 2NJ\log(R/T).
+\]
+Divide by $R^2S$. Since $N < R^2$, $2\log N! \le 2N\log N \le 4N\log R$, which contributes $4\log R/R$. Next, $2\sum(r+s) \le RS(R + S)$ and $S/R \le 1/12$ give at most $\frac{13}{12}\log T$. Finally $J \le R/48 + 1$ gives $\frac{1}{24}\log(R/T) + \frac{2\log R}{R}$. With $\log T = \log 2 + \frac12\log R + \frac14 L$, the coefficients become $\frac{25}{24}\cdot\frac12 + \frac1{24} = \frac9{16}$, $\frac{25}{24}\cdot\frac14 = \frac{25}{96}$ and $\frac{25}{24}$.
+\end{proof}
+
+Hadamard's inequality, which the source uses, gives $4\log R/R$ in place of $6\log R/R$. Mathlib at the pin has no Hadamard inequality for determinants. It does have a Leibniz-type bound, \lean{Matrix.det_le}, with one bound for every entry, and the row-wise version is a short adaptation of its proof. The price is the extra $(\log N)/R \le 2\log R/R$, which is of size $10^{-16}$ for $R > 2^{60}$ and does not affect the endpoint.
+
+\begin{inlean}
+\lean{ELEM.Size.sizeBound} in \lean{ELEM.Size.Bound}. The row-wise Leibniz bound is \lean{ELEM.Size.norm_det_le_factorial_mul_prod} in \lean{ELEM.Size.Leibniz}. The embedding is \lean{ELEM.Size.emb} with \lean{norm_emb_sq} in \lean{ELEM.Size.Embedding}. The node, entry and minor bounds are \lean{norm_node_le}, \lean{norm_entry_le}, \lean{norm_minor_le} and \lean{log_Delta_le}, and the closing algebra, which produces exactly $9/16$, $25/96$, $25/24$ and $6\log R/R$, is \lean{final_arith}. The case $\Delta = 0$ needs no special treatment: Lean's $\log 0 = 0$ and the right side is positive.
+\end{inlean}
+
+\subsection{Divisibility at the inert primes}\label{sec:divisibility}
+
+\begin{proposition}[(14)]\label{prop:div}
+For every nonzero maximal minor,
+\[
+\frac{\log\Delta}{R^2S} \ge I - \frac{I}{2S} - \frac{79}{18}.
+\]
+\end{proposition}
+
+\begin{proof}
+Fix an inert prime $p \le R$ and put $h_{r,s} = \min(\lfloor r/p\rfloor, S - 1 - s)$. Replace the row polynomial $z^rw^s$ by
+\[
+z^{r - ph}(z^p - w)^h w^s = \sum_{i=0}^{h}(-1)^i\binom hi z^{r - pi}w^{s+i}, \qquad h = h_{r,s}.
+\]
+The new row is the old row plus combinations of rows $(r - pi, s + i)$ with strictly smaller $r$, and these rows exist because $pi \le r$ and $s + i < S$. So the new matrix is $UM$ with $U$ unitriangular for the order by $r$, and every maximal minor of $UM$ equals the corresponding minor of $M$. Now $p \mid z^p - \bar z$ at every node by \cref{lem:frob}, and the $z$-derivative of $z^p - w$ is $pz^{p-1}$. By induction on $h$ and on the order of differentiation, every $z$-derivative of $G\cdot(z^p - w)^h$, evaluated at $w = \bar z$, is divisible by $p^h$. So row $(r,s)$ of $UM$ is divisible by $p^{h_{r,s}}$, $D_0$ by $p^{\sum h}$, and $\Delta = \Nm(D_0)$ by $p^{2\sum h}$.
+
+The exponent is bounded below by elementary sums: $\sum_{s<S}\min(k, S-1-s) \ge Sk - k(k+1)/2$, $\sum_{r<R}\lfloor r/p\rfloor \ge R(R-p)/(2p)$, $\lfloor r/p\rfloor(\lfloor r/p\rfloor + 1) \le r^2/p^2 + r/p$, $\sum_{r<R} r^2 \le R^3/3$ and $\sum_{r<R} r \le R^2/2$. Together they give
+\[
+2\sum_{r,s}h_{r,s} \ge \frac{SR(R-p)}{p} - \frac{R^3}{3p^2} - \frac{R^2}{2p}.
+\]
+Since $\Delta$ is a positive integer and the prime powers are coprime, $\log\Delta$ is at least the sum of $2(\sum h)\log p$ over the inert $p \le R$, which is at least $SR^2I - SR\,\vartheta_I - \frac{R^3}{3}B_I - \frac{R^2}{2}I$. Here $\vartheta_I$ and $B_I$ are the sums of $\log p$ and of $(\log p)/p^2$ over the inert $p \le R$. By \cref{prop:lemma2}, $\vartheta_I < \frac32 R$ and $B_I < \frac23$, and $R \le 13S$. Dividing by $R^2S$ leaves $I - \frac{I}{2S} - \frac32 - \frac{26}{9}$, and $\frac32 + \frac{26}9 = \frac{79}{18}$.
+\end{proof}
+
+The source sums $\lfloor r/p\rfloor$ exactly and then bounds the exact sums of $r$ and $r^2$. We bound $\sum r$ and $\sum r^2$ directly, which are the bounds the source uses on its way to (14); the constant $79/18$ is unchanged. The divisibility holds for every inert prime, including $p = 2$ (which is inert here because $q \equiv 3 \pmod 8$) and $p = R$, and for every choice of columns, because the row operations do not depend on the columns. Of the premises, this step uses only $q \ge 2^{15}$ and $q^4 < R$.
+
+\begin{inlean}
+\lean{ELEM.divisibilityBound} in \lean{ELEM.Divisibility.Main}, from \lean{ELEM.Divisibility.divisibility_of_subset} (the bound for any set of inert primes $p \le R$) and \lean{norm_pos_of_ne_zero}. The row replacement is \lean{ELEM.Divisibility.Umat}, \lean{hgt}, \lean{Mtil}, \lean{Umat_mul_M} and \lean{minor_eq_det_Mtil} in \lean{ELEM.Divisibility.Rows}, with the determinant facts \lean{det_eq_one_of_fst_unitriangular}, \lean{det_submatrix_mul_of_fst_unitriangular} and \lean{pow_sum_dvd_det} in \lean{ELEM.Divisibility.Det}. The product-rule divisibility is \lean{pow_dvd_eval_iterate_derivative}, and the norm is \lean{pow_two_mul_dvd_norm_minor}. The lower bound for the exponent is \lean{two_mul_sum_hgt_ge} in \lean{ELEM.Divisibility.Count}, with \lean{two_mul_sum_min_ge} and \lean{floor_sum_ge}.
+\end{inlean}
+
+\subsection{The endpoint}\label{sec:endpoint}
+
+The last step is pure real arithmetic. Its hypotheses are the conclusions of the earlier steps, written for real variables.
+
+\begin{proposition}[(15)--(17)]\label{prop:endpoint}
+There are no reals $q, R, S, A, I, S_+, Y$ with $q \ge 2^{15}$, $q^4 < R \le q^5$, $0 < R/13 \le S$, $S_+ \ge 0$, $A = I + S_+ + L/q$, Lemma~2 at $R$ ($\log R - \frac73 < A < \log R + \frac32$), (8) at $X = R$, and $Y$ between the bounds of \cref{prop:size,prop:div}.
+\end{proposition}
+
+\begin{proof}
+Put $x = \log R$, so $4L < x \le 5L$, and $v = 4/(5u)$. Monotonicity gives $L \le \frac{7}{120}u$ for every $q \ge 2^{15}$, hence $vL \le \frac{7}{150}$. The source controls $vx^2$ on $[4L, 5L]$ by concavity. We use the identity
+\[
+vx^2 = (x - 4L)\cdot v(x + 4L) + 16L\cdot vL \le \tfrac{21}{50}(x - 4L) + \tfrac{56}{75}L .
+\]
+The four error terms $4(L+1)/q$, $L/q$, $6x/R$ and $I/(2S)$ are each at most $1/100$. The last uses the upper bound $I < x + \frac32$; the upper bound is the right one because the term is subtracted. Chaining the hypotheses gives
+\[
+\tfrac{7}{400}x + \tfrac{323}{480}L < \tfrac{121}{18} + \tfrac{25}{24}\log 2 + \tfrac{1}{25}.
+\]
+With $x > 4L$ the left side exceeds $\frac{1783}{2400}L$, and $\frac{1783}{2400} = \frac{143}{96} - \frac{56}{75}$ is the source's margin. Since $L \ge 15\log 2$, the left side is above $7.72$. Mathlib's bound $\log 2 < 0.6931471808$ puts the right side below $7.49$. This is a contradiction.
+\end{proof}
+
+The source's error budget is $E < 1/500$, which needs $\log(10^{16}) < 40$. The cruder $1/25$ suffices with about $0.24$ to spare and needs no further logarithms. Monotonicity uses $\log t \le t - 1$ at $t = \sqrt q/181$, with $181^2 = 32761 \le 2^{15}$ and $2\log 181 < 15\log 2$; this avoids $\sqrt{2^{15}} = 128\sqrt 2$, which is irrational. The only transcendental constants admitted from outside are Mathlib's bounds on $\log 2$ and $\pi$.
+
+\begin{inlean}
+\lean{ELEM.Endpoint.endpoint} in \lean{ELEM.Endpoint.Comparison}, closing with \lean{final_comparison} by \lean{norm_num} over $\R$. Monotonicity is \lean{log_le_of_large}, \lean{log_le_mul_of_large}, \lean{sqrt_le_div_of_large}, \lean{le_sqrt_of_large} and \lean{two_log_181_lt} in \lean{ELEM.Endpoint.Monotone}, from Mathlib's \lean{Real.log_le_sub_one_of_pos}. The source's own form of the final comparison, $846/575 < 143/96$ with margin $1009/55200$, is recorded as \lean{companion_comparison} and is not used.
+\end{inlean}
+
+\subsection{The analytic half assembled}\label{sec:analytic-assembly}
+
+The glue takes $R$ from \cref{prop:aux} and a nonzero minor from \cref{prop:nonvanishing}. It applies \cref{prop:size,prop:div}, Lemma~2 at $R$, and \cref{cor:splitbound} at $X = R$. It proves two small facts itself: the decomposition $A(R) = I + S_+(R) + L/q$, since every prime $p \le R$ is inert, split, or equal to $q$, and $q$ is not inert; and $S = \lfloor R/12\rfloor \ge R/13$. It then feeds everything to \cref{prop:endpoint}.
+
+\begin{theorem}\label{thm:analytic}
+If $K$ has class number one, then $q = |\disc K| < 2^{15}$.
+\end{theorem}
+
+\begin{inlean}
+\lean{ELEM.false_of_analyticSetting}, with \lean{ELEM.A_eq_decomp} and \lean{Splus_nonneg}, in \lean{ELEM.Glue}. \Cref{thm:analytic} itself is the corollary \lean{ELEM.dOf_lt_of_classNumber_eq_one}. The assembly does not use it: it uses the case split of \cref{sec:assembly}.
+\end{inlean}
+
+%=====================================================================================================
+\section{The finite range: a residue sieve below \texorpdfstring{$2^{15}$}{2\^{}15}}\label{sec:finite}
+%=====================================================================================================
+
+Below $2^{15}$ there are $9{,}964$ fundamental discriminants $-q$ with $3 \le q < 2^{15}$, and $9{,}955$ of them are not Heegner. The first proof dealt with its $190$ fields one by one, each with a witness prime checked by the kernel. That would be $9{,}955$ instances here, and a list literal of that length exceeds the elaborator's recursion limit. Pratt's residue sieve avoids a list of fields altogether. It uses only \cref{prop:obstruction}, which needs no lower bound on $q$: a prime $p$ with $4p < q$ at which $X^2 - X + c$ has a root modulo $p$, split or ramified, already rules out class number one.
+
+The finite side splits on $m$ modulo $8$, uniformly:
+\begin{itemize}[nosep]
+\item $m \not\equiv 3 \pmod 4$ and $m \ge 3$: $q = 4m$ and $2$ ramifies, with the root $y = m \bmod 2$;
+\item $m \equiv 7 \pmod 8$ and $m \ge 15$: $c$ is even and $2$ splits, with the root $y = 0$;
+\item $m \equiv 3 \pmod 8$: $q = m = 8k + 3$ with $1 \le k < 4096$, and the sieve below applies.
+\end{itemize}
+The two lemmas at $p = 2$ are proved for all $m$ at once, not case by case.
+
+\begin{proposition}[the residue sieve]\label{prop:sieve}
+Every integer $q = 8k + 3$ with $8 < q < 2^{15}$ is one of $11, 19, 43, 67, 163$, or has a prime $p \in \{3, 5, 7, 11, 13, 17, 19, 23, 29, 31\}$ with $4p < q$ and a $y < p$ with $y^2 + (p-1)y + (q+1)/4 \equiv 0 \pmod p$.
+\end{proposition}
+
+The congruence is $y^2 - y + c \equiv 0$ written over $\N$ without truncated subtraction. The $4{,}095$ candidates include every integer in the progression, squarefree or not, so nothing about fundamental discriminants has to be established first. A candidate divisible by a sieve prime is rejected too, which is legitimate: a ramified prime below $q/4$ contradicts \cref{prop:obstruction} just as a split one does. A sieve hit is a witness in the sense of the first proof's \lean{IsWitness}: from $4p < q$ it follows that $4p \le q$ and $p < c$, hence $p \ne c$.
+
+The kernel checks \cref{prop:sieve} by \lean{decide +kernel} in eight chunks of $512$ values of $k$. Each chunk takes about half a second of kernel time, about $3.9$ seconds in total, with the default recursion depth. The rejections are distributed by first rejecting prime as follows: $3$: $2{,}729$; $5$: $818$; $7$: $312$; $11$: $127$; $13$: $62$; $17$: $20$; $19$: $10$; $23$: $7$; $29$: $4$; $31$: $1$. The generator, the plan's independent count, the source's recorded output and the reviewer's own code agree on this distribution. The prime $31$ is first only at $q = 32323$. The survivor list is exact: the kernel also checks, in a lemma the main theorem does not need, that no sieve prime rejects $11, 19, 43, 67$ or $163$.
+
+\begin{inlean}
+\lean{ELEM.Sieve.sieve} in \lean{ELEM.Sieve.Main}, assembled in \lean{ELEM.Sieve.Range} as \lean{sieveOK_of_lt} from the generated chunks \lean{sieveOK_chunk0}, \ldots, \lean{sieveOK_chunk7} (modules \lean{ELEM.Sieve.Chunk0} to \lean{Chunk7}). The predicates \lean{sievePrimes}, \lean{survivors}, \lean{HasRoot}, \lean{SieveHit} and \lean{SieveOK} are in \lean{ELEM.Sieve.Defs}, and \lean{not_sieveHit_survivors} checks the survivors (outside the closure of the main theorem). The case split on $m$ is \lean{ELEM.classNumber_ne_one_of_lt} in \lean{ELEM.Glue}, which closes every case with the first project's \lean{CN1.Finite.classNumber_ne_one_of_isWitness}. The script that generates the chunks is untrusted; the kernel checks everything it emits.
+\end{inlean}
+
+\paragraph{Two negative controls on the certificate.} A sieve that the kernel accepts whatever its input would be worthless, so two corrupted chunks were built and run.
+\begin{itemize}[nosep]
+\item With $31$ removed from the prime list, under the true claim, chunk $7$ fails with a kernel type mismatch. This corrupts the witness side. A diagnostic file pins the failure at exactly $k = 4040$, that is $q = 32323$, and shows that the corrupted chunk holds at every other $k$.
+\item With $163$ replaced by $167$ in the survivor list, chunk $0$ fails at exactly $k = 20$, that is $q = 163$. This corrupts the claim side.
+\end{itemize}
+The independent review re-ran both controls and saw both fail, and the run of record ran them again (\cref{sec:controls}).
+
+%=====================================================================================================
+\section{The converse and the assembly}\label{sec:assembly}
+%=====================================================================================================
+
+\paragraph{The nine fields have class number one.} This direction is unchanged from the first proof and comes with the vendored files. By the Minkowski bound in Mathlib's form, $\OK$ is a principal ideal ring once every prime ideal of norm at most $\frac23\sqrt q$ is principal, and for the nine fields a few \lean{decide} checks show that every prime ideal of such small norm is principal. This is where the Minkowski convex-body machinery enters the closure, and Mathlib's Gamma function with it. The audit of record finds exactly four project constants from which the Gamma function is reachable: the main theorem, the glue, and the two converse lemmas \lean{CN1.Finite.classNumber_eq_one_of_foundations} and \lean{CN1.Finite.classNumber_eq_one_of_mem_nine}. Every path enters the Gamma modules through \lean{NumberField.mixedEmbedding.convexBodySum_volume} or through the volumes of balls (\lean{MeasureTheory.measure_unitBall_eq_integral_div_gamma}, \lean{measure_lt_one_eq_integral_div_gamma}).
+
+\begin{inlean}
+\lean{CN1.Finite.classNumber_eq_one_of_mem_nine} in \lean{CN1.Finite.Converse}, in the statement's own terms \lean{CN1.Finite.classNumber_eq_one_of_foundations} in \lean{CN1.Finite.Bridge}. Both are vendored byte for byte from the first project.
+\end{inlean}
+
+\paragraph{The assembly.} The direction $\Leftarrow$ is the converse. For $\Rightarrow$, assume class number one and, for contradiction, $m$ outside the nine. A single case split on $q < 2^{15}$ or $q \ge 2^{15}$ decides the rest. The first case is the finite side of \cref{sec:finite}. The second gives the analytic setting of \cref{sec:setting}, and then the contradiction of \cref{sec:analytic-assembly}. Both halves are stated over the same quantity, $q = $ \lean{dOf m}. The two ranges are complementary by construction, so no off-by-one slip, and no confusion between $m$ and $4m$, can open a gap between them.
+
+\begin{lstlisting}
+theorem classNumber_eq_one_iff_of_hyps (hA : LemmaTwoA) (h8 : SplitBound) (hL3 : AuxPrime)
+    (hNV : Nonvanishing) (h11 : SizeBound) (h14 : DivisibilityBound) (hE : Endpoint)
+    (hS : Sieve)
+    (K : Type*) [Field K] [NumberField K]
+    (hK : Module.finrank ℚ K = 2)
+    (m : ℕ) (hm : Squarefree m) (hsq : ∃ α : K, α ^ 2 = -(m : K)) :
+    classNumber K = 1 ↔ m ∈ ({1, 2, 3, 7, 11, 19, 43, 67, 163} : Finset ℕ) := by
+  refine ⟨fun h1 => ?_, classNumber_eq_one_of_foundations hK hm hsq⟩
+  by_contra hnine
+  rcases lt_or_ge (dOf m) 32768 with hlt | hge
+  · exact classNumber_ne_one_of_lt hS hK hm hsq hlt hnine h1
+  · exact false_of_analyticSetting hA h8 hL3 hNV h11 h14 hE
+      (analyticSetting_of_classNumber_eq_one hK hm hsq hge h1)
+\end{lstlisting}
+
+\noindent The final theorem, in \lean{ELEM.Main}, applies this to the eight proved steps:
+\begin{lstlisting}
+theorem classNumber_eq_one_iff (K : Type*) [Field K] [NumberField K]
+    (hK : Module.finrank ℚ K = 2)
+    (m : ℕ) (hm : Squarefree m) (hsq : ∃ α : K, α ^ 2 = -(m : K)) :
+    classNumber K = 1 ↔ m ∈ ({1, 2, 3, 7, 11, 19, 43, 67, 163} : Finset ℕ) :=
+  ELEM.classNumber_eq_one_iff_of_hyps ELEM.Primes.lemmaTwoA ELEM.Count.splitBound
+    ELEM.Count.auxPrime ELEM.nonvanishing ELEM.Size.sizeBound ELEM.divisibilityBound ELEM.Endpoint.endpoint
+    ELEM.Sieve.sieve K hK m hm hsq
+\end{lstlisting}
+\lean{#print axioms CN1.classNumber_eq_one_iff} reports \lean{[propext, Classical.choice, Quot.sound]}. That report reads a cache, so the gate is the closure walk of \cref{sec:audit}.
+
+\paragraph{The size of the development.} The new code is about $4{,}000$ lines in $42$ modules under \lean{ELEM}, of which the eight generated sieve chunks are about $150$ lines. It reuses the Mathlib-only part of the first project, the foundations and the finite part, about $2{,}050$ lines vendored unchanged. That count includes the first project's $190$ witness files, which are present but contribute nothing to the closure.
+
+%=====================================================================================================
+\section{Verification}\label{sec:verification}
+%=====================================================================================================
+
+This section reports the run of record: one frozen source tree, on which every check below was made. The md5 of every source file, of the build configuration and of the tools was recorded before the run and again after it, and the tree did not change. The build products of the glue, of the main module and of the controls were deleted first, so that Comparator's own build recompiled them from the recorded sources. Everything here is taken from the logs of that run and from the review files. A fresh build, the author's check and continuous integration follow in \cref{sec:freshbuild,sec:authorcheck,sec:ci}.
+
+\subsection{Every step is proved, with standard axioms}
+
+Each of the eight propositions of \cref{tab:hyps} has a theorem of exactly its type, built with \lean{lake build} in the pinned environment (Lean \lean{v4.34.1}, Mathlib \lean{d13f23b} required directly). For each, and for the main theorem, \lean{#print axioms} reports \lean{[propext, Classical.choice, Quot.sound]}. There is no \lean{sorry}, \lean{admit}, \lean{native_decide} or \lean{axiom} in any module of the solution. That axiom report reads a cache stored with the compiled modules, so it is a progress check, not the gate. Each step was therefore also checked as it was delivered, by a closure walk that follows types, values, constructors and recursors without consulting the cache. It found only the three standard axioms and no constant from a denied module, with closures of $28{,}036$ (Lemma~2), $44{,}928$ (split bound and auxiliary prime), $24{,}022$ (nonvanishing), $17{,}626$ (size), $31{,}115$ (divisibility) and $26{,}872$ (endpoint) constants.
+
+\subsection{Comparator}\label{sec:comparator}
+
+Comparator \cite{Comparator}, tag \lean{v4.34.0}, under toolchain \lean{v4.34.1}, built the challenge module \lean{CN1Challenges.ClassNumberOne} and the solution module \lean{ELEM.Main}, exported both, compared the statements of \lean{CN1.classNumber_eq_one_iff}, checked the axioms against the permitted three, and replayed the solution through nanoda \cite{nanoda} and through Lean's own kernel. Its verdict was
+\begin{center}
+``nanoda kernel accepts the solution'', \quad ``Lean default kernel accepts the solution'', \quad ``Your solution is okay!'',
+\end{center}
+in about $148$ seconds of wall time, with a peak resident memory of about $6.3$\,GB. Comparator's export and its two kernel replays cover the full exported closure, Mathlib included.
+
+\subsection{The closure audit}\label{sec:audit}
+
+A closure walk from \lean{CN1.classNumber_eq_one_iff} follows types, the values of theorems, definitions and opaque constants, inductive types with their constructors and recursors, and recursor rules. It runs in an environment that imports \lean{ELEM.Main} and nothing else of the project, and it checks that no other module of that environment declares the target name (\cref{sec:controls} explains why). Its verdict is PASS.
+\begin{itemize}[nosep]
+\item \textbf{Size.} $69{,}295$ constants, with no referenced name missing: Mathlib $60{,}927$, Lean core $7{,}654$, the new code $413$, Batteries $190$, the vendored part of the first project $110$, Aesop $1$.
+\item \textbf{Axioms.} The axioms met by the walk are exactly \lean{propext}, \lean{Quot.sound} and \lean{Classical.choice}, and Lean's \lean{collectAxioms} gives the same three. There is no \lean{sorryAx}, no \lean{Lean.ofReduceBool}, no \lean{Lean.trustCompiler} and no \lean{unsafe} constant.
+\item \textbf{The denied modules.} The deny-list has fourteen prefixes: Mathlib's \lean{LSeries}, \lean{EulerProduct}, \lean{Harmonic.ZetaAsymp}, \lean{ZetaValues}, \lean{NumberField.DedekindZeta}, \lean{ModularForms} and \lean{ArithmeticFunction.LFunction} modules; openai/math, \lean{PrimeNumberTheoremAnd} and \lean{RellichKondrachov}; and the four analytic module families of the first proof. Zero constants come from any of them. The environment does import $69$ denied modules, \lean{Mathlib.NumberTheory.LSeries.RiemannZeta} among them, because the vendored files of the first project begin with \lean{import Mathlib}. All $69$ contribute nothing to the closure, and the claim of this paper is about the closure.
+\item \textbf{Project constants.} Every constant outside the libraries is from the new code or from the vendored foundations and finite part of the first project. The first project's Kronecker character, its $190$ witness files and its ramification module contribute no constant, and no \lean{DirichletCharacter} constant is in the closure.
+\item \textbf{Name scan.} A case-insensitive scan by name component for \emph{heegner}, \emph{baker}, \emph{stark}, \emph{gross}, \emph{zagier}, \emph{goldfeld}, \emph{heilbronn}, \emph{lfunction}, \emph{riemannzeta}, \emph{zerofree}, \emph{seven\_eighths} and \emph{siegel} finds no constant and no closure module. The scan matches at component boundaries: a plain substring scan raises false alarms, because the private names of Mathlib's \lean{SpecialFunctions} modules contain the letters ``lFunction'' across a word boundary.
+\end{itemize}
+The independent replay of \cref{sec:replay} re-derived the closure with its own tool and found the same verdicts.
+
+\paragraph{What the closure contains.} The closure spans $2{,}224$ modules. By area: Mathlib's algebra $472$, data $276$, topology $228$, analysis $214$, ring theory $184$, order $163$, measure theory $154$, linear algebra $126$, group theory $32$, number theory $23$, field theory $18$, set theory $22$, logic $32$, tactics $41$, and a handful of others; Lean core $138$; Batteries $12$; Aesop $1$; the new code $38$; the first project $8$. The $23$ number-theory modules are Abel summation, Chebyshev's bounds, divisors, prime counting and primorials, the $p$-adic valuation, admissible absolute values and the finiteness of the class group, Kummer--Dedekind, and the number-field library (canonical embedding, the convex-body theorem, infinite places, discriminants, fractional ideals, norms). The $27$ special-function modules are the exponential, logarithm, powers, square root, trigonometric and inverse trigonometric functions, the complex argument, logarithm and circle map, polar coordinates, improper and elementary integrals, and the Gamma function with its Bohr--Mollerup characterization.
+
+\paragraph{The Gamma function and Stirling's formula.} The Gamma function is reachable from exactly four project constants: the main theorem, the glue and the two converse lemmas of \cref{sec:assembly}. Every path enters through the volume computations of the Minkowski convex-body theorem. No constant of the analytic steps (Lemma~2, the split bound, the auxiliary prime, the size and divisibility bounds, the endpoint) reaches it. Stirling's formula and the Wallis product are not in the closure: there is no module for Stirling's formula and no constant named after Wallis. The only module with ``Stirling'' in its name is Mathlib's combinatorial module for Stirling numbers, reached through general lemmas on geometric series.
+
+\paragraph{Where the kernel decides.} The verification plan admitted kernel \lean{decide} only for finite computations, and not for numerical statements about real numbers. A gate over the sources mapped every \lean{decide} in the new code and in the vendored files to its declaration, and checked which declarations lie in the closure. The closure contains $13$ such declarations: the eight sieve chunks; three tables of $\Z/4\Z$ in the vendored foundations; the root-absence check modulo small primes in the vendored converse; and a degree bound for the minimal polynomial of $\omega$ (degree $2$ in the range $[1,3]$). There is no \lean{native_decide} anywhere, in or out of the closure. The endpoint comparison is proved by \lean{norm_num} over $\R$, not by \lean{decide}. With an empty allow-list the gate fails, as it should.
+
+\paragraph{The case split.} The proof term of the glue contains exactly one order split, \lean{lt_or_ge (CN1.Finite.dOf m) 32768}, so the finite and the analytic sides are the two halves of one comparison. The two lemmas at $p = 2$ in the closure are the glue's \lean{ELEM.isWitness_two_of_not_mod_four} and \lean{ELEM.isWitness_two_of_mod_eight}, symbolic in $m$ (a parity split closed by \lean{omega}), with no enumeration.
+
+\subsection{Controls}\label{sec:controls}
+
+A checker that accepts everything is worthless, so the run of record includes inputs that must fail, and records for each the line it is expected to print. Twelve checks were made: the real Comparator run and the real audit, which must pass; nine controls, which must fail; and a diagnostic file for the sieve controls, which must pass. All twelve printed their expected lines.
+\begin{enumerate}[label=(\alph*),nosep]
+\item The challenge with \lean{Squarefree m} deleted, against \lean{ELEM.Main}: Comparator rejects it, ``Challenge and solution theorem statement do not match''.
+\item The challenge with $163$ replaced by $167$: rejected, the same line.
+\item The real challenge against a proof routed through a postulated axiom ``every squarefree $m$ has $q < 2^{15}$'', false at $m = 32771$: Comparator rejects it, ``Illegal axiom detected''.
+\item The closure audit of that proof: FAIL, ``non-standard axiom in closure''.
+\item The closure audit started from \lean{riemannZeta}, a positive control for the deny-list and the name scan: FAIL, $125$ denied constants, a name-scan hit, and the module \lean{Mathlib.NumberTheory.LSeries.RiemannZeta} flagged.
+\item[(f, g)] Two duplicate-declaration controls: the closure audit run in an environment that imports \lean{ELEM.Main} together with the challenge, and together with the postulated-axiom proof. Both FAIL, by three independent checks: the target name is declared in two imported modules, a forbidden module is imported, and the walk disagrees with \lean{collectAxioms}.
+\item[(h)] The sieve chunk with $31$ removed from the prime list, under the true claim: the kernel rejects it.
+\item[(i)] The sieve chunk with $163$ replaced by $167$: the kernel rejects it.
+\end{enumerate}
+The diagnostic file shows that the two sieve controls fail at exactly $q = 32323$ and $q = 163$ and nowhere else.
+
+The duplicate-declaration controls test a real hazard, which the independent review found. Five modules of the project declare \lean{CN1.classNumber_eq_one_iff}: the challenge (with \lean{sorry}), \lean{ELEM.Main}, the postulated-axiom proof and the two tampered statements. When two imported modules declare the same name with the same type, Lean \lean{v4.34.1} merges them silently. It keeps one module's proof term but credits the other, so \lean{#print axioms} and \lean{collectAxioms} can report a clean cached list for a term that contains \lean{sorryAx} or a postulated axiom. The checks of record avoid this: Comparator elaborates the challenge and the solution separately, and the audit imports \lean{ELEM.Main} alone and verifies that it is the only declaring module. A reader who checks the theorem should do the same, and never import \lean{ELEM.Main} together with the challenge or a control.
+
+\subsection{Independent replay}\label{sec:replay}
+
+A separate AI review session, under its own identity and not one of the sessions that wrote the proof, replayed the run of record. This is an AI review, not a referee's report. It copied the frozen tree into its own workspace and checked every file against the source manifest of the run of record before each phase; there were no mismatches. It built the project itself: all $55$ project modules that \lean{ELEM.Main} and the challenge need were compiled from source, the eight sieve chunks included, so their \lean{decide +kernel} checks ran again. No compiled file from the run of record was used. Its second kernel was its own build of nanoda, independent of the one used in the run of record.
+
+\begin{itemize}[nosep]
+\item \textbf{Comparator.} Against the same challenge and configuration, Comparator accepted the solution: ``nanoda kernel accepts the solution'', ``Lean default kernel accepts the solution'', ``Your solution is okay!'', in about $137$ seconds and $6.3$\,GB.
+\item \textbf{The closure.} Its own audit tool, importing \lean{ELEM.Main} alone, passed: only the three standard axioms, consistent with \lean{collectAxioms}, no \lean{sorryAx}, zero constants from the fourteen denied prefixes, and zero name-scan hits on constants. It found $69{,}293$ constants. The difference from the $69{,}295$ of the run of record is exactly two constants, \lean{Lean.Syntax.rec_1} and \lean{Lean.Syntax.rec_2}: the auxiliary recursors of the nested inductive type \lean{Lean.Syntax}, which the run of record's walk follows and the review's tool does not. With those two removed, the two sorted lists of constants are byte-identical.
+\item \textbf{Five further controls,} written by the review session and added only after the real run, each failed as required. They were the statement with $11$ removed from the list (statement mismatch); the statement ``proved'' by \lean{sorry} (illegal axiom \lean{sorryAx}); the real proof term carrying one \lean{native_decide} fact (illegal axiom); and, twice, a solution that adds a false lemma $4 = 5$ by switching off the elaborator's kernel check (\lean{debug.skipKernelTC}) and derives the theorem from it. For that last module, \lean{#print axioms CN1.classNumber_eq_one_iff} reports only the three standard axioms, because the bad step is a false type and not an axiom. Neither the cached axiom report nor an axiom walk can see it. Only a real kernel re-check of the exported closure catches it, and both did: with nanoda on, nanoda rejected the false lemma and so did Lean's kernel; with nanoda off, Lean's kernel alone rejected it, naming the false type. So the acceptance above is a re-check of the exported closure by both kernels, not a reading of what the compiled files claim.
+\end{itemize}
+
+The replay's caveats are these. Comparator and lean4export were the same binaries as in the run of record, and the Lean kernel is the same toolchain, \lean{v4.34.1}, so the Lean-kernel half of the replay is not independent of the run of record. The independent kernel is nanoda, a separate implementation in a separate build, and the independent build covers the project's own compiled modules. The dependencies, Mathlib and the other pinned packages, came from the same shared package tree and were not rebuilt; their exported constants are re-checked by both kernels through Comparator's export. The runs were local and unsandboxed, through the same kind of pass-through shim. The replay never imported \lean{ELEM.Main} together with the challenge or a control.
+
+\subsection{The published files and a fresh build}\label{sec:freshbuild}
+
+\paragraph{The published files are the checked files.} Before publication, internal references were removed from the comments and docstrings of the Lean files, and nothing else. The published sources therefore differ from the verified ones in comments only. Built side by side against the same Mathlib, the two trees give a byte-identical lean4export export of the closure of \lean{CN1.classNumber_eq_one_iff} (md5 \lean{5b1cacd1}, about $528$\,MB), the export that Comparator's kernels replay. The proof routed through a postulated axiom is not published, because a file that declares a false axiom does not belong in a public library. The method, with a control in which a one-line change to a proof term is detected, is in \lean{determinant/formalization/VERIFICATION.md} in the repository.
+
+\paragraph{A fresh build.} A copy of the published formalization, with no build state, was built from its public lakefile, which requires Mathlib \lean{d13f23b} from git. The Mathlib cache directory was empty, so Mathlib's prebuilt \lean{.olean} files were fetched over the network: \lean{lake exe cache get} downloaded $8{,}908$ files in about $150$ seconds. Then \lean{lake build}, whose default target is \lean{ELEM}, exited $0$ after $8{,}980$ jobs in about $53$ seconds, and building the challenge and the two tampered statements took $10$ seconds more. From nothing to a built proof took about $3.4$ minutes and about $8$\,GB of disk, on an Apple M3 Ultra (32 cores, 96\,GB). Afterwards every package was at its pinned revision with no local changes, and \lean{#print axioms CN1.classNumber_eq_one_iff}, in a file importing only \lean{ELEM.Main}, printed the three standard axioms. Mathlib itself was not recompiled: its compiled files came from the official Mathlib cache, and they were not replayed through a kernel in this fresh copy. The Mathlib constants of the closure were re-checked by both kernels in the run of record (\cref{sec:comparator}), against the shared package tree at the same Mathlib revision. That fresh copy was built on macOS; the Linux build is the continuous-integration run of \cref{sec:ci}. Comparator was not run inside the fresh copy.
+
+\subsection{The author's check}\label{sec:authorcheck}
+
+The author read back the final paper and the verification record on 22 October 2026, and approved them.
+
+\subsection{Continuous integration}\label{sec:ci}
+
+The public repository runs the workflow \lean{determinant proof} (\lean{.github/workflows/determinant.yml}) on a GitHub-hosted \lean{ubuntu-latest} runner, with Mathlib from its official cache. On 22 October 2026 it passed at commit \lean{80354fa2}, on both the push and the pull-request trigger (runs \lean{39827301611} and \lean{39827310062}). Each run did the following, in order, and every step passed. First, the check scripts were tested against their fixtures, among them a crafted bypass attempt: ``ALL 54 CASES OK''. Second, the eight sieve chunks were regenerated from their generator and compared with the published files byte for byte. Third, \lean{lake build ELEM CN1 CN1Challenges}, which also compiles every vendored module of the first project, reported ``Build completed successfully (8984 jobs)''. Fourth, a check of the build log found exactly one \lean{sorry} warning, the challenge statement's. Fifth, an axiom check in a file importing only \lean{ELEM.Main} passed. Its check is that the entire output is a single axiom list for the theorem, every entry of which is one of \lean{propext}, \lean{Classical.choice} and \lean{Quot.sound}.
+
+\paragraph{Caveats.} The Comparator runs described here are local and unsandboxed: the sandboxing layer that Comparator normally uses was replaced by a pass-through \lean{landrun} shim on this machine, as in the first project. The Comparator, lean4export and nanoda binaries are shared with the checks of the first project. The dependency \lean{.olean} files, for Mathlib \lean{d13f23b} and its dependencies, come from a package tree shared with the replay of the first project, and were not rebuilt for this run. The nine packages of the project's manifest are at their pinned revisions and clean, and Comparator's export and its replay through both kernels re-check the full exported closure, Mathlib included. The tampered statements are verbatim copies of the first project's, and their header comment still names the first project's solution module. The logs, the source manifest and the tool hashes are available on request.
+
+\subsection{Independent review}\label{sec:review}
+
+The review is by a separate AI session, as for the first proof. It is not a human referee, and it does not replace the author's own check. Before any Lean was written, it reviewed the plan and checked the source against the cited lemmas. It found that Green's and van Dijk's statements are narrower than their use, which \cref{sec:credit} records. It corrected the pin of the source text to the commit actually read. It reproduced every count with its own code, re-derived every displayed constant of the source, and confirmed the $p = 2$ case independently: $\Z[\omega]/2 \cong \mathbb F_4$ when $q \equiv 3 \pmod 8$, and $\omega \mapsto \omega^2 = \omega - c \equiv \omega + 1 = \bar\omega$. It also made the framing requirement that this paper follows: the claim is about $L$-functions, zeta functions and zero-free theorems, and the word ``elementary'' is not part of it.
+
+The review then checked all eight steps as they were delivered, the last being the divisibility step. For that step it checked the exact type and the axioms, both from the compiled modules and by recompiling the source. It walked the closure, and compared the mathematics with the source's (12)--(14); the constant $79/18$ comes out exactly. It assembled the unconditional theorem in a module that does not import the challenge, with standard axioms, and audited its closure (\cref{sec:audit}). It swept the sources for anything that could widen the trusted base: options that skip the kernel, external implementations, \lean{unsafe} code, extra axioms and unusual characters. It found none. It also found the duplicate-declaration hazard of \cref{sec:controls}, which the run of record then tested. These are the findings of an AI review session, not a referee's report.
+
+\subsection{Method}
+
+The method is that of the first project. Everything an AI session produces (the generator for the sieve chunks, the constants, the proof drafts) is untrusted input, and only the kernel may accept it. Two things were different this time. First, the interface of \cref{sec:shape} was fixed before the hard steps were proved, and reviewed independently. Each step then had a fixed, reviewed target, and the eight steps were proved in parallel without any of them being able to weaken a neighbour's statement to make itself go through. Second, the plan carried a stopping rule: if any constant of the source had failed under formalization, the work would have stopped and been reported, not patched. No constant failed. Two of the three changes of route listed in \cref{sec:credit}, the Leibniz bound and the monotonicity through $\log t \le t - 1$, were recorded in the plan before the work began. The third, nonvanishing directly over the finite field, emerged during the work and was checked by the review. The coarser error budget at the endpoint and the telescoping bound for $B$ change intermediate inequalities, not the source's constants.
+
+%=====================================================================================================
+\section{Comparison with the first proof}\label{sec:comparison}
+%=====================================================================================================
+
+The first proof is the one archived as version~1.0.1 of the same Zenodo record \cite{CN1paper}. The two proofs establish the same Lean statement, from the same Mathlib, with the same trust base. They share the converse and the split-prime criterion. Everything else differs. \Cref{tab:compare} summarizes, and the paragraphs below explain.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{p{3.6cm}p{5.4cm}p{5.4cm}}
+\toprule
+ & first proof & this proof (determinant) \\
+\midrule
+deep input & OpenAI's zero-free region $\re s > 7/8$ for all Dirichlet $L$-functions & Frobenius at inert primes; Chebyshev-type prime estimates \\
+analytic bound & $d \le 652$ & $q < 2^{15} = 32{,}768$ \\
+sharpness & sharp for the method ($d^* = 653.99$) & not sharp; about $0.24$ to spare at the end \\
+fields in the finite range & $190$ non-Heegner fields & $9{,}955$ non-Heegner fields \\
+finite certificate & $190$ witness instances in four generated files & residue sieve over $4{,}095$ integers, $8$ chunks, about $3.9$\,s kernel; two uniform $p = 2$ lemmas \\
+closure & $129{,}170$ constants, $26{,}740$ from openai/math & $69{,}295$ constants, all from Mathlib, Lean core, Batteries, Aesop and this project \\
+other libraries & openai/math, PrimeNumberTheoremAnd, RellichKondrachov & none beyond Mathlib's own dependencies \\
+$L$, $\zeta$, zero-free theorem & all three in the closure & none in the closure \\
+new Lean & about $7{,}500$ lines, $40$ modules & about $4{,}000$ lines, $42$ modules \\
+fresh build & $11{,}914$ jobs, about one hour & about $3.4$ minutes: cache download $150$\,s, then $8{,}980$ jobs in $53$\,s; Mathlib from its official cache \\
+Comparator run & about $548$\,s, $9.2$\,GB & about $148$\,s, $6.3$\,GB \\
+human-readable source & an unrefereed manuscript for the $7/8$ theorem, plus classical Chowla--Selberg & an unrefereed $8$-page note, plus two short papers \\
+\bottomrule
+\end{tabular}
+\caption{The two proofs side by side. The line counts are of new code and exclude Mathlib and, for the first proof, openai/math.}
+\label{tab:compare}
+\end{table}
+
+\paragraph{Inputs.} The first proof has one deep input, and it is very strong: no Dirichlet $L$-function vanishes in $\re s > 7/8$. That theorem implies much more than class number one needs. Everything else in that proof (the Epstein identity, Chowla--Selberg, the numerics at $s = 7/8$) is classical analysis made explicit. The determinant proof has no deep input in that sense. Its arithmetic is the Frobenius congruence $z^p \equiv \bar z$ at inert primes and the inertness obstruction. Its analysis is Chebyshev's bound, Legendre's formula, one area integral and Abel summation. Its new idea, Green's determinant made nonzero by van Dijk's reduction, is a few pages of linear algebra over a finite field. The price is that the parameters are enormous: $R$ is a prime above $2^{60}$ that is never computed, and every statement about the matrix is symbolic in it.
+
+\paragraph{Closure.} The first proof's closure has $129{,}170$ constants, $26{,}740$ of them OpenAI's, and a further $566$ from two analysis packages that OpenAI's proof imports. The closure of the new theorem has $69{,}295$ constants: Mathlib $60{,}927$, Lean core $7{,}654$, Batteries $190$, Aesop $1$, the new code $413$ and the Mathlib-only part of the first project $110$. The closure is about half the size, but most of it is still Mathlib, because measure theory, interval integrals and the number-field library are large. The more meaningful difference is what is absent: no $L$-series, no Euler products, no zeta values, no modular forms, and no library beyond Mathlib, Lean core, Batteries and Aesop.
+
+\paragraph{Thresholds.} The first proof's bound, $d \le 652$, is sharp for its method. The main term of the Chowla--Selberg expansion at $s = 7/8$ vanishes at $d^* = 653.98763\ldots$, so the method cannot exclude $652$ by itself. The determinant bound, $q < 2^{15}$, is not sharp. The endpoint closes with about $0.24$ to spare, and the hypotheses of the endpoint miss satisfiability at $2^{15}$ by about $0.4$. The source deliberately chose a round cutoff with a single comparison rather than a smaller cutoff with many refinements. The same repository contains a longer argument with a cutoff below $600$, which we did not formalize.
+
+\paragraph{The finite range.} The finite range of the determinant proof is fifty times larger, $9{,}955$ non-Heegner fields against $190$, and yet its certificate is smaller and cheaper. The first proof needed a list of its $190$ radicands, a range lemma showing that the list is complete, and one witness with a primality certificate for each. The determinant proof never lists a field. It sieves the $4{,}095$ integers $q \equiv 3 \pmod 8$ below $2^{15}$ with ten primes, in about $3.9$ seconds of kernel time, and it disposes of the other residue classes with two lemmas about the prime $2$. A list of $9{,}955$ fields would in fact have exceeded the elaborator's recursion limit for list literals. The residue sieve is the shape that makes a larger range cheap.
+
+\paragraph{Build cost.} A clean copy of the first project builds in $11{,}914$ jobs, about an hour on Apple silicon, and that build includes openai/math and its two analysis packages. The determinant project requires only Mathlib. From a fresh copy, with an empty Mathlib cache, downloading Mathlib's prebuilt files took about $150$ seconds and building the proof $8{,}980$ jobs in about $53$ seconds: about $3.4$ minutes from nothing to a built proof (\cref{sec:freshbuild}). That build does not recompile Mathlib, whose compiled files come from its official cache; the first project's hour included compiling openai/math and its two analysis packages. In the shared environment, the recorded builds of the individual steps ran between $2{,}819$ and $2{,}905$ jobs each, and each sieve chunk took about $9$ seconds under \lean{lake build}. The Comparator run of record took about $148$ seconds and $6.3$\,GB, against about $548$ seconds and $9.2$\,GB for the first proof.
+
+\paragraph{Human readability.} A reader who wants to understand the first proof must read the manuscript for the $7/8$ theorem, which is new, long and unrefereed, and then the classical Chowla--Selberg evaluation. A reader of the second proof must read an unrefereed note of eight pages, together with Green's Lemma~5.1 and van Dijk's two-page nonvanishing argument. Every displayed step of that note checks by hand; the plan of record and the review both re-derived every constant. Neither proof needs to be understood for the kernel to accept it. The second is short enough to check by hand, and the formalization follows it step for step.
+
+\paragraph{What each says about the Siegel-zero methods.} The first proof uses the conclusion of the recent Siegel-zero work, a zero-free region, as a black box. That is the classical route: it has long been understood that ruling out an exceptional zero settles the problem effectively \cite{Heilbronn1934,Goldfeld1985}. What is new is that the zero-free region now has a Lean proof, which our first closure contains.
+
+The determinant proof uses the \emph{engine} of the recent work instead of its conclusion. In Green's and van Dijk's papers, a Siegel zero would force the inert primes to carry almost all of the weight $\sum (\log p)/p$ up to some height. The determinant is the device that shows they cannot. Its divisibility at inert primes grows with that weight, and its complex size does not \cite{Green2026,vanDijk2026v1,vanDijk2026v2}. Silberman's observation is that class number one forces the same extreme pattern directly: every prime below $q/4$ is inert, and the split primes above are sparse by Pratt's count. So the determinant can be applied to class number one with no $L$-function in between. Combining \cref{prop:size,prop:div} gives an explicit inequality of the general kind those papers prove: in the analytic setting, the inert weight $I$ up to $R$ is at most roughly $\frac{9}{16}\log R + \frac{25}{96}\log q + O(1)$. The formalization shows that this mechanism works with explicit and modest constants, and that it is checkable from Mathlib alone. It does not prove anything about Siegel zeros, and we have formalized neither Green's theorem nor van Dijk's. Appendix~\ref{app:siegel} collects some further remarks on these determinant arguments; none of them is formalized.
+
+\paragraph{Which to cite.} For the class number one theorem with the strongest analytic bound, the first. For a proof whose closure contains no $L$-function, no zeta function and no zero-free theorem, and whose human source is short, this one. The two are complementary, which is why the repository keeps both.
+
+%=====================================================================================================
+\section{What is not claimed}\label{sec:notclaimed}
+%=====================================================================================================
+
+We do not claim that the proof is elementary. Its closure contains measure theory, integration, the Minkowski convex-body theorem and Mathlib's Gamma function, as \cref{sec:framing} explains. The claim is the absence of $L$-functions, zeta functions and zero-free theorems from the closure, and it is a claim about constants, not about imports.
+
+We do not claim the mathematics. The argument is that of the companion note (twinheterodox/tenth-discriminant, companions/elementary, commit 64694aae), built from the contributions credited in \cref{sec:credit}. That note is not refereed, and its own statement that it passed independent verification names no reviewer. We describe it as formalized by us, not as verified by anyone else. Neither do we claim the theorem, which is classical \cite{Heegner1952,Baker1966,Stark1967}.
+
+Nothing here bears on the Riemann hypothesis, or on Siegel zeros. The proof uses no $L$-function at all.
+
+The proof is not optimal. The cutoff $2^{15}$ is far from what the method can reach. The Leibniz bound is weaker than Hadamard's, and the endpoint uses a cruder error budget than the source. These choices made the Lean shorter, not the mathematics sharper.
+
+Finally, this paper describes the mathematics and the checking. It is not itself checked by anything. Where it says what a Lean lemma states, the lemma is the authority.
+
+\input{appendix_siegel}
+
+%=====================================================================================================
+\section*{Acknowledgments and AI disclosure}
+%=====================================================================================================
+
+The challenge is Terence Tao's. The argument formalized here is that of the companion note twinheterodox/tenth-discriminant, companions/elementary, commit 64694aae, which supplies the explicit constants and the assembly; the note states that it was prepared with OpenAI's Codex. The inertness obstruction under class number one was pointed out in the thread by Lior Silberman. Kyle Pratt suggested counting norm representations to bound the split primes, using an auxiliary inert prime in a determinant argument, and the residue sieve. The derivative determinant and its divisibility at inert primes are Ben Green's \cite{Green2026}. The finite-field proof of nonvanishing is Roelof van Dijk's \cite{vanDijk2026v1}, and Green noted that essentially the same argument is given in a paper posted by Jacob Pescador \cite{Pescador2026}; that overlap is Green's observation, and we have not compared the two arguments ourselves. Green credits ChatGPT~6 Astra for the arguments of his paper and claims no human originality; van Dijk attributes his new arguments to GPT-6 Astra and Opus~5.5; and Pescador states that all mathematics and text of the paper he posted were generated by AI systems (its byline names GPT-6 Pro and Claude Opus~5.5). We thank Mathlib and its contributors for the number-field, finite-field, polynomial, matrix and integration libraries that the development uses throughout; Chris Bailey for nanoda; and the authors of Comparator and lean4export.
+
+The formalization and this paper were produced with extensive use of an AI assistant (Claude, Anthropic) under the direction of the author, in separate sessions. Several sessions did the work, one per step of the argument. Another, independent session reviewed the plan, the interface and the delivered steps, as described in \cref{sec:review}, and re-ran Comparator and the closure audit with its own build of the project and of nanoda, with five controls of its own (\cref{sec:replay}). The mathematical route is due to the people credited above. The Lean kernel is the trusted component. The mathematical claims about the theorem are kernel-checked. The history, the attributions and the account of how the work was checked are ours, and we have tried to say how each was obtained. Appendix~\ref{app:siegel} was drafted by Claude (Anthropic) from the public session \cite{OMOSsession2026}, whose assistant was a different model, from Tao's post \cite{TaoSketch2026}, and from the cited preprints; it is not formalized, and it was checked only by a separate AI review session, not by a referee.
+
+\bibliographystyle{amsplain}
+\bibliography{refs}
+
+\end{document}

@@ -1,0 +1,3 @@
+⚠ [1/2] Built ELEM.Glue
+warning: ELEM/Glue.lean:10:8: declaration
+  uses `sorry`

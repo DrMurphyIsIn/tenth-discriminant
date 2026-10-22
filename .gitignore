@@ -12,3 +12,14 @@ paper/*.blg
 paper/*.log
 paper/*.out
 paper/*.toc
+determinant/paper/*.aux
+determinant/paper/*.bbl
+determinant/paper/*.blg
+determinant/paper/*.log
+determinant/paper/*.out
+determinant/paper/*.toc
+determinant/certificates/_regen/
+determinant/formalization/AxiomCheck.lean
+determinant/formalization/axioms.out
+determinant/formalization/build.log
+determinant/formalization/hashes.txt

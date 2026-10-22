@@ -1,0 +1,4 @@
+'CN1.classNumber_eq_one_iff' depends on axioms: [#evil[,
+ propext,
+ Classical.choice,
+ Quot.sound]

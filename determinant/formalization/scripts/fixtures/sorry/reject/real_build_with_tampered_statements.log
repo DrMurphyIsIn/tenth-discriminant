@@ -1,0 +1,10 @@
+⚠ [8924/8928] Built CN1Challenges.ClassNumberOne (4.8s)
+warning: CN1Challenges/ClassNumberOne.lean:32:8: declaration uses `sorry`
+⚠ [8926/8928] Built ELEMNegControls.Tamper.DropSquarefree (4.8s)
+warning: ELEMNegControls/Tamper/DropSquarefree.lean:33:8: declaration uses `sorry`
+⚠ [8927/8928] Built ELEMNegControls.Tamper.Nine167 (4.8s)
+warning: ELEMNegControls/Tamper/Nine167.lean:33:8: declaration uses `sorry`
+Build completed successfully (8928 jobs).
+real 10.38
+user 9.18
+sys 25.37
