@@ -7,27 +7,40 @@ This repository is our entry for Terence Tao's
 of 20 October 2026. The challenge is to take one of the new arguments around Siegel zeroes and the quasi-Riemann hypothesis, and
 use it to bound a hypothetical tenth imaginary quadratic field of class number one, without Heegner's method.
 
-We went one step further than a bound. This repository contains a complete, **kernel-checked** Lean 4 proof of the class number
-one theorem itself:
+We went one step further than a bound. This repository contains not one but two complete, **kernel-checked** Lean 4 proofs of the
+class number one theorem itself:
 
 > For squarefree m ≥ 1, the field ℚ(√−m) has class number one if and only if m ∈ {1, 2, 3, 7, 11, 19, 43, 67, 163}.
 
-The proof uses no Heegner, Baker, Stark or Gross–Zagier input. It goes through OpenAI's theorem that no Dirichlet L-function
-vanishes when Re s > 7/8, the Chowla–Selberg formula evaluated at s = 7/8, and a split-prime criterion for the finitely many
-fields that remain. Along the way it proves, in Lean, the explicit bound that any tenth discriminant would have to satisfy:
-**d ≤ 652**.
+Neither proof uses Heegner, Baker, Stark or Gross–Zagier input. Both prove the same Lean statement, word for word, with the same
+trust base. They get there by very different routes.
 
-There are three ways in, depending on what you want:
+- **The first proof** goes through OpenAI's theorem that no Dirichlet L-function vanishes when Re s > 7/8, the Chowla–Selberg
+  formula evaluated at s = 7/8, and a split-prime criterion for the finitely many fields that remain. Along the way it proves, in
+  Lean, the explicit bound that any tenth discriminant would have to satisfy: **d ≤ 652**. It lives in
+  [`formalization/`](formalization/README.md), [`paper/`](paper/README.md) and [`notes/`](notes/README.md).
+- **The second proof, the determinant route**, has **no L-function, no zeta function and no zero-free theorem in its closure**, and
+  needs nothing outside Mathlib. It runs the engine of the recent Siegel-zero arguments, Green's derivative determinant made
+  nonzero by van Dijk's finite-field argument, directly on class number one, and shows that a tenth discriminant would be below
+  2^15; a residue sieve, checked by the kernel, does the rest. It lives in [`determinant/`](determinant/README.md).
 
-- **The paper**, [`paper/paper.pdf`](paper/paper.pdf): the mathematics and the verification record, about twenty pages.
-- **The readable proof**, [`notes/proof.md`](notes/proof.md): the same argument step by step, with the Lean lemma for each step and
-  a link to its file and line. It takes about an hour.
-- **The Lean**, [`formalization/`](formalization/README.md): build it and run the checks yourself.
+We have kept the first proof exactly as it was. It is the comparison point: the second paper's §8 sets the two side by side and
+says what it costs to take the L-function out of the closure.
+
+There are several ways in, depending on what you want:
+
+- **The papers**: [`paper/paper.pdf`](paper/paper.pdf) for the first proof, about twenty pages, and
+  [`determinant/paper/paper.pdf`](determinant/paper/paper.pdf) for the determinant route and the comparison, about twenty-seven.
+- **The readable proof** of the first route, [`notes/proof.md`](notes/proof.md): the argument step by step, with the Lean lemma for
+  each step and a link to its file and line. It takes about an hour.
+- **The Lean**: [`formalization/`](formalization/README.md) and [`determinant/formalization/`](determinant/formalization/README.md).
+  Build them and run the checks yourself.
 
 ## The statement, and what you have to trust
 
 The theorem is stated in [`formalization/CN1Challenges/ClassNumberOne.lean`](formalization/CN1Challenges/ClassNumberOne.lean),
-using only Mathlib's definitions:
+using only Mathlib's definitions. The determinant route uses an unchanged copy of the same file, so both proofs answer exactly this
+statement:
 
 ```lean
 theorem CN1.classNumber_eq_one_iff (K : Type*) [Field K] [NumberField K]
@@ -45,10 +58,11 @@ To believe the result you need to trust four things:
 - the independent nanoda kernel;
 - the three standard axioms (`propext`, `Quot.sound`, `Classical.choice`).
 
-You do **not** need to trust OpenAI's 7/8 theorem, our code, or any AI. OpenAI's manuscript is unrefereed, but its Lean proof sits
-inside the dependency closure that the kernels checked.
+You do **not** need to trust OpenAI's 7/8 theorem, our code, or any AI. For the first proof, OpenAI's manuscript is unrefereed, but
+its Lean proof sits inside the dependency closure that the kernels checked. For the determinant route, OpenAI's proof is not in the
+closure at all, and neither is anything else from outside Mathlib.
 
-## The argument in six steps
+## The first proof: the argument in six steps
 
 The route was worked out in the comments of Tao's post (see Credits). Write K = ℚ(√−m), and d = |disc K|, so that d = m when
 m ≡ 3 (mod 4) and d = 4m otherwise. Let χ be the character of K. Suppose K has class number one and m ≠ 1, 3.
@@ -73,7 +87,7 @@ m ≡ 3 (mod 4) and d = 4m otherwise. Let χ be the character of K. Suppose K ha
 
 The converse, that the nine fields do have class number one, is also proved in Lean, from the Minkowski bound.
 
-## How it was checked
+## How the first proof was checked
 
 All of this is in more detail in the paper, §4.
 
@@ -119,9 +133,40 @@ All of this is in more detail in the paper, §4.
   hashes are available on request. The scripts that generated the numerical tables
   and the witness primes are not trusted: the kernel re-checks every fact they emit.
 
+## The second proof: the determinant route
+
+The full story is in [`determinant/README.md`](determinant/README.md) and the second paper. Here is the shape. Write q = |disc K|
+(the d above). Suppose K has class number one.
+
+1. **Small primes are inert.** If q ≥ 2^15, every prime p < q/4 is inert, by the same split-prime criterion as the first proof's
+   step 6. That forces q to be a prime ≡ 3 (mod 8), and every split prime to be a value of the norm form.
+2. **Split primes are sparse.** Counting lattice points under an ellipse bounds the split primes up to t by about πt/(2√q).
+3. **An auxiliary inert prime.** Chebyshev-type estimates then give an inert prime R with q⁴ < R ≤ q⁵.
+4. **The determinant is not zero.** Green's derivative determinant, on a grid of algebraic integers, has a maximal minor D₀ that is
+   nonzero modulo R, by van Dijk's root count over the finite field, where Frobenius is conjugation.
+5. **It is divisible by a lot.** At every inert prime p ≤ R, Frobenius again makes z^p − z̄ divisible by p, and Green's row
+   replacement shows that the norm of D₀ is divisible by a large power of p.
+6. **It is too small for that.** The size of the entries bounds log N(D₀) from above, and the inert primes push it up faster. With
+   explicit constants, the two bounds are incompatible once q ≥ 2^15.
+7. **Below 2^15.** A residue sieve of the 4,095 integers q ≡ 3 (mod 8) by the primes 3, …, 31, checked by the kernel in eight
+   chunks, leaves only 11, 19, 43, 67 and 163; two short lemmas about the prime 2 handle every other residue class.
+
+The converse, that the nine fields do have class number one, is the first proof's, from the Minkowski bound. The determinant
+bound, q < 2^15, is much weaker than d ≤ 652, and the finite range is fifty times larger, yet the sieve that settles it is smaller
+and cheaper than the first proof's list of witnesses. We do not call this proof elementary: its closure still contains integration,
+the Minkowski convex-body theorem and Mathlib's Gamma function. What it does not contain is any L-function, any zeta function or
+any zero-free theorem.
+
+It was checked the same way as the first proof, on one frozen tree: Comparator accepted it under nanoda and Lean's kernel, a walk
+over its closure of 69,295 constants found only the three standard axioms and nothing from Mathlib's L-series, zeta or
+modular-form modules or from outside Mathlib, and twelve recorded checks, controls included, behaved as expected. A separate AI
+review session then replayed those checks with its own build of the project's modules and of nanoda: both kernels accepted the
+theorem again, its own closure audit agreed, and five further controls of its own failed as required. The author's own check of
+the record is still pending; the second paper's §7.6 says so.
+
 ## Building and checking it yourself
 
-You need [elan](https://github.com/leanprover/elan), git and Python 3. From [`formalization/`](formalization/README.md):
+You need [elan](https://github.com/leanprover/elan), git and Python 3. For the first proof, from [`formalization/`](formalization/README.md):
 
 ```sh
 scripts/apply_oai_patches.sh   # fetch the pinned dependencies and apply openai/math's Lean-v4.34.1 patches
@@ -132,6 +177,20 @@ lake build CN1.Main CN1Challenges
 Do not run `lake update`; the formalization README explains why. [`formalization/README.md`](formalization/README.md)
 also explains how to run Comparator on the real statement and on the tampered ones. [`certificates/regenerate_and_diff.sh`](certificates/README.md)
 regenerates the generated Lean files and checks them byte for byte.
+
+For the determinant route, from [`determinant/formalization/`](determinant/formalization/README.md), no patches are needed:
+
+```sh
+lake exe cache get             # Mathlib build cache
+lake build ELEM CN1Challenges
+```
+
+Its README explains the axiom check and Comparator, and one rule that matters: never import `ELEM.Main` together with the
+challenge or a control, because they declare the same theorem name. [`determinant/certificates/regenerate_and_diff.sh`](determinant/certificates/README.md)
+regenerates the sieve chunks and checks them byte for byte. A GitHub Actions workflow,
+[`.github/workflows/determinant.yml`](.github/workflows/determinant.yml), builds the determinant route from a clean checkout and
+checks the axioms of its main theorem. The first proof has no such workflow, because its build needs openai/math's patched
+dependency tree and takes about an hour even on a fast machine.
 
 ## Repository layout
 
@@ -144,6 +203,14 @@ regenerates the generated Lean files and checks them byte for byte.
 - [`computations/`](computations/README.md): independent checks of step 4, in mpmath and in Arb ball arithmetic. These are not part
   of the proof.
 - [`telperion/`](telperion/README.md): a vendored copy of the Telperion certificate engine.
+- [`determinant/`](determinant/README.md): the second proof, the determinant route.
+  - [`determinant/formalization/`](determinant/formalization/README.md): its Lean project, which requires only Mathlib, with
+    the challenge statement, the tampered statements, the Comparator configurations, the check scripts and
+    [`VERIFICATION.md`](determinant/formalization/VERIFICATION.md).
+  - [`determinant/certificates/`](determinant/certificates/README.md): the generator for the residue sieve, with a script that
+    regenerates the chunk files and checks them byte for byte.
+  - [`determinant/paper/`](determinant/paper/): the second paper.
+- [`.github/workflows/`](.github/workflows/): continuous integration for the determinant route.
 
 ## The method, and Telperion
 
@@ -153,7 +220,8 @@ it. A hallucinated bound does not become a theorem: it fails to check. Here the 
 the engine. The generators in [`certificates/`](certificates/README.md) are standalone scripts, and the kernel re-checks
 everything they emit. What remains is the risk that the *statement* says the wrong thing. That is why the statement was written
 first and independently reviewed before the assembly that proves it was built, and why the tampered statements are part of the
-check.
+check. The determinant route followed the same discipline, with one addition: its eight steps were stated as fixed propositions,
+and reviewed, before the hard ones were proved, so that no step could weaken a neighbour's statement to make itself go through.
 
 Our own audits, including known-answer tests, have caught real soundness bugs in our tools. We fixed them and disclosed them
 ([#739](https://github.com/DrMurphyIsIn/Arda/pull/739), [#740](https://github.com/DrMurphyIsIn/Arda/pull/740) in our public Arda
@@ -168,6 +236,8 @@ it is included as the reference implementation of the method described above.
 
 ## Credits
 
+For the first proof:
+
 - **The challenge:** T. Tao.
 - **The 7/8 quasi-Riemann hypothesis** for all Dirichlet L-functions, with its Lean proof: OpenAI,
   [openai/math](https://github.com/openai/math), family 003.
@@ -181,13 +251,37 @@ it is included as the reference implementation of the method described above.
 - **Tools:** Mathlib, and the authors of the packages OpenAI's proof builds on, including PrimeNumberTheoremAnd and
   RellichKondrachov; nanoda; Comparator and lean4export.
 
+For the determinant route (as the second paper's acknowledgments give them; [`determinant/README.md`](determinant/README.md) has
+more):
+
+- **The challenge:** T. Tao.
+- **The argument:** the companion note twinheterodox/tenth-discriminant, companions/elementary, commit 64694aae, which supplies the
+  explicit constants and the assembly. The note states that it was prepared with OpenAI's Codex.
+- **The inertness obstruction** under class number one: Lior Silberman, in the thread.
+- **Counting norm representations** to bound the split primes, an auxiliary inert prime in a determinant argument, and the residue
+  sieve: Kyle Pratt.
+- **The derivative determinant** and its divisibility at inert primes: Ben Green.
+- **The finite-field proof of nonvanishing:** Roelof van Dijk. Green noted that essentially the same argument is given in a paper
+  posted by Jacob Pescador; that overlap is Green's observation, and we have not compared the two arguments ourselves.
+- **Their statements about AI use:** Green credits ChatGPT 6 Astra for the arguments of his paper and claims no human originality;
+  van Dijk attributes his new arguments to GPT-6 Astra and Opus 5.5; and Pescador states that all mathematics and text of the
+  paper he posted were generated by AI systems (its byline names GPT-6 Pro and Claude Opus 5.5).
+- **Tools:** Mathlib and its contributors; Chris Bailey for nanoda; the authors of Comparator and lean4export.
+
 ## Citing
 
 Please cite the archived release: [doi:10.5281/zenodo.23550257](https://doi.org/10.5281/zenodo.23550257) for all versions,
-which resolves to the latest. See [`CITATION.cff`](CITATION.cff).
+which resolves to the latest. Version 1.1.0, [doi:10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656), is the
+first to contain both proofs and both papers. See [`CITATION.cff`](CITATION.cff).
 
 ## Versions
 
+- **v1.1.0** ([doi:10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656)):
+  - adds the second proof, the determinant route, in [`determinant/`](determinant/README.md): its Lean project, the generator for
+    its residue sieve, and its paper;
+  - adds a GitHub Actions workflow that builds the determinant route and checks the axioms of its main theorem.
+
+  The first proof, its certificates and its paper are unchanged.
 - **v1.0.1** (2026-10-22, [doi:10.5281/zenodo.23550992](https://doi.org/10.5281/zenodo.23550992)):
   - records the independent replay and the fresh-clone build;
   - updates the vendored Telperion snapshot to development commit `5b8eea03`;
@@ -200,12 +294,14 @@ which resolves to the latest. See [`CITATION.cff`](CITATION.cff).
 
 This work was done with extensive use of AI assistance (Anthropic's Claude), in separate sessions. One session did the work.
 Another, independent session reviewed the statement before the assembly that proves it was built, read every module in full before
-the run of record, and then replayed the final checks with its own build of our modules. The mathematical route is due to the people credited
+the run of record, and then replayed the final checks with its own build of our modules. For the determinant route, several sessions
+did the work, one per step of the argument, and an independent session reviewed the plan, the interface and each delivered step,
+and then replayed the final checks with its own build of the project and of nanoda. The mathematical routes are due to the people credited
 above. The mathematical claims are kernel-checked; the history, the attributions and the account of how the work was checked are
 ours, and we say how each was obtained.
 
 ## Licensing
 
-The mathematics (Lean, generators, frozen certificates, scripts) is Apache-2.0, and the documents (including the paper) are
-CC-BY-4.0. `telperion/` is under the Business Source License 1.1, which permits research, teaching, review and evaluation
+The mathematics (Lean, generators, frozen certificates, scripts, in both proofs) is Apache-2.0, and the documents (including both
+papers) are CC-BY-4.0. `telperion/` is under the Business Source License 1.1, which permits research, teaching, review and evaluation
 outright. See [LICENSING.md](LICENSING.md).

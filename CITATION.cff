@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this work, please cite it as below."
-title: "The class number one theorem without Heegner, kernel-checked: d <= 652 from the 7/8 quasi-Riemann hypothesis in Lean 4"
+title: "The class number one theorem without Heegner, kernel-checked twice in Lean 4: d <= 652 from the 7/8 quasi-Riemann hypothesis, and a determinant proof with no L-functions"
 authors:
   - family-names: Murphy
     given-names: Peter W.
@@ -9,10 +9,13 @@ license:
   - Apache-2.0
   - CC-BY-4.0
   - BUSL-1.1
-version: v1.0.1
+version: v1.1.0
 date-released: 2026-10-22
-doi: 10.5281/zenodo.23550992
+doi: 10.5281/zenodo.23563656
 identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23563656
+    description: "Zenodo archive of release v1.1.0 (both proofs and both papers)"
   - type: doi
     value: 10.5281/zenodo.23550992
     description: "Zenodo archive of release v1.0.1"
@@ -25,13 +28,35 @@ keywords:
   - Siegel zeros
   - quasi-Riemann hypothesis
   - Chowla-Selberg formula
+  - derivative determinant
+  - Frobenius
+  - residue sieve
   - Lean 4
   - formal verification
   - Comparator
 abstract: >-
-  A Lean 4 proof, accepted by two independent kernels (Lean's and nanoda) through Comparator in local, unsandboxed runs, that for squarefree m >= 1 the
-  field Q(sqrt(-m)) has class number one if and only if m is in {1, 2, 3, 7, 11, 19, 43, 67, 163}. The proof uses no Heegner,
-  Baker, Stark or Gross-Zagier input. It goes through OpenAI's zero-free region Re s > 7/8 for Dirichlet L-functions, whose Lean
-  proof is inside the checked closure, and the Chowla-Selberg formula at s = 7/8, which gives the explicit bound d <= 652 proved
-  in Lean, followed by kernel-checked split-prime witnesses for the finite range. Written for T. Tao's tenth-discriminant
-  challenge (20 October 2026).
+  Two Lean 4 proofs of the class number one theorem for imaginary quadratic fields, each accepted by two independent kernels
+  (Lean's and nanoda) through Comparator in local, unsandboxed runs: for squarefree m >= 1, the field Q(sqrt(-m)) has class
+  number one if and only if m is in {1, 2, 3, 7, 11, 19, 43, 67, 163}. Neither uses Heegner, Baker, Stark or Gross-Zagier input,
+  and both prove the same Lean statement. The first goes through OpenAI's zero-free region Re s > 7/8 for Dirichlet L-functions,
+  whose Lean proof is inside the checked closure, and the Chowla-Selberg formula at s = 7/8, which gives the explicit bound
+  d <= 652 proved in Lean, followed by kernel-checked split-prime witnesses for the finite range. The second, the determinant
+  route, has no L-function, no zeta function and no zero-free theorem in its closure and needs only Mathlib: Green's derivative
+  determinant, made nonzero by van Dijk's finite-field argument and divisible at every inert prime by Frobenius, rules out
+  discriminants q >= 2^15 under class number one, and a kernel-checked residue sieve settles the range below. Written for
+  T. Tao's tenth-discriminant challenge (20 October 2026).
+references:
+  - type: generic
+    title: "The class number one theorem without Heegner, kernel-checked: d <= 652 from the 7/8 quasi-Riemann hypothesis in Lean 4"
+    authors:
+      - family-names: Murphy
+        given-names: Peter W.
+    year: 2026
+    notes: "The paper of the first proof, paper/paper.pdf (unchanged since v1.0.1)."
+  - type: generic
+    title: "Class number one without L-functions: a kernel-checked determinant proof"
+    authors:
+      - family-names: Murphy
+        given-names: Peter W.
+    year: 2026
+    notes: "The paper of the determinant route, determinant/paper/paper.pdf (new in v1.1.0)."

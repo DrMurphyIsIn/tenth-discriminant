@@ -12,3 +12,10 @@ paper/*.blg
 paper/*.log
 paper/*.out
 paper/*.toc
+determinant/paper/*.aux
+determinant/paper/*.bbl
+determinant/paper/*.blg
+determinant/paper/*.log
+determinant/paper/*.out
+determinant/paper/*.toc
+determinant/certificates/_regen/
