@@ -9,13 +9,16 @@ license:
   - Apache-2.0
   - CC-BY-4.0
   - BUSL-1.1
-version: v1.0.0
+version: v1.0.1
 date-released: 2026-10-22
-doi: 10.5281/zenodo.23550258
+doi: 10.5281/zenodo.23550992
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.23550258
-    description: "Zenodo archive of release v1.0.0"
+    value: 10.5281/zenodo.23550992
+    description: "Zenodo archive of release v1.0.1"
+  - type: doi
+    value: 10.5281/zenodo.23550257
+    description: "Zenodo concept DOI (all versions; resolves to the latest)"
 keywords:
   - class number one
   - imaginary quadratic fields

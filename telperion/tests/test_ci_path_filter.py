@@ -112,3 +112,28 @@ def test_no_job_references_an_island_outside_the_filter():
         if jid in ("changes", "mission-statements-compile"):
             continue
         assert _islands_in({"steps": job["steps"]}), f"{jid} mentions no island directory"
+
+
+def test_hodge1_heavy_job_runs_on_hodge1_registry_changes_only():
+    """rvm-bridge-hodge1-heavy holds the only --only-heavy anchor check (the ordinary rvm_bridge job
+    passes --exclude-heavy), so a PR that grants or edits a HODGE-1 node -- and its post-merge push
+    -- must run it. The filter is NARROW: other missions changes must not pay the ~25 min build."""
+    from fnmatch import fnmatch
+    d = _load()
+    step = [s for s in d["jobs"]["changes"]["steps"] if s.get("id") == "f"][0]
+    filters = yaml.safe_load(step["with"]["filters"])
+    pats = filters["hodge1_registry"]
+    assert pats == ["telperion/missions/mirrormere/nodes/MM_hodge1_*",
+                    "telperion/missions/mirrormere/lean/Statements/MM_hodge1_*"]
+    assert d["jobs"]["changes"]["outputs"]["hodge1_registry"] == \
+        "${{ steps.f.outputs.hodge1_registry }}"
+    cond = d["jobs"]["rvm-bridge-hodge1-heavy"]["if"]
+    assert "needs.changes.outputs.hodge1_registry == 'true'" in cond
+    assert "needs.changes.outputs.missions == 'true'" not in cond
+    root = _WF.parents[2]
+    live = sorted(str(p.relative_to(root)) for p in
+                  (root / "telperion" / "missions" / "mirrormere").rglob("MM_hodge1_*"))
+    assert live and all(any(fnmatch(f, p) for p in pats) for f in live), live
+    for other in ("telperion/missions/mirrormere/nodes/MM_weil_criterion.toml",
+                  "telperion/missions/anduril/nodes/AND_ladder_h8000_kernel.toml"):
+        assert not any(fnmatch(other, p) for p in pats), other

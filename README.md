@@ -1,6 +1,6 @@
 # The tenth discriminant
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23550258.svg)](https://doi.org/10.5281/zenodo.23550258)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23550257.svg)](https://doi.org/10.5281/zenodo.23550257)
 
 This repository is our entry for Terence Tao's
 [experimental AI-math challenge](https://terrytao.wordpress.com/2026/10/20/an-experimental-ai-math-challenge-using-tenth-discriminant-bounds-to-explore-arguments-ruling-out-siegel-zeroes/)
@@ -106,9 +106,15 @@ All of this is in more detail in the paper, §4.
   apart from our own (the main theorem, the converse lemmas and the list `nonHeegner190`), and no classification of
   class-number-one fields. The PrimeNumberTheoremAnd commit pinned by openai/math has two `sorry`s in `Wiener.lean`. OpenAI's patch
   removes them, and `sorryAx` is not in the closure.
-- **Independent replay.** A separate AI review session is replaying the final checks with its own build and its own copy of
-  nanoda, on the same machine and with the same Comparator and lean4export binaries. Its result was not in yet when v1.0.0 was archived; it will be
-  recorded here, and in a later archived version.
+- **Independent replay.** A separate AI review session replayed the final checks and accepted the proof under both kernels. It
+  used its own build of this project's modules and its own build of nanoda, against the same verified dependency tree, with the
+  same Comparator and lean4export binaries, on the same machine; it was local and not sandboxed. It also rejected two further
+  tampers: the statement with 163 removed from the list, and a proof routed through `native_decide`. Its independent audit of the
+  dependency closure agrees with ours.
+- **A clean copy builds.** Following the instructions below, a clean copy of this repository's `formalization/` directory, with
+  no build state, fetched and patched its dependencies from GitHub and completed all 11,914 build jobs (about an hour on Apple silicon). The main theorem reports only the three standard axioms. One
+  step was not exercised: `lake exe cache get` took Mathlib's build cache from this machine's local cache, not from the network.
+  The test did not cover Linux, or running Comparator inside that copy.
 - **Caveats.** Our Comparator runs are local and do not use Comparator's sandbox. The logs, the source manifest and the tool
   hashes are available on request. The scripts that generated the numerical tables
   and the witness primes are not trusted: the kernel re-checks every fact they emit.
@@ -154,10 +160,11 @@ Our own audits, including known-answer tests, have caught real soundness bugs in
 repository). We think this is one practical answer to a question Tao and others have been raising: how to get the benefit of AI
 assistance in mathematics without trusting what the AI says.
 
-*Note on the vendored copy:* `telperion/` is the same v0.1.6 snapshot that ships with our Brualdi–Goldwasser repository, and it
-**predates those fixes**: its `arb_dh` winding-number routine samples the boundary rather than certifying it, and the
-`emit_baez_duarte` emitter is still present. Nothing in this project runs the vendored engine; it is included as the reference implementation of the method described above.
-A newer snapshot, under review, will replace it.
+*Note on the vendored copy:* `telperion/` is a snapshot of the engine at development commit `5b8eea03` (2026-10-18), which
+includes those fixes. It is a selection, not a mirror: the complete engine source, plus selected tests, documents and examples.
+Within those files it differs from the development version only in reworded comments, docstrings, Markdown wording and a few
+string literals that pointed at private paths (see `telperion/README.md`, "About this copy"). Nothing in this project runs the vendored engine;
+it is included as the reference implementation of the method described above.
 
 ## Credits
 
@@ -176,14 +183,24 @@ A newer snapshot, under review, will replace it.
 
 ## Citing
 
-Please cite the archived release, [doi:10.5281/zenodo.23550258](https://doi.org/10.5281/zenodo.23550258); see
-[`CITATION.cff`](CITATION.cff).
+Please cite the archived release: [doi:10.5281/zenodo.23550257](https://doi.org/10.5281/zenodo.23550257) for all versions,
+which resolves to the latest. See [`CITATION.cff`](CITATION.cff).
+
+## Versions
+
+- **v1.0.1** (2026-10-22, [doi:10.5281/zenodo.23550992](https://doi.org/10.5281/zenodo.23550992)):
+  - records the independent replay and the fresh-clone build;
+  - updates the vendored Telperion snapshot to development commit `5b8eea03`;
+  - makes two wording corrections in the paper.
+
+  The Lean proof and the certificates are unchanged.
+- **v1.0.0** (2026-10-22, [doi:10.5281/zenodo.23550258](https://doi.org/10.5281/zenodo.23550258)): the first release.
 
 ## AI use
 
 This work was done with extensive use of AI assistance (Anthropic's Claude), in separate sessions. One session did the work.
 Another, independent session reviewed the statement before the assembly that proves it was built, read every module in full before
-the run of record, and is replaying the final checks with its own build. The mathematical route is due to the people credited
+the run of record, and then replayed the final checks with its own build of our modules. The mathematical route is due to the people credited
 above. The mathematical claims are kernel-checked; the history, the attributions and the account of how the work was checked are
 ours, and we say how each was obtained.
 

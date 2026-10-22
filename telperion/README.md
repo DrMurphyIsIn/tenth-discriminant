@@ -381,43 +381,52 @@ pip install -e ".[mcp]"          # the MCP server
 ```
 
 Emitted Lean needs a Lean 4 project with Mathlib. Telperion is tested against the Lean and Mathlib
-versions pinned by the project it is used in; here, Lean 4 v4.32.0 and Mathlib v4.32.0.
+versions pinned by the project it is used in. Its own examples use Lean 4 v4.32.0 and Mathlib v4.32.0. This repository's
+proof is on Lean v4.34.1 and the Mathlib revision openai/math pins, and nothing in it runs the engine.
 
 ## About this copy
 
-This directory is a vendored snapshot (version 0.1.6, engine source synced 2026-10-01) of the complete engine source,
-including every emitter, taken from the separate repository where Telperion is developed. It differs from
-the development version only in a handful of comments and docstrings, which were reworded to remove
-references to unrelated private projects; no code or mathematics was changed. The tests, examples and documents below were synced on
-2026-09-27 and do not yet include the tests of the newest emitters.
+This directory is a vendored snapshot of the complete engine source, including every emitter. It was taken from the
+development repository ([DrMurphyIsIn/Arda](https://github.com/DrMurphyIsIn/Arda), `telperion/`) at commit `5b8eea03` of
+2026-10-18; the package version string is still 0.1.6. The snapshot includes the soundness fixes disclosed in Arda
+[#739](https://github.com/DrMurphyIsIn/Arda/pull/739) (the Báez-Duarte family is labelled as not an RH criterion),
+[#740](https://github.com/DrMurphyIsIn/Arda/pull/740) (the winding-number routine certifies the contour instead of sampling it)
+and [#741](https://github.com/DrMurphyIsIn/Arda/pull/741) (guarded fakes).
 
-Alongside the source it carries most of the development repository's supporting material:
+It is a selection from the development repository, not a mirror.
+- The engine source in `src/` is complete.
+- `tests/` leaves out thirteen modules and two fixtures that need files only the development repository has. It adds
+  `tests/conftest.py`, which lists the skips; that file is not in the development repository.
+- `docs/` and `examples/` are selections. `NS_EULER_EMITTER_CATALOG.md` is moved into `docs/`.
+- The development repository's missions registry and its research, scratch and explorer areas are not included.
+- This README is written for this copy.
 
-- `tests/`: the test suite, about 3,000 tests. Run it with `pip install -e ".[dev,sdp,rh_jensen]"` and then
-  `python -m pytest` from this directory; CI does the same on every change (`.github/workflows/telperion.yml`).
-  Some tests need files that live only in the development repository (its missions registry, repository
-  scripts and Lean projects). Twelve modules that cannot load without them are left out, and about a hundred
-  individual tests are skipped with a stated reason; `tests/conftest.py` lists them all.
-- `examples/`: 22 small worked examples, one or a few per certificate shape, each small enough to read in a
-  sitting.
+Within the files it does include, it differs from the development version only in comments, docstrings, Markdown wording and a few
+string literals that pointed at private working directories or named a reviewer. These were reworded, and no code or mathematics was
+changed. Apart from those string constants, every changed module's syntax tree matches the development version node for node. The same literal edits were proposed upstream
+in Arda [#761](https://github.com/DrMurphyIsIn/Arda/pull/761).
+
+Alongside the source it carries a selection of the development repository's supporting material:
+
+- `tests/`: the test suite, about 3,700 tests. Run it with `pip install -e ".[dev,sdp,rh_jensen]"` and then
+  `python -m pytest` from this directory. Some tests need files that live only in the development repository (its missions
+  registry, repository scripts and Lean projects). Thirteen modules that cannot load without them are left out, and the tests that need
+  such files are skipped with a stated reason (about 140 entries, all listed in `tests/conftest.py`). On the snapshot as vendored, the suite
+  gives 3,356 passed and 348 skipped.
+- `examples/`: small worked examples, one or a few per certificate shape, each small enough to read in a sitting.
 - `docs/`: design notes and references: architecture, the trust boundary (`TRUSTED_FLOOR.md`), the tactic
   contract, Comparator, the missions registry, the honesty patterns, and the emitter catalogues and status
   notes from the Riemann-hypothesis work. A few links in them point at files that are not published here;
   those are left as plain text.
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
 
-The project site also hosts the [Telperion registry explorer](https://drmurphyisin.github.io/brualdi-goldwasser/telperion-explorer/),
-a page generated from the development repository's missions registry, with a Brualdi-Goldwasser tab in
-front. The page was last regenerated from the registry on 2026-10-01. The registry's `bg` campaign has not
-changed since 2026-09-24, two days before the final theorem; the page says so.
-
 The subpackage `telperion.bg` is a research lab of probes specific to the Brualdi–Goldwasser problem. It is
 not part of the engine: the engine never imports it, and the development repository enforces that
 boundary with a test.
 
-In this repository, the Brualdi–Goldwasser certificate generators are standalone scripts (in
-`../certificates/`). They use Telperion's provenance layer (`EmitResult`, `freeze`, `diff_frozen`) to
-record every certificate family and to check that it regenerates byte for byte.
+In this repository nothing runs the engine. The certificate generators for the class number one proof, in `../certificates/`,
+are standalone Python scripts (standard library, with sympy optional as a second opinion); they follow the engine's discipline, in that the Lean kernel
+re-checks everything they emit.
 
 ## All emitters
 
@@ -561,6 +570,7 @@ module's own docstring, so it uses the development repository's vocabulary. Gene
 | `emit_robin_growth.py` | `robin_growth` | Robin-growth emitter — Face 2 (temperedness) of the RH obstruction. |
 | `emit_rpow_budget.py` | `rpow_budget` | RpowExponentBudget emitter — k-power product collapse with exponent-level `linarith`, distilled from the OpenAI Euler blowup formalization (`github.com/openai/NavierStokesAndEuler`, `Euler/PacketExponentialTail.lean` `normalized_tail_exp… |
 | `emit_scale_invariance.py` | `scale_invariance` | Scale-invariance / objective-degeneracy emitter — a homogeneity certificate. |
+| `emit_scaled_interval_eval.py` | `scaled_interval_eval` | ScaledIntervalEval emitter (kind `scaled_interval_eval`) -- kernel-computable fixed-point interval evaluation of an expression DAG. |
 | `emit_second_order.py` | `second_order` | Second-order linear-recurrence closed-form emitter — the three-term generalization of the first-order forward telescoping emitter (`emit_fwd_telescope.py`, the W2 prover mechanizing SumEqProd.lean). |
 | `emit_selfinversive_rigidity.py` | `selfinversive_rigidity` | Self-inversive rigidity emitter — equal-modulus real-rootedness (MIRRORMERE R3, n=2). |
 | `emit_separable_convex.py` | `separable_convex` | Separable-convex extremum emitter — the extremum of a separable convex sum on a fixed-sum box is at the homogeneous point (MIN) or a vertex (MAX). |

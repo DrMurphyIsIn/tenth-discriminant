@@ -75,9 +75,12 @@ that and then verifies the result:
 "have local changes". That is expected: it is the patched state. **Do not run `lake update`**: it re-resolves the dependencies,
 and openai/math's post-update hook fails in this layout.
 
-These instructions were tested on a fresh clone. The script fetched all the packages and applied the patches, and the patched
+These instructions were tested on a clean copy of this directory, with no build state. The script fetched all the packages and applied the patches, and the patched
 state matched the one we checked exactly: for every patched package, the `git diff` against its pinned commit had the same md5.
-A complete build from that fresh clone had not finished when v1.0.0 was archived. The result will be recorded here.
+The complete build from that clean copy then succeeded: `lake build CN1.Main CN1Challenges` completed all 11,914 build jobs in about an
+hour on Apple silicon, the main theorem reports only `propext`, `Classical.choice` and `Quot.sound`, and
+`scripts/apply_oai_patches.sh --check` re-verified all 23 patches afterwards. Two caveats. `lake exe cache get` was served from
+this machine's local Mathlib cache, so the network download was not exercised. The test was on macOS only; Linux was not tested.
 
 Building OpenAI's dependency closure is the expensive part. On our machine (Apple silicon), with the dependencies already built,
 rebuilding this project's own modules took about 80 seconds and 6.8 GB of memory. A first build compiles several thousand modules

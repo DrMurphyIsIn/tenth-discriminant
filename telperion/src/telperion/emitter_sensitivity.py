@@ -266,6 +266,23 @@ REGISTRY: dict[str, SensitivityStance] = {
                              # emitted linarith unprovable, so the kernel rejects it.
                              # See negctrl_adapters/adapter_exp_enclosure.py.
                              neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
+    "ScaledIntervalEvalEmitter": _S(STRUCTURALLY_NONVACUOUS,
+                                   "fixed-scale integer interval evaluation of an expression DAG "
+                                   "(rationals, declared variables over rational ranges, +, -, *, "
+                                   "integer powers, exp): each node's literal box IS the statement, "
+                                   "and the kernel recomputes it by `decide +kernel` on a Bool "
+                                   "subset check before once-proved ScaledInterval mem_* lemmas lift "
+                                   "it to R -- no separately-supplied identity to corrupt, so the "
+                                   "shape is structural.  certify REFUSES a claim that does not "
+                                   "contain the computed root box (one ulp too tight included), "
+                                   "unsupported nodes, floats, irrational constants, inverted "
+                                   "ranges, unused binders and exp arguments past the reduction "
+                                   "cap.  Finite arithmetic facts about elementary expressions; "
+                                   "nothing about RH (conjecture1_proved = False)",
+                                   # Structural, yet a kernel control exists: shrink one node box by
+                                   # one ulp and that node's _calc decide is false, so the kernel
+                                   # rejects it.  See negctrl_adapters/adapter_scaled_interval_eval.py.
+                                   neg_control=NegControlStance(NEG_CONTROL_ADAPTER)),
     "ExpThresholdEmitter": _S(STRUCTURALLY_NONVACUOUS,
                              "threshold-to-exponential domination via `1 + t <= e^t` "
                              "(Real.add_one_le_exp): a bundle reads a nested-max threshold "
@@ -1064,10 +1081,11 @@ REGISTRY: dict[str, SensitivityStance] = {
         "conjecture1_proved = False"),
     "WindingBoxZeroEmitter": _S(STRUCTURALLY_NONVACUOUS,
         "Arb-trust-class winding-number box certificate (the turing_band sidecar trust class): the "
-        "rigorous zero count of an analytic function on a rational-cornered box, via the "
-        "quadrant-advance argument principle over Arb-ball boundary samples. Ships NO kernel theorem "
+        "zero count of an analytic function on a rational-cornered box, via the argument principle "
+        "with Arb segment enclosures by default (arb_winding; node sampling until 2026-10-14 was a "
+        "heuristic). Ships NO kernel theorem "
         "(nthm=0) — only a .cert.json sidecar + a documentation stub — so there is no Lean identity "
-        "to corrupt; the winding integer is RE-VERIFIED at doubled precision + density at certify "
+        "to corrupt; the winding integer is RE-RUN at doubled precision + subdivision at certify "
         "time and a claimed count the argument principle does not support is REFUSED (the negative "
         "control). conjecture1_proved = False"),
     # --- 2026-09-19: the Face-7 pilot's Lipschitz-net ZERO-FREENESS emitter
@@ -1179,12 +1197,14 @@ REGISTRY: dict[str, SensitivityStance] = {
         "n ≤ 5040 (outside Robin's range) refused at certify time (negative control); "
         "no separately-supplied corruptible cofactor"),
     "BaezDuarteEmitter": _S(STRUCTURALLY_NONVACUOUS,
-        "Báez-Duarte rung d²_N ≤ U with d²_N carried as hypothesis hval : Q ≤ U and Q "
-        "the exact quadratic-form value of the chosen coefficient vector (the analytic "
-        "trust seam is d²_N ≤ Q, the closed-form Gram evaluation): the exact rational Q "
-        "and the readable upper bound U ARE the statement, Q ≤ U re-decided by norm_num "
-        "and closed by le_trans; a U below the exact Q refused at certify time (negative "
-        "control); no separately-supplied corruptible cofactor"),
+        "Báez-Duarte rung d²_N ≤ U (Bagchi family g_k = {1/(kx)} − {1/x}/k) with d²_N "
+        "carried as hypothesis hval : d²_N ≤ Uexact; Uexact bounds the form value "
+        "Q(c) = Σ_n h_n²/(n(n+1)) of the chosen coefficient vector by an exact-rational "
+        "head n < Y (each term rounded up, no transcendental values) plus a rigorous "
+        "rational period-mean tail bound (the trust seam is d²_N ≤ Q ≤ Uexact): Uexact "
+        "and the readable upper bound U ARE the statement, Uexact ≤ U re-decided by "
+        "norm_num and closed by le_trans; a U below Uexact refused at certify time "
+        "(negative control); no separately-supplied corruptible cofactor"),
     "LehmerPairEmitter": _S(STRUCTURALLY_NONVACUOUS,
         "certified Lehmer-pair quality inequality quality_short ≤ qcap (< 1) with "
         "quality = δ²·C_n the exact rational Lehmer signature from a close consecutive-"

@@ -10,5 +10,6 @@
 - **Mathlib** (https://github.com/leanprover-community/mathlib4), Apache-2.0.
 - **Comparator** (https://github.com/leanprover/comparator) and **nanoda** (https://github.com/ammkrn/nanoda_lib) were used to
   check the proof. They are not included here.
-- **Telperion** (`telperion/`), Business Source License 1.1; see `telperion/LICENSE`.
+- **Telperion** (`telperion/`), Business Source License 1.1; see `telperion/LICENSE`. Snapshot of development commit `5b8eea03`
+  (2026-10-18).
 - The mathematical route is credited in the README (Credits) and in the paper.

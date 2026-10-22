@@ -33,6 +33,13 @@ NO_PUSH_ALLOWED = {
         "and the ci-schedule-health watch (PR #640), which flags a schedule-only workflow that is "
         "red or has never fired."
     ),
+    "zero-free-watch.yml": (
+        "Polls EXTERNAL feeds (openai/math preprints, arXiv math.NT) against the committed seen-list "
+        "telperion/research/watch/zero_free_seen.json; a push to main changes neither feed, so a push "
+        "re-run adds nothing, and the seen-list's own correctness is covered by "
+        "telperion/tests/test_zero_free_watch.py in telperion-test. Daily cron + dispatch; the "
+        "ci-schedule-health watch flags it if it goes red or never fires (2026-10-11)."
+    ),
 }
 
 

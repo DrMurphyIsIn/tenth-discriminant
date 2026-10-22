@@ -7,38 +7,34 @@ import Mathlib
 
 namespace WindingBoxZero
 
-/-  winding_zero_inside — WINDING-BOX-ZERO certificate (Arb-trust-class, NOT kernel).
+/-  winding_zero_inside — WINDING-BOX-ZERO certificate (trust class float-demo, NOT rigorous, NOT kernel).
 
-    Rigorous winding-number zero count for the OPEN rectangle
+    Winding-number zero count for the OPEN rectangle
         [0, 1] × [0, 1]:
         winding = 1   (i.e. exactly 1 zero(s) strictly inside).
 
-    Computed by the argument principle: 128 rational boundary samples
-    (32 per side) at working precision 64, each evaluated in an Arb
-    ball; the signed quadrant advance / 4 is the winding integer.  A sign-ambiguous or
-    diagonal-jump node ABORTS (refine), so the integer is rigorous.  RE-VERIFIED at doubled
-    precision (128) and doubled density (64 per side) —
-    both runs reproduce the same integer.
+    Computed by a FLOAT demonstration double (float-demo (node-sampled float phase of z - z0; NOT rigorous)),
+    128 boundary samples (32 per side).  This is NOT a rigorous count;
+    it exercises the emitter without python-flint.  Re-run at doubled density
+    (64 per side) with the same integer.
 
-    TRUST CLASS: arb (interval arithmetic).  This is a SIDECAR fact
+    TRUST CLASS: float-demo.  This is a SIDECAR record
     (see the .cert.json), documented here the way `campaign.py verify-bands` documents
     turing_band sidecars.  There is NO kernel theorem and NO RH claim.
     conjecture1_proved = False.  -/
 
-/-  winding_zero_outside — WINDING-BOX-ZERO certificate (Arb-trust-class, NOT kernel).
+/-  winding_zero_outside — WINDING-BOX-ZERO certificate (trust class float-demo, NOT rigorous, NOT kernel).
 
-    Rigorous winding-number zero count for the OPEN rectangle
+    Winding-number zero count for the OPEN rectangle
         [1, 2] × [1, 2]:
         winding = 0   (i.e. exactly 0 zero(s) strictly inside).
 
-    Computed by the argument principle: 128 rational boundary samples
-    (32 per side) at working precision 64, each evaluated in an Arb
-    ball; the signed quadrant advance / 4 is the winding integer.  A sign-ambiguous or
-    diagonal-jump node ABORTS (refine), so the integer is rigorous.  RE-VERIFIED at doubled
-    precision (128) and doubled density (64 per side) —
-    both runs reproduce the same integer.
+    Computed by a FLOAT demonstration double (float-demo (node-sampled float phase of z - z0; NOT rigorous)),
+    128 boundary samples (32 per side).  This is NOT a rigorous count;
+    it exercises the emitter without python-flint.  Re-run at doubled density
+    (64 per side) with the same integer.
 
-    TRUST CLASS: arb (interval arithmetic).  This is a SIDECAR fact
+    TRUST CLASS: float-demo.  This is a SIDECAR record
     (see the .cert.json), documented here the way `campaign.py verify-bands` documents
     turing_band sidecars.  There is NO kernel theorem and NO RH claim.
     conjecture1_proved = False.  -/

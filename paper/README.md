@@ -1,7 +1,7 @@
 # paper/
 
 The paper accompanying this repository: *The class number one theorem without Heegner, kernel-checked: d ≤ 652 from the 7/8
-quasi-Riemann hypothesis in Lean 4* (Peter W. Murphy, October 2026, v1.0.0).
+quasi-Riemann hypothesis in Lean 4* (Peter W. Murphy, October 2026, v1.0.1).
 
 - `paper.tex`: the source. Lean declarations are cited by name and module (`formalization/CN1/...`), never by line number.
 - `refs.bib`: the bibliography. Every entry was checked against Crossref, zbMATH, arXiv or the GitHub page it points to.

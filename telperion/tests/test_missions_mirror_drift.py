@@ -92,3 +92,34 @@ def test_every_exemption_is_still_needed():
             assert name in island, f"{name!r} no longer declared in {suffix}"
             assert island[name] != base[name], (
                 f"{name!r} in {suffix} is now verbatim -- drop the exemption so it is gated")
+
+
+# ANDDefsRS (anduril, 2026-10-17; contrarian read-back nit N4 on #751). The two RSC0 nodes'
+# statements are written against Statements/ANDDefsRS.lean, nine VERBATIM copies of the
+# zeta_reflection island's RS vocabulary. Unlike the rest of anduril's copies these agree
+# character for character, so they are gated: if the island or the mirror drifts, the
+# statements would bound a different remainder from the one the proved theorems bound, and
+# no statement hash would notice (the hash excludes imports).
+ANDDEFS_RS = ROOT / "missions" / "anduril" / "lean" / "Statements" / "ANDDefsRS.lean"
+ANDDEFS_RS_NAMES = {"lineUp", "rsD", "rsG", "rsAlpha", "rsNn", "rsFrac", "rsThetaMain", "rsPsi", "rsRem"}
+
+
+@pytest.mark.skipif(not ANDDEFS_RS.is_file(), reason="anduril RS vocabulary not present")
+def test_anduril_rs_vocabulary_copies_are_verbatim():
+    rows = check_mirrors(ANDDEFS_RS, EXAMPLES)
+    assert {m.name for m in rows} >= ANDDEFS_RS_NAMES, (
+        "the scan missed some of the nine mirrored RS definitions -- the scan is broken, not the corpus")
+    bad = drifted(rows)
+    assert not bad, "island copies drifted from Statements/ANDDefsRS.lean:\n" + "\n".join(
+        f"  {m.name} in {m.island_file}" for m in bad
+    )
+
+
+@pytest.mark.skipif(not ANDDEFS_RS.is_file(), reason="anduril RS vocabulary not present")
+def test_anduril_rs_vocabulary_tamper_is_caught(tmp_path):
+    text = ANDDEFS_RS.read_text(encoding="utf-8")
+    tampered = text.replace("Real.sqrt (t / (2 * π))", "Real.sqrt (t / (3 * π))")
+    assert tampered != text
+    p = tmp_path / "ANDDefsRS.lean"
+    p.write_text(tampered, encoding="utf-8")
+    assert {m.name for m in drifted(check_mirrors(p, EXAMPLES))} == {"rsAlpha"}

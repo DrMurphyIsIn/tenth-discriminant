@@ -8,9 +8,10 @@
     },
     "edge_samples": 128,
     "kind": "winding_box_zero",
+    "method": "float-demo (node-sampled float phase of z - z0; NOT rigorous)",
     "n_per_side": 32,
     "prec": 64,
-    "trust_class": "arb",
+    "trust_class": "float-demo",
     "winding": 1
   },
   {
@@ -22,9 +23,10 @@
     },
     "edge_samples": 128,
     "kind": "winding_box_zero",
+    "method": "float-demo (node-sampled float phase of z - z0; NOT rigorous)",
     "n_per_side": 32,
     "prec": 64,
-    "trust_class": "arb",
+    "trust_class": "float-demo",
     "winding": 0
   }
 ]
