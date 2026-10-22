@@ -17,7 +17,7 @@ theory of L-functions out of the closure. The paper's §8 makes that comparison 
 There are three ways in:
 
 - **The paper**, [`paper/paper.pdf`](paper/paper.pdf): the mathematics, the verification record and the comparison with the first
-  proof, about twenty-eight pages including an appendix.
+  proof, 28 pages including an appendix and the references.
 - **The Lean**, [`formalization/`](formalization/README.md): build it and run the checks yourself.
 - **The sieve certificate**, [`certificates/`](certificates/README.md): the generator for the finite range, and a script that shows
   the checked-in Lean files are exactly what it produces.
@@ -204,7 +204,8 @@ by anything: where it says what a Lean lemma states, the lemma is the authority.
   [`VERIFICATION.md`](formalization/VERIFICATION.md), [`SURFACE.md`](formalization/SURFACE.md) (the declarations the main
   theorem does not use) and the check scripts.
 - [`certificates/`](certificates/README.md): `gen_sieve.py` and `regenerate_and_diff.sh`.
-- [`paper/`](paper/): `paper.tex`, `appendix_siegel.tex`, `refs.bib` and the built `paper.pdf`.
+- [`paper/`](paper/README.md): `paper.tex`, `appendix_siegel.tex`, `refs.bib` and the built `paper.pdf` (28 pages), with a README
+  that summarizes the paper and its state.
 
 ## AI use
 
