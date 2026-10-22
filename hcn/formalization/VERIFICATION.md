@@ -1,0 +1,139 @@
+# VERIFICATION.md
+
+This file records three things about the files in this directory and in `../certificates/`: that the Lean files compile to
+exactly the same declarations as the files that went through the run of record, that the generators and the class-number data
+reproduce what is checked in, and that a fresh copy of this directory builds from the public lakefile.
+
+## 1. The published files are the checked files
+
+### What changed
+
+The run of record (paper, verification section) was made on a tree whose comments and docstrings still carried internal
+references: section numbers of our working plan, the names of the work tracks and of review items, and private file paths.
+Before publishing we removed those, from comments and docstrings only. Nothing else in a Lean module changed. In detail:
+
+- **79 Lean modules** are published: 34 in `HCN/`, 41 in `CN1/`, the challenge `HCNChallenges/ClassNumberLeTwo.lean`, and the
+  three tampered statements in `HCNNegControls/Tamper/`.
+- **The 38 modules of HCN, HCNChallenges and HCNNegControls all differ from the checked ones, in comments and docstrings only.**
+  Twenty-four of them are generated (the statement, the 15 certificate chunks, `Certs`, `ClassTwo`, `Range`, `Assembly`, `Main`
+  and the three tampered statements); for those the change was made in the generators' templates, and the generators were
+  re-run (section 2). The other fourteen were edited by hand.
+- **In the challenge, only the module docstring changed.** The two theorem docstrings and the two statements are byte-identical
+  to the checked challenge's. The checked challenge's md5 was `e0166de7111fd6b59764111e1b248f94`; the published one's is
+  `1ab2d193ad095872fa23a3ab767c005e`.
+- **The 41 vendored `CN1` modules are the already-published copies**, byte-identical to `../../formalization/CN1/`. The run of
+  record used the first proof's verified copies, which differ from the published ones in comments only. The first proof's
+  challenge library, vendored in the run of record for a regression check, is not included here, because nothing in this
+  proof uses it.
+- **Three checked files are not published:** the proof-side controls that prove the theorems through a postulated false bound,
+  through a postulated threshold, and with one certificate step replaced by `sorry`. As for the other entries, a file that
+  declares a false axiom, or proves a theorem with `sorry`, does not belong in a public library. Nothing else imports them.
+- **The lakefile** is the public one: openai/math from git at the pinned commit, as in `../../formalization/`, where the checked
+  tree used a local copy of the same commit as a path dependency with a shared package directory. Its comments were rewritten,
+  and its libraries are the four above. `lake-manifest.json` is `../../formalization/lake-manifest.json` with the project name
+  changed: the same 43 packages at the same revisions as the checked tree's manifest. `lean-toolchain` is unchanged
+  (`leanprover/lean4:v4.34.1`), and `scripts/apply_oai_patches.sh` is the first proof's, byte for byte.
+
+### How we checked it
+
+**On the text.** The determinant route's [`strip_comments_compare.py`](../../determinant/formalization/scripts/strip_comments_compare.py)
+removes comments and docstrings from every module of two trees and compares what is left, with whitespace collapsed. Run against
+the checked tree, it reports all 79 published modules `SAME`; the files present only in the checked tree are the first proof's
+challenge library and the three unpublished controls.
+
+**On the compiled declarations.** We built both trees from source, side by side, in scratch copies against the same package
+directory (the one the run of record used, with openai/math at `adc7f124` and its patched dependencies):
+
+1. **The checked tree (A)**: a copy of the frozen sources with their original lakefile and manifest.
+2. **The published tree (B)**: a copy of this directory, with the checked tree's lakefile and manifest in place of the public
+   ones, so that both builds use the same compiled packages. The only differences between A and B are then the module sources.
+
+Each tree was built with `lake build HCN CN1` (exit 0; 11,946 jobs; all 75 modules of `HCN` and `CN1` compiled from source in
+each). Then, in each:
+
+- **lean4export** (version 3.1.0, the binary Comparator used in the run of record, md5 `b8b81a76f7622ddc89d0c55ebe1382cc`)
+  exported both theorems and their entire dependency closure, starting from `HCN.Main`:
+  `lake env lean4export HCN.Main -- HCN.classNumber_le_two_iff HCN.classNumber_eq_two_iff`. This is the export that Comparator's
+  kernels replay. It contains every declaration's name, universe parameters, type and value, but no docstrings. We made it twice:
+  in the default form, and with `--export-mdata`, which also keeps the metadata annotations inside expressions.
+- **A constant-hash listing**, the determinant route's `ConstHashes.lean` with its imports changed to every module of `HCN` and
+  `CN1`, listed every constant declared in those modules (7,567 of them, including declarations the theorems do not use and the
+  auxiliary declarations Lean generates) with its kind, universe parameters, and the structural hashes of its type and value.
+
+The results:
+
+| Output | Tree A (checked) | Tree B (published) | Comparison |
+|---|---|---|---|
+| lean4export, closure of both theorems | md5 `22a3868d30e60d350092b0029767a2eb`, 1,812,089,180 bytes | md5 `22a3868d30e60d350092b0029767a2eb`, 1,812,089,180 bytes | byte-identical |
+| the same, with `--export-mdata` | md5 `6598d1d2e74b3567147c0b97ef991880`, 1,818,728,606 bytes | md5 `6598d1d2e74b3567147c0b97ef991880`, 1,818,728,606 bytes | byte-identical |
+| constant hashes, all 7,567 `HCN` and `CN1` constants | md5 `a749bd965db0b34a7bc924a6aaf31f53`, 658,904 bytes | md5 `a749bd965db0b34a7bc924a6aaf31f53`, 658,904 bytes | byte-identical |
+
+So the published modules compile to the same declarations, term for term, as the modules of the run of record, and the closure
+that Comparator checked is the closure of the published theorems.
+
+The export also gives an independent count of that closure: 108,547 theorems, 22,281 definitions, 1,473 inductive types (with
+1,598 constructors and 1,475 recursors), 54 opaque constants, 4 quotient constants and exactly 3 axioms, `propext`, `Quot.sound`
+and `Classical.choice`. That is 135,435 constants, the same count, kind by kind, as the closure audit of the run of record.
+
+**A control for the method.** In a third copy (C) of the published tree, the proof of `HCN.Finite.NotRep.sound` was given one
+extra, unused line, `have _h : (1 : ℕ) = 1 := rfl`, which leaves its statement alone and changes its proof term. After a rebuild
+(exit 0), both comparisons with the checked tree failed, as they should: the export differed (md5
+`b96a4d794aa487cd6576366776b1606f`, 1,812,072,443 bytes), and the constant-hash listing differed in exactly one line, the value
+hash of `HCN.Finite.NotRep.sound`, with its type hash unchanged.
+
+## 2. The generators and the data reproduce what is checked in
+
+- **The original generators**, run unmodified in a sandbox that held a copy of the checked tree and the data, reproduced all 27
+  generated files of the checked tree byte for byte: the 24 published ones and the three unpublished proof-side controls.
+- **The published generators** in [`../certificates/`](../certificates/README.md) differ from the originals in their paths, their
+  comments and docstrings, the header lines they write into the Lean files, and the names of their own negative-control files;
+  the arithmetic is unchanged. `../certificates/regenerate_and_diff.sh` runs them in order and finds all 24 generated files
+  byte-identical to the ones here: `ALL OK (24 generated files)`.
+- **The class-number data** in `../certificates/data/` was re-computed by the programs that produced it, and each file was
+  reproduced byte for byte: PARI/GP 2.17.4 (`gp_classno.gp`, d ≤ 300,000), the reduced-form count with and without Dirichlet's
+  formula (`hcn_classno.c`, d ≤ 300,000 and d ≤ 340,000), and the separately written reduced-form count
+  (`independent_classno.c`, d ≤ 340,000).
+
+## 3. A fresh build from the public lakefile
+
+We copied this directory, without any build state, into an empty scratch directory, with an empty Mathlib cache directory
+(`MATHLIB_CACHE_DIR`), and followed the README, then ran the workflow's checks. The machine was an Apple M3 Ultra (32 cores,
+96 GB of memory) under macOS 26. Every file of that copy is the file published here, except `VERIFICATION.md` itself, the sorry
+fixtures (made afterwards, from this build's logs) and the one-line fix to `scripts/check_no_sorry.sh` described in section 4;
+the fixed script also passes the build's log.
+
+| Step | Result |
+|---|---|
+| `scripts/apply_oai_patches.sh` | exit 0, 238 s wall (cloning the 43 packages): "OK: all packages at their pinned revisions, all 23 patches applied and verified." |
+| `lake exe cache get` | exit 0, 90 s wall; 8,908 Mathlib files |
+| `lake build HCN CN1 HCNChallenges` | exit 0, **"Build completed successfully (11948 jobs)."**, 3,686 s wall (61 minutes), 9,088 s user CPU |
+| `lake build HCNNegControls` | exit 0, 8,927 jobs; the six expected `sorry` warnings of the three tampered statements |
+| `scripts/check_no_sorry.sh` on the build log | OK: exactly the two challenge warnings, `HCNChallenges/ClassNumberLeTwo.lean:26:8` and `:34:8` |
+| the axiom check of the README, importing `HCN.Main` only | exit 0; Lean's output was exactly the two lines below, and Lake's 23 "local changes" warnings went to standard error |
+| `scripts/check_axioms.sh` on that output | "OK: HCN.classNumber_le_two_iff and HCN.classNumber_eq_two_iff depend only on standard axioms" |
+| `scripts/apply_oai_patches.sh --check` afterwards | exit 0, all 23 patches still verified |
+
+```
+'HCN.classNumber_le_two_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+'HCN.classNumber_eq_two_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+Two things matter for anyone repeating this on a smaller machine. The package directory takes 22 GB (7.2 GB of it Mathlib's,
+14.5 GB openai/math's compiled files), and the project's own build adds 0.6 GB. And one generated module needs a lot of memory:
+`HCN.Assembly.Range` reached a peak resident set of 26.5 GB when compiled on its own (124 s), against about 5.9 GB for a
+certificate chunk; it was also the slowest module of the build. The workflow in `.github/workflows/hcn.yml` therefore frees
+disk space and adds a swap file before it builds.
+
+## 4. The check scripts
+
+[`scripts/check_axioms.sh`](scripts/check_axioms.sh) and [`scripts/check_no_sorry.sh`](scripts/check_no_sorry.sh) are the
+determinant route's strict checks, adapted to two theorems. The axiom check requires the whole of Lean's output, with
+whitespace removed, to be the two reports, in order, in which every entry is one of `propext`, `Classical.choice` and
+`Quot.sound`; the sorry check requires a successful build with exactly the two challenge warnings. [`scripts/test_checks.sh`](scripts/test_checks.sh)
+runs both over the fixtures in [`scripts/fixtures/`](scripts/fixtures), and over a missing file.
+All 58 cases behave as expected: 33 for the axiom check (5 accept, 27 reject and a missing file) and 25 for the sorry check
+(2 accept, 22 reject and a missing file). The sorry fixtures whose names begin with `real_` are the log of the fresh build above
+and the log of the build of the three tampered statements, with Lake's progress lines and its "local changes" warnings (which
+name the scratch directory) removed; the others are made from the fresh log by adding, removing or changing lines. Writing them
+found one gap in our first version of `check_no_sorry.sh`: a log in which one challenge warning was printed twice, once with a
+leading `./`, counted as two positions. The script now drops a leading `./` before it compares positions.

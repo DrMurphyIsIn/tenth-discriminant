@@ -1,0 +1,15 @@
+{
+  "challenge_module": "HCNNegControls.Tamper.DropSquarefree",
+  "solution_module": "HCN.Main",
+  "theorem_names": [
+    "HCN.classNumber_le_two_iff",
+    "HCN.classNumber_eq_two_iff"
+  ],
+  "definition_names": [],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": true
+}

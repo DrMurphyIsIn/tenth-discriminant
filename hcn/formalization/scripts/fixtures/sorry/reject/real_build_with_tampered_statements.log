@@ -1,0 +1,10 @@
+⚠ [8924/8927] Built HCNNegControls.Tamper.Move163 (34s)
+warning: HCNNegControls/Tamper/Move163.lean:19:8: declaration uses `sorry`
+warning: HCNNegControls/Tamper/Move163.lean:27:8: declaration uses `sorry`
+⚠ [8925/8927] Built HCNNegControls.Tamper.DropSquarefree (34s)
+warning: HCNNegControls/Tamper/DropSquarefree.lean:19:8: declaration uses `sorry`
+warning: HCNNegControls/Tamper/DropSquarefree.lean:27:8: declaration uses `sorry`
+⚠ [8926/8927] Built HCNNegControls.Tamper.Swap431 (34s)
+warning: HCNNegControls/Tamper/Swap431.lean:19:8: declaration uses `sorry`
+warning: HCNNegControls/Tamper/Swap431.lean:27:8: declaration uses `sorry`
+Build completed successfully (8927 jobs).

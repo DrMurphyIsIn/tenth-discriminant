@@ -1,0 +1,4 @@
+warning: HCNChallenges/ClassNumberLeTwo.lean:26:8: declaration uses `sorry`
+warning: HCNChallenges/ClassNumberLeTwo.lean:34:8: declaration uses `sorry`
+error: HCN/Main.lean:3:0: unknown identifier foo
+error: build failed

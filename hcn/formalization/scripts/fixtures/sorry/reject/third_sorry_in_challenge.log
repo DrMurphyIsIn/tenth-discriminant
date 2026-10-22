@@ -1,0 +1,548 @@
+⚠ [8963/11393] Built CN1.Numerics.GammaRatio (22s)
+warning: CN1/Numerics/GammaRatio.lean:99:2: Unused tactic linter: `all_goals norm_num` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Numerics/GammaRatio.lean:99:12: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Numerics/GammaRatio.lean:105:2: Unused tactic linter: `all_goals norm_num` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Numerics/GammaRatio.lean:105:12: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+⚠ [9001/11948] Built CN1.Finite.Params (76s)
+warning: CN1/Finite/Params.lean:31:52: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Finite/Params.lean:39:21: `if_true` has been deprecated: Use `ite_true` instead
+⚠ [9002/11948] Built CN1.ChowlaSelberg.Continuation (76s)
+warning: CN1/ChowlaSelberg/Continuation.lean:73:37: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: CN1/ChowlaSelberg/Continuation.lean:81:19: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: CN1/ChowlaSelberg/Continuation.lean:91:37: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: CN1/ChowlaSelberg/Continuation.lean:102:37: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: CN1/ChowlaSelberg/Continuation.lean:109:6: Variable name `s` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _s
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: CN1/ChowlaSelberg/Continuation.lean:120:35: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+⚠ [9003/11948] Built CN1.ChowlaSelberg.GammaIntegral (76s)
+warning: CN1/ChowlaSelberg/GammaIntegral.lean:64:25: Variable name `ha` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _ha
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+info: CN1/ChowlaSelberg/GammaIntegral.lean:114:2: Try this:
+  [apply] ring_nf
+  
+  The `ring` tactic failed to close the goal. Use `ring_nf` to obtain a normal form.
+    
+  Note that `ring` works primarily in *commutative* rings. If you have a noncommutative ring, abelian group or module, consider using `noncomm_ring`, `abel` or `module` instead.
+warning: CN1/ChowlaSelberg/GammaIntegral.lean:113:2: Unused tactic linter: `congr 2` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+⚠ [9004/11948] Built CN1.Epstein.PrimePower (76s)
+warning: CN1/Epstein/PrimePower.lean:30:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Epstein/PrimePower.lean:28:0: automatically included section variable(s) unused in theorem `CN1.Epstein.mem_primesOver_of_mem`:
+  [NumberField K]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [NumberField K] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Epstein/PrimePower.lean:61:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Epstein/PrimePower.lean:62:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Epstein/PrimePower.lean:59:0: automatically included section variable(s) unused in theorem `CN1.Epstein.absNorm_eq_pow_inertiaDeg_of_mem_primesOver`:
+  hp
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hp in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Epstein/PrimePower.lean:96:4: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Epstein/PrimePower.lean:132:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+⚠ [9007/11948] Built CN1.Epstein.IdealCount (76s)
+warning: CN1/Epstein/IdealCount.lean:64:0: automatically included section variable(s) unused in theorem `CN1.Epstein.span_natCast_sup_span_natCast_eq_top`:
+  [NumberField K]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [NumberField K] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+⚠ [9019/11948] Built HCNChallenges.ClassNumberLeTwo (17s)
+warning: HCNChallenges/ClassNumberLeTwo.lean:26:8: declaration uses `sorry`
+warning: HCNChallenges/ClassNumberLeTwo.lean:34:8: declaration uses `sorry`
+⚠ [9021/11948] Built CN1.Foundations.Basic (77s)
+warning: CN1/Foundations/Basic.lean:51:0: automatically included section variable(s) unused in theorem `CN1.Foundations.omega_of_three_mod_four`:
+  [NumberField K]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [NumberField K] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Basic.lean:54:0: automatically included section variable(s) unused in theorem `CN1.Foundations.omega_of_not_three_mod_four`:
+  [NumberField K]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [NumberField K] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+⚠ [9023/11948] Built CN1.Numerics.ZetaValues (4.1s)
+warning: CN1/Numerics/ZetaValues.lean:43:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Numerics/ZetaValues.lean:48:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Numerics/ZetaValues.lean:68:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Numerics/ZetaValues.lean:73:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Numerics/ZetaValues.lean:93:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Numerics/ZetaValues.lean:98:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+⚠ [9032/11948] Built CN1.Numerics.Threshold (12s)
+warning: CN1/Numerics/Threshold.lean:56:2: Unused tactic linter: `all_goals norm_num` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Numerics/Threshold.lean:56:12: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Numerics/Threshold.lean:61:2: Unused tactic linter: `all_goals norm_num` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Numerics/Threshold.lean:61:12: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Numerics/Threshold.lean:67:2: Unused tactic linter: `all_goals norm_num` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Numerics/Threshold.lean:67:12: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Numerics/Threshold.lean:73:2: Unused tactic linter: `all_goals norm_num` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Numerics/Threshold.lean:73:12: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+⚠ [9038/11948] Built CN1.Finite.Converse (19s)
+warning: CN1/Finite/Converse.lean:77:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:78:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:114:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:115:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:116:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:119:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:169:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/Converse.lean:187:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:193:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:199:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:205:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:211:10: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: CN1/Finite/Converse.lean:184:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Finite/Converse.lean:190:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Finite/Converse.lean:187:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:193:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:199:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:205:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: CN1/Finite/Converse.lean:211:10: Unused tactic linter: `norm_num at hq` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+⚠ [9043/11948] Built CN1.Finite.SplitPrime (19s)
+warning: CN1/Finite/SplitPrime.lean:76:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/SplitPrime.lean:77:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/SplitPrime.lean:103:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Finite/SplitPrime.lean:104:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+⚠ [9044/11948] Built CN1.Foundations.Character (19s)
+warning: CN1/Foundations/Character.lean:231:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Character.lean:233:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Character.lean:281:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Character.lean:282:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+⚠ [9046/11948] Built CN1.Epstein.Lattice (19s)
+warning: CN1/Epstein/Lattice.lean:158:0: automatically included section variable(s) unused in theorem `CN1.Epstein.exists_unit_mul_generator_eq`:
+  [NumberField K]
+  [IsPrincipalIdealRing (𝓞 K)]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [NumberField K] [IsPrincipalIdealRing (𝓞 K)] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Epstein/Lattice.lean:175:0: automatically included section variable(s) unused in theorem `CN1.Epstein.generator_congr`:
+  [NumberField K]
+  [IsPrincipalIdealRing (𝓞 K)]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [NumberField K] [IsPrincipalIdealRing (𝓞 K)] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Epstein/Lattice.lean:189:0: automatically included section variable(s) unused in theorem `CN1.Epstein.natAbs_norm_unit`:
+  [NumberField K]
+  [IsPrincipalIdealRing (𝓞 K)]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [NumberField K] [IsPrincipalIdealRing (𝓞 K)] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Epstein/Lattice.lean:288:6: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: CN1/Epstein/Lattice.lean:305:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+⚠ [9052/11948] Built CN1.ChowlaSelberg.Remainder (8.3s)
+warning: CN1/ChowlaSelberg/Remainder.lean:98:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/ChowlaSelberg/Remainder.lean:158:4: `push_neg` has been deprecated. Prefer using `push Not` instead.
+If you'd rather continue using `push_neg` in your project, you can implement it as follows:
+```
+open Lean.Parser.Tactic in
+macro "push_neg" cfg:optConfig loc:(location)? : tactic =>
+  `(tactic| push $cfg:optConfig Not $[$loc]?)
+```
+warning: CN1/ChowlaSelberg/Remainder.lean:169:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/ChowlaSelberg/Remainder.lean:169:34: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/ChowlaSelberg/Remainder.lean:202:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/ChowlaSelberg/Remainder.lean:204:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/ChowlaSelberg/Remainder.lean:205:4: `push_neg` has been deprecated. Prefer using `push Not` instead.
+If you'd rather continue using `push_neg` in your project, you can implement it as follows:
+```
+open Lean.Parser.Tactic in
+macro "push_neg" cfg:optConfig loc:(location)? : tactic =>
+  `(tactic| push $cfg:optConfig Not $[$loc]?)
+```
+warning: CN1/ChowlaSelberg/Remainder.lean:216:39: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: CN1/ChowlaSelberg/Remainder.lean:216:78: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: CN1/ChowlaSelberg/Remainder.lean:220:15: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: CN1/ChowlaSelberg/Remainder.lean:227:15: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+⚠ [9058/11948] Built CN1.Foundations.Splitting (8.8s)
+warning: CN1/Foundations/Splitting.lean:132:0: automatically included section variable(s) unused in theorem `CN1.Foundations.minpoly_omegaInt`:
+  hK
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hK in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Splitting.lean:137:21: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: CN1/Foundations/Splitting.lean:179:0: automatically included section variable(s) unused in theorem `CN1.Foundations.monicFactorsMod_of_root`:
+  hK
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hK in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Splitting.lean:192:0: automatically included section variable(s) unused in theorem `CN1.Foundations.monicFactorsMod_of_no_root`:
+  hK
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hK in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: CN1/Foundations/Splitting.lean:278:6: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Splitting.lean:278:17: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Foundations/Splitting.lean:303:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Splitting.lean:303:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Splitting.lean:306:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/Foundations/Splitting.lean:306:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+⚠ [9060/11948] Built CN1.ChowlaSelberg.MainTerm (5.2s)
+warning: CN1/ChowlaSelberg/MainTerm.lean:166:17: `if_true` has been deprecated: Use `ite_true` instead
+warning: CN1/ChowlaSelberg/MainTerm.lean:170:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: CN1/ChowlaSelberg/MainTerm.lean:248:13: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+⚠ [9061/11948] Built CN1.Foundations.Ramified (4.7s)
+warning: CN1/Foundations/Ramified.lean:79:0: automatically included section variable(s) unused in theorem `CN1.Foundations.minpoly_omegaInt_map_of_dvd_disc`:
+  hK
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hK in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+⚠ [9064/11948] Built CN1.ChowlaSelberg.SevenEighths (4.3s)
+warning: CN1/ChowlaSelberg/SevenEighths.lean:30:75: `Set.diff_subset` has been deprecated: Use `Set.sdiff_subset` instead
+warning: CN1/ChowlaSelberg/SevenEighths.lean:65:82: `Set.diff_subset` has been deprecated: Use `Set.sdiff_subset` instead
+⚠ [9065/11948] Built CN1.Epstein.Factorization (4.5s)
+warning: CN1/Epstein/Factorization.lean:45:6: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: CN1/Epstein/Factorization.lean:80:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+⚠ [9073/11948] Built HCN.CS.Remainder (8.2s)
+warning: HCN/CS/Remainder.lean:88:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: HCN/CS/Remainder.lean:88:39: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: HCN/CS/Remainder.lean:132:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: HCN/CS/Remainder.lean:134:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: HCN/CS/Remainder.lean:146:13: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: HCN/CS/Remainder.lean:152:39: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: HCN/CS/Remainder.lean:152:78: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: HCN/CS/Remainder.lean:156:15: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: HCN/CS/Remainder.lean:163:15: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: HCN/CS/Remainder.lean:172:15: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+⚠ [9075/11948] Built HCN.Finite.ClassLower (7.6s)
+warning: HCN/Finite/ClassLower.lean:220:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: HCN/Finite/ClassLower.lean:243:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: HCN/Finite/ClassLower.lean:244:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: HCN/Finite/ClassLower.lean:275:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: HCN/Finite/ClassLower.lean:278:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: HCN/Finite/ClassLower.lean:279:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: HCN/Finite/ClassLower.lean:280:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: HCN/Finite/ClassLower.lean:281:2: Try this: 
+  letI̵
+
+The goal is a proposition, so `let` is preferred over `letI`.
+The difference between `let` and `letI` is that `letI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: HCN/Finite/ClassLower.lean:284:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+ℹ [9077/11948] Built CN1.Numerics.AxiomCheck (5.3s)
+info: CN1/Numerics/AxiomCheck.lean:10:0: 'CN1.Numerics.riemannZeta₁_eq_sub_W' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:11:0: 'CN1.Numerics.riemannZeta_eq_of_pos_re' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:12:0: 'CN1.Numerics.riemannZeta_ofReal_eulerMaclaurin' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:13:0: 'CN1.Numerics.riemannZeta_three_quarters' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:14:0: 'CN1.Numerics.riemannZeta_seven_eighths' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:15:0: 'CN1.Numerics.riemannZeta_seven_quarters' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:16:0: 'CN1.Numerics.riemannZeta_three_quarters_re_neg' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:17:0: 'CN1.Numerics.riemannZeta_seven_eighths_re_neg' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:18:0: 'CN1.Numerics.Gamma_ratio_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:19:0: 'CN1.Numerics.Gamma_ratio_enclosure' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:20:0: 'CN1.Numerics.mainTerm_655_ge' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:21:0: 'CN1.Numerics.B0_655_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:22:0: 'CN1.Numerics.mainTerm_sub_B0_pos' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:23:0: 'CN1.Numerics.disc_le_652_of_mainTerm_nonpos' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:24:0: 'CN1.Numerics.CS_mainTerm_sub_B0_pos' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Numerics/AxiomCheck.lean:25:0: 'CN1.Numerics.disc_le_652_of_CS' depends on axioms: [propext, Classical.choice, Quot.sound]
+⚠ [9079/11948] Built HCN.Statements.GeneralCS (5.8s)
+warning: HCN/Statements/GeneralCS.lean:183:17: `if_true` has been deprecated: Use `ite_true` instead
+warning: HCN/Statements/GeneralCS.lean:189:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: HCN/Statements/GeneralCS.lean:223:13: `Set.mem_setOf_eq` has been deprecated: Use `Set.mem_ofPred_eq` instead
+warning: HCN/Statements/GeneralCS.lean:281:29: Variable name `ha` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _ha
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: HCN/Statements/GeneralCS.lean:281:42: Variable name `hD` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hD
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [9082/11948] Built HCN.Finite.IdealLite (33s)
+warning: HCN/Finite/IdealLite.lean:279:4: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+ℹ [11941/11948] Built CN1.Assembly.Positivity (3.8s)
+info: CN1/Assembly/Positivity.lean:197:0: 'CN1.LFunction_conj' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Assembly/Positivity.lean:198:0: 'CN1.LFunction_ofReal_im' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Assembly/Positivity.lean:199:0: 'CN1.LFunction_ofReal_re_pos_of_one_lt' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Assembly/Positivity.lean:200:0: 'CN1.LFunction_ofReal_re_pos_of_seven_eighths_lt' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Assembly/Positivity.lean:201:0: 'CN1.LFunction_seven_eighths_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: CN1/Assembly/Positivity.lean:202:0: 'CN1.LFunction_seven_eighths_nonneg_of_isQuadratic' depends on axioms: [propext, Classical.choice, Quot.sound]
+⚠ [11942/11948] Built CN1.Assembly.Core (19s)
+warning: CN1/Assembly/Core.lean:77:2: Try this: 
+  haveI̵
+
+The goal is a proposition, so `have` is preferred over `haveI`.
+The difference between `have` and `haveI` is that `haveI` inlines the value.
+But this is not relevant for proofs because of proof irrelevance.
+
+Note: This linter can be disabled with `set_option linter.style.haveILetI false`
+warning: HCNChallenges/ClassNumberLeTwo.lean:40:8: declaration uses `sorry`
+Build completed successfully (11948 jobs).
