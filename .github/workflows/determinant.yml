@@ -1,0 +1,68 @@
+# Build the determinant proof (determinant/formalization) from a clean checkout and check the axioms
+# of its main theorem. Mathlib comes from its build cache; nothing else is fetched.
+name: determinant proof
+
+on:
+  push:
+    paths:
+      - "determinant/formalization/**"
+      - ".github/workflows/determinant.yml"
+  pull_request:
+    paths:
+      - "determinant/formalization/**"
+      - ".github/workflows/determinant.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+        working-directory: determinant/formalization
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o elan-init.sh
+          sh elan-init.sh -y --default-toolchain none
+          rm elan-init.sh
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Show the toolchain
+        run: |
+          cat lean-toolchain
+          lean --version
+          lake --version
+
+      - name: Fetch the Mathlib build cache
+        run: lake exe cache get
+
+      - name: Build ELEM and CN1Challenges
+        run: |
+          set -o pipefail
+          lake build ELEM CN1Challenges 2>&1 | tee build.log
+
+      - name: No sorry outside CN1Challenges
+        run: scripts/check_no_sorry.sh build.log
+
+      - name: Axioms of CN1.classNumber_eq_one_iff (importing ELEM.Main only)
+        run: |
+          set -o pipefail
+          # The only project import is ELEM.Main. Never add CN1Challenges or ELEMNegControls here:
+          # they declare the same theorem name, and #print axioms would then be unreliable.
+          printf 'import ELEM.Main\n\n#print axioms CN1.classNumber_eq_one_iff\n' > AxiomCheck.lean
+          lake env lean AxiomCheck.lean 2>&1 | tee axioms.out
+          scripts/check_axioms.sh axioms.out
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: determinant-logs
+          path: |
+            determinant/formalization/build.log
+            determinant/formalization/axioms.out
+          if-no-files-found: ignore
