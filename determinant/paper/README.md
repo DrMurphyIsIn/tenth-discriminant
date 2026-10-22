@@ -8,7 +8,7 @@ function and the zero-free theorem out of the closure, and what that costs.
 
 - `paper.tex` is the source, and `paper.pdf` is the built paper (28 pages, including Appendix A and the references).
 - The paper is archived as version 1.1.0 of the tenth-discriminant Zenodo record, DOI
-  [10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656) (reserved, not yet published). The first paper is
+  [10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656). The first paper is
   version 1.0.1 of the same record, DOI [10.5281/zenodo.23550992](https://doi.org/10.5281/zenodo.23550992), and the DOI
   for all versions is [10.5281/zenodo.23550257](https://doi.org/10.5281/zenodo.23550257).
 - Appendix A (`appendix_siegel.tex`, read in by `paper.tex`) has remarks on the Siegel-zero determinant arguments that
