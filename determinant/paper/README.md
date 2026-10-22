@@ -81,7 +81,7 @@ GitHub-hosted `ubuntu-latest` runner with Mathlib from its official cache. On 22
 cases, including a crafted bypass attempt) and regenerates the eight sieve chunks byte for byte. It then builds
 `lake build ELEM CN1 CN1Challenges` (8,984 jobs, the vendored first-proof modules included), finds exactly one `sorry` warning,
 the challenge statement's, and checks that the axiom report of a file importing only `ELEM.Main` is, as a whole, a single list
-of exactly `propext`, `Classical.choice` and `Quot.sound`. That is also the Linux build; the fresh-copy build above was on macOS.
+every entry of which is one of `propext`, `Classical.choice` and `Quot.sound`. That is also the Linux build; the fresh-copy build above was on macOS.
 
 ## Checking the theorem yourself: one rule
 

@@ -129,8 +129,8 @@ records the runs.
   `[#evil[, propext, Classical.choice, Quot.sound]`, and the old script then saw only the three standard axioms. The theorem
   itself was never affected (its real output is the standard three, and Comparator checks the axioms independently), but the
   repository's only automated axiom gate was weaker than described. The script now requires the whole output, with whitespace
-  removed, to be exactly one report for `CN1.classNumber_eq_one_iff` over `propext`, `Classical.choice` and `Quot.sound`, with
-  only an optional `info:` position prefix. [`scripts/check_no_sorry.sh`](scripts/check_no_sorry.sh) was tightened at the same
+  removed, to be exactly one report for `CN1.classNumber_eq_one_iff` in which every entry is one of `propext`,
+  `Classical.choice` and `Quot.sound`, with only an optional `info:` position prefix. [`scripts/check_no_sorry.sh`](scripts/check_no_sorry.sh) was tightened at the same
   time: it now requires a log that reports a successful build and contains exactly one `sorry`, the challenge statement's, and it
   fails closed on a missing, empty or failed-build log.
 - **The self-test.** [`scripts/test_checks.sh`](scripts/test_checks.sh) runs both scripts over the 52 fixtures in

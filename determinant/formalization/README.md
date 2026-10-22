@@ -69,10 +69,10 @@ printf 'import ELEM.Main\n\n#print axioms CN1.classNumber_eq_one_iff\n' > AxiomC
 lake env lean AxiomCheck.lean > axioms.out 2>&1 && scripts/check_axioms.sh axioms.out
 ```
 
-This should print `OK: CN1.classNumber_eq_one_iff depends only on: propext Classical.choice Quot.sound`.
+This should print `OK: CN1.classNumber_eq_one_iff depends only on standard axioms: propext,Classical.choice,Quot.sound`.
 [`scripts/check_axioms.sh`](scripts/check_axioms.sh) removes all whitespace, because Lean prints a long axiom list one entry per
-line, and then requires the *whole* output to be one report for `CN1.classNumber_eq_one_iff` whose entries are all among the three
-standard axioms. Anything else fails: an error line, a second report, or an axiom whose name contains a bracket. (Lean prints some
+line, and then requires the *whole* output to be one report for `CN1.classNumber_eq_one_iff` in which every entry is one of
+`propext`, `Classical.choice` and `Quot.sound`. Anything else fails: an error line, a second report, or an axiom whose name contains a bracket. (Lean prints some
 names unescaped, such as one whose root starts with `#`, and an earlier version of this script, which read the list after the last
 `[`, could be fooled that way.) [`scripts/check_no_sorry.sh`](scripts/check_no_sorry.sh) requires a build log that reports success
 and contains exactly one `sorry`, the challenge statement's. [`scripts/test_checks.sh`](scripts/test_checks.sh) runs both scripts
