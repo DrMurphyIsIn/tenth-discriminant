@@ -112,8 +112,11 @@ After the build, in the same copy:
   `CN1.Foundations.Ramified` included, is compiled too.
 
 What this did not test: Linux, and Comparator inside the fresh copy. The workflow in `../../.github/workflows/determinant.yml`
-had not run when this build was made, because it can only run on GitHub. It has since passed on a GitHub-hosted Ubuntu runner, on 22 October 2026 at commit `413d3b142`, on both the push and the pull-request trigger; the paper's
-§7.8 records the runs. That was the first Linux build.
+had not run when this build was made, because it can only run on GitHub. It has since passed on a GitHub-hosted Ubuntu runner,
+first on 22 October 2026 at commit `413d3b142` (the first Linux build), and then, with the strict checks of section 3, at commit
+`80354fa2` (runs `39827301611` and `39827310062`, on the push and the pull-request trigger: self-test 54 of 54, sieve
+regeneration, `lake build ELEM CN1 CN1Challenges` with 8,984 jobs, the sorry check and the axiom check). The paper's §7.8
+records the runs.
 
 ## 3. The sieve chunks and the axiom check
 

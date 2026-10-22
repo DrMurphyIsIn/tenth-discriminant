@@ -14,9 +14,8 @@ function and the zero-free theorem out of the closure, and what that costs.
 - Appendix A (`appendix_siegel.tex`, read in by `paper.tex`) has remarks on the Siegel-zero determinant arguments that
   the route descends from. None of it is formalized, it is not part of the kernel-checked theorem, and it was checked only by a separate
   AI review session, not by a referee.
-- `refs.bib` is the bibliography. The entries carried over from the first paper are unchanged. The three new ones (Green, and
-  van Dijk's two versions) were checked against the dated copies fetched from hexagonmath.org and against the abstract pages
-  there.
+- `refs.bib` is the bibliography. The entries carried over from the first paper are unchanged. Each new
+  entry was checked at its source; the provenance is in the comments of `refs.bib`.
 
 ## What the paper says
 
@@ -49,7 +48,8 @@ minor, and the prime 2).
 
 All eight steps are proved, each with the three standard axioms, and an independent AI review session (not a referee) has
 checked the interface and all eight steps. The assembled theorem then went through one frozen run of record. Comparator
-accepted it under both nanoda and Lean's own kernel, in about 148 seconds and 6.3 GB. A walk over its closure of 69,295
+accepted it under both nanoda and Lean's own kernel, in about 148 seconds and 6.3 GB (a local run, not sandboxed, as are
+all the Comparator runs described here). A walk over its closure of 69,295
 constants found only the three standard axioms and no constant from any L-series, zeta, Euler-product or modular-form
 module. Twelve recorded checks, nine of them controls that had to fail, all printed their expected lines. The paper's §7 has
 the details, including where Mathlib's Gamma function enters (only through the Minkowski bound used for the nine fields) and
@@ -70,15 +70,18 @@ is.
 The published Lean files differ from the checked ones in comments only: built side by side, they give a byte-identical
 export of the theorem's closure (`determinant/formalization/VERIFICATION.md` has the method). A fresh copy builds from the public
 lakefile in about 3.4 minutes: about 150 seconds to download Mathlib's prebuilt files from its official cache, then 8,980
-jobs in about 53 seconds. Mathlib itself is not recompiled; its compiled files are re-checked through the Comparator export.
+jobs in about 53 seconds. Mathlib itself is not recompiled, and its cached files were not replayed through a kernel in that fresh copy; the
+Mathlib constants of the closure were re-checked by both kernels in the run of record, against the same Mathlib revision.
 
 The author read back the final paper and the verification record on 22 October 2026, and approved them.
 
 Continuous integration is green. The workflow "determinant proof" (`.github/workflows/determinant.yml`) runs on a
 GitHub-hosted `ubuntu-latest` runner with Mathlib from its official cache. On 22 October 2026 it passed at commit
-`413d3b142`, on both the push and the pull-request trigger (about four and three minutes). `lake build ELEM CN1Challenges`
-completed all 8,982 jobs, the only `sorry` warning was the challenge statement's, and an axiom check importing only `ELEM.Main`
-found exactly `[propext, Classical.choice, Quot.sound]`. That is also the Linux build; the fresh-copy build above was on macOS.
+`80354fa2`, on both the push and the pull-request trigger. Each run first tests the check scripts against their fixtures (54
+cases, including a crafted bypass attempt) and regenerates the eight sieve chunks byte for byte. It then builds
+`lake build ELEM CN1 CN1Challenges` (8,984 jobs, the vendored first-proof modules included), finds exactly one `sorry` warning,
+the challenge statement's, and checks that the axiom report of a file importing only `ELEM.Main` is, as a whole, a single list
+of exactly `propext`, `Classical.choice` and `Quot.sound`. That is also the Linux build; the fresh-copy build above was on macOS.
 
 ## Checking the theorem yourself: one rule
 
