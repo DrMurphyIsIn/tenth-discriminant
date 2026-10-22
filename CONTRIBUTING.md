@@ -1,16 +1,18 @@
 # Reviewing and contributing
 
-Thank you for looking. This is work in progress, and careful review is the most valuable contribution anyone can make.
+Thank you for looking. Careful review is the most valuable contribution anyone can make.
 
 ## What most needs checking
 
-Once the Lean formalization lands, the kernel checks every deduction. What remains are questions about meaning:
+The kernel checks every deduction in the Lean proof. What remains are questions about meaning:
 
-1. **Does the formal statement say what the class number one theorem says?** It will live in `formalization/` and use only
-   Mathlib definitions. We will not build proofs on it until it has been reviewed.
+1. **Does the formal statement say what the class number one theorem says?** It is in
+   [`formalization/CN1Challenges/ClassNumberOne.lean`](formalization/CN1Challenges/ClassNumberOne.lean) and uses only Mathlib
+   definitions.
 2. **Are the numerical inputs proved about the real objects?** Every inequality about ζ and Γ must be stated about Mathlib's
    `riemannZeta` and `Gamma`, not about a stand-in.
-3. **Is anything overstated?** The README separates what is done from what is not. Please tell us where it fails to.
+3. **Is anything overstated?** The README and the paper separate what is machine-checked from what is not. Please tell us where
+   they fail to.
 
 ## How to report
 

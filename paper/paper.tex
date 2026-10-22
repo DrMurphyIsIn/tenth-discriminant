@@ -1,0 +1,653 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{listings}
+\setlength{\emergencystretch}{2.5em}
+\usepackage[obeyspaces,spaces]{url} % keep the spaces inside \lean{decide +kernel}, \lean{lake build}, ...
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue}
+\usepackage[capitalise,noabbrev]{cleveref}
+% Allow URLs (and Lean names) to break at hyphens as well.
+\makeatletter\g@addto@macro\UrlBreaks{\do\-}\makeatother
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+% cleveref names shared-counter environments after the counter ("Theorem"); alias them per environment.
+\usepackage{etoolbox}
+\AtBeginEnvironment{lemma}{\crefalias{theorem}{lemma}}
+\AtBeginEnvironment{proposition}{\crefalias{theorem}{proposition}}
+\AtBeginEnvironment{corollary}{\crefalias{theorem}{corollary}}
+\AtBeginEnvironment{definition}{\crefalias{theorem}{definition}}
+\AtBeginEnvironment{remark}{\crefalias{theorem}{remark}}
+
+% Lean identifiers: typewriter, with line breaks allowed at dots and underscores.
+\DeclareUrlCommand\lean{\urlstyle{tt}}
+\newcommand{\re}{\operatorname{Re}}
+\newcommand{\im}{\operatorname{Im}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\OK}{\mathcal{O}_K}
+\newcommand{\disc}{\operatorname{disc}}
+\newcommand{\Nm}{\operatorname{N}}
+
+\definecolor{leanbg}{HTML}{F4F2EC}
+
+% The formal side of each step, set off from the mathematics.
+\newenvironment{inlean}{\par\medskip\noindent\begin{tikzpicture}\node[fill=leanbg,rounded corners=2pt,
+  inner sep=6pt,text width=\dimexpr\linewidth-12pt\relax,font=\small]\bgroup\textbf{In Lean.}\ }%
+  {\egroup;\end{tikzpicture}\par\medskip}
+
+\lstdefinelanguage{Lean}{
+  morekeywords={theorem,lemma,def,noncomputable,import,namespace,end,open,by,fun,sorry,example,variable},
+  sensitive=true, morecomment=[l]{--}, morecomment=[s]{/-}{-/}, morestring=[b]",
+}
+\lstset{language=Lean, basicstyle=\small\ttfamily, backgroundcolor=\color{leanbg},
+  frame=single, framerule=0pt, framesep=5pt, xleftmargin=5pt, xrightmargin=5pt,
+  breaklines=true, columns=fullflexible, keepspaces=true, showstringspaces=false,
+  literate={ℝ}{{$\mathbb{R}$}}1 {ℂ}{{$\mathbb{C}$}}1 {ℕ}{{$\mathbb{N}$}}1 {ℤ}{{$\mathbb{Z}$}}1 {ℚ}{{$\mathbb{Q}$}}1
+           {∀}{{$\forall$}}1 {∃}{{$\exists$}}1 {→}{{$\to$}}1 {≠}{{$\neq$}}1 {≤}{{$\le$}}1 {≥}{{$\ge$}}1
+           {∧}{{$\wedge$}}1 {∨}{{$\vee$}}1 {¬}{{$\neg$}}1 {↔}{{$\leftrightarrow$}}1 {∈}{{$\in$}}1 {∉}{{$\notin$}}1
+           {α}{{$\alpha$}}1 {χ}{{$\chi$}}1 {σ}{{$\sigma$}}1 {ω}{{$\omega$}}1 {θ}{{$\theta$}}1 {π}{{$\pi$}}1
+           {∑}{{$\sum$}}1 {↦}{{$\mapsto$}}1 {·}{{$\cdot$}}1 {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1
+           {₀}{{$_0$}}1 {²}{{$^2$}}1 {ε}{{$\varepsilon$}}1 {𝓞}{{$\mathcal{O}$}}1 {∣}{{$\mid$}}1
+           {⊔}{{$\sqcup$}}1 {Γ}{{$\Gamma$}}1 {√}{{$\surd$}}1 {′}{{$'$}}1 {ζ}{{$\zeta$}}1}
+
+\title{The class number one theorem without Heegner, kernel-checked:\\
+$d \le 652$ from the $7/8$ quasi-Riemann hypothesis in Lean~4}
+\author{Peter W. Murphy}
+\date{October 2026 (v1.0.0)\\[2pt] \small Repository \url{https://github.com/DrMurphyIsIn/tenth-discriminant}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We present a proof, written in Lean~4 over Mathlib and accepted by two independent kernels, of the class number one theorem for imaginary quadratic fields: for squarefree $m \ge 1$, the field $\Q(\sqrt{-m})$ has class number one if and only if $m \in \{1, 2, 3, 7, 11, 19, 43, 67, 163\}$. The proof does not use Heegner's modular argument, Baker's or Stark's linear forms in logarithms, or the Goldfeld--Gross--Zagier bound. It follows the route worked out in the comments of Terence Tao's ``tenth discriminant'' challenge of 20 October 2026: if $K$ has class number one, its Dedekind zeta function is half an Epstein zeta function and also equals $\zeta(s)L(s,\chi)$; the Chowla--Selberg formula continues the Epstein sum to $s = 7/8$ with an explicit, exponentially small remainder; at that point the main term is $\zeta(7/4) + C d^{-3/8}\zeta(3/4)$, which is increasing in $d = |\disc K|$ and vanishes at $d^* = 653.98763\ldots$; and OpenAI's theorem that Dirichlet $L$-functions have no zeros in $\re s > 7/8$ makes $L(7/8,\chi) \ge 0$ while $\zeta(7/8) < 0$. This forces $d \le 652$, proved in Lean about Mathlib's own \lean{riemannZeta} and \lean{Gamma}. For the $190$ non-Heegner fields in range a split prime below $(d+1)/4$ gives a non-principal ideal, and the Minkowski bound handles the nine. The statement uses only Mathlib definitions; the proof depends only on \lean{propext}, \lean{Classical.choice} and \lean{Quot.sound}; OpenAI's Lean proof of the $7/8$ theorem is inside the checked closure, not a hypothesis. Comparator with nanoda and Lean's kernel accepts the result and rejects two tampered statements and two tampered proofs. The route is the thread's; the contribution is the formalization and its verification record.
+\end{abstract}
+
+%=====================================================================================================
+\section{Introduction}
+%=====================================================================================================
+
+\subsection{The theorem and its history}
+
+An imaginary quadratic field $K = \Q(\sqrt{-m})$, with $m \ge 1$ squarefree, has a finite class group, and Gauss observed in the \emph{Disquisitiones} (1801), in the language of binary quadratic forms, that the class number appears to grow with the discriminant: he conjectured that only finitely many imaginary quadratic fields have class number one, and that the nine fields with
+\[
+m \in \{1, 2, 3, 7, 11, 19, 43, 67, 163\}, \qquad d = |\disc K| \in \{4, 8, 3, 7, 11, 19, 43, 67, 163\},
+\]
+are the only ones. Finiteness was settled first. Heilbronn proved in 1934 that the class number tends to infinity with the discriminant, and Heilbronn and Linfoot showed in the same year that there is at most one field beyond the nine \cite{Heilbronn1934,HeilbronnLinfoot1934}, so that the question became whether a \emph{tenth discriminant} exists. Both proofs are ineffective: they split on whether the generalized Riemann hypothesis holds, and the branch on which it fails gives no bound for the missing field.
+
+Heegner published a proof that there is no tenth discriminant in 1952 \cite{Heegner1952}, using the theory of modular functions and the arithmetic of the singular values of the elliptic modular invariant. His argument was not accepted at the time; it was vindicated after Baker, in 1966, obtained effective lower bounds for linear forms in logarithms of algebraic numbers and noted that, combined with earlier work of Gelfond and Linnik, they settle the class number one problem \cite{Baker1966}, and Stark, in 1967, gave a complete and self-contained determination of the nine fields \cite{Stark1967}; Stark later showed that the gap in Heegner's argument could be filled. Baker and Stark then went on to class number two \cite{Baker1971}. The general effective problem, a lower bound for the class number that tends to infinity with the discriminant, was solved by Goldfeld in 1976 conditional on the existence of an elliptic curve whose $L$-function vanishes to order three at the central point, and unconditionally once Gross and Zagier produced such a curve through their formula for the derivatives of $L$-series at Heegner points \cite{Goldfeld1985,GrossZagier1986}. Goldfeld's survey \cite{Goldfeld1985} tells this story in detail.
+
+A different idea had been in the air since Heilbronn. The ineffectivity of the 1934 proofs sits entirely in the possible existence of an exceptional real zero of a Dirichlet $L$-function close to $s = 1$, a Siegel zero. If one could show that Siegel zeros do not exist, the class number one problem would follow by an argument that has nothing to do with Heegner points or linear forms in logarithms. OpenAI's openai/math repository \cite{OAImath} now contains a manuscript and a Lean proof of a \emph{quasi-Riemann hypothesis}: every Dirichlet $L$-function, including the Riemann zeta function, is zero-free in the half-plane $\re s > 7/8$, apart from the pole of the trivial character at $s = 1$ \cite{OAIqrh}. In particular there are no Siegel zeros. Banks \cite{Banks2026} and Kerr \cite{Kerr2026} have since written expositions and simplifications of the no-Siegel-zero argument.
+
+\subsection{Tao's challenge and the route from the thread}
+
+On 20 October 2026 Terence Tao posted an experimental AI-mathematics challenge on his blog \cite{Tao2026}: take one of the new arguments ruling out Siegel zeros and use it to produce an explicit bound on a hypothetical tenth discriminant, without Heegner's method. Any amount of AI use is permitted provided it is disclosed. Tao does not insist on formal verification, but asks that a purely AI-generated solution be checked with due diligence, for instance with an independent AI tool, before it is posted.
+
+The route this paper follows was assembled in the comments to that post within a few hours. We record it with the attributions that we checked against the comment page itself. The commenter michaelmross wrote down the Chowla--Selberg expansion of the Epstein zeta function of the principal form, obtained by Poisson summation in one variable, for use near $s = 1$. Tao observed that combining the Chowla--Selberg expansion with the $7/8$ theorem gives $d < 655$. LemmaLab evaluated the expansion at the fixed point $s = 7/8$ and certified the resulting threshold $d \le 653$ in ball arithmetic. For the finite range, Lior Silberman pointed out that under class number one every small prime is inert, Kyle Pratt gave the inequality $\left(\frac{-q}{p}\right) = -1$ for $p < q/4$, and twinheterodox and michaelmross ran integer sieves over the discriminants in range. The idea behind the finite step is classical and goes back to Rabinowitsch's criterion of 1913 \cite{Rabinowitsch1913}, and the analytic identity goes back to Chowla and Selberg \cite{ChowlaSelberg1967}.
+
+Here is the argument in one paragraph. Suppose $K = \Q(\sqrt{-m})$ has class number one and $m \notin \{1, 3\}$. Every ideal of $\OK$ is principal and the only units are $\pm 1$, so counting ideals by norm is the same as counting lattice points by the value of the principal binary quadratic form $Q$, and $\zeta_K(s) = \frac12 \sum' Q(x,y)^{-s}$. On the other hand $\zeta_K(s) = \zeta(s) L(s,\chi)$ with $\chi$ the Kronecker character of $K$. The Chowla--Selberg formula continues the Epstein sum past $\re s = 1$ as an explicit main term plus an exponentially small remainder, and at $s = 7/8$ the main term is $\zeta(7/4) + C d^{-3/8}\zeta(3/4)$ with $C \approx 6.4847$ and $\zeta(3/4) < 0$; this is increasing in $d$ and crosses zero near $d \approx 654$. But $\zeta(7/8) < 0$, and $L(7/8,\chi) \ge 0$ by the zero-free half-plane together with positivity for $\sigma > 1$, so $\zeta(7/8)L(7/8,\chi) \le 0$, which forces $d \le 652$. Below $652$ the problem is finite: for each of the $190$ non-Heegner fields in range there is a small split prime that cannot be the norm of a principal ideal, so the class number is not one, and the nine Heegner fields have class number one by the Minkowski bound.
+
+\subsection{What is new here, and what is not}
+
+The route is not ours and we claim no part of it. Nor is the theorem new, and nothing in this paper bears on the Riemann hypothesis or on the Siegel-zero arguments themselves (\cref{sec:notclaimed}).
+
+What this paper records is the following. First, a public Lean~4 proof of the full class number one theorem, from Mathlib's definition of the class number of a number field to the last witness prime, in about $7{,}500$ lines across forty modules, with one named lemma for each step of the human argument. Second, the fact that the $7/8$ theorem enters not as an axiom or a hypothesis but through OpenAI's own Lean proof, which sits inside the dependency closure that was checked; the trust base is therefore the statement, Mathlib's definitions, the kernels and the three standard axioms, and nothing else. Third, the explicit bound $d \le 652$ proved in Lean as a statement about Mathlib's \lean{riemannZeta} and \lean{Real.Gamma}, including kernel-checked enclosures of $\zeta(3/4)$, $\zeta(7/8)$, $\zeta(7/4)$ and $\Gamma(3/8)/\Gamma(7/8)$, and a proved bound on the Chowla--Selberg remainder, so that the threshold is a theorem and not a numerical observation. Fourth, acceptance of the result by two independent kernels, Lean's and nanoda, through Comparator against the reviewed statement, together with negative controls and a dependency audit (\cref{sec:verification}).
+
+We are careful about one claim we do not make. In the same thread, on 21 October, Pace P.~Nielsen reported a Lean proof, produced with Codex and checked by the Lean kernel alone, of the completeness of Euler's list of $65$ convenient numbers, conditional on the $7/8$ claim; it is available from him by email and is not public. We therefore do not describe the present work as the first Lean proof along these lines. What we claim is what is in the repository: a public formalization of the class number one theorem in which OpenAI's theorem enters through its checked Lean proof rather than as an assumption, together with the verification record described below.
+
+%=====================================================================================================
+\section{The statement and the trust base}\label{sec:statement}
+%=====================================================================================================
+
+The statement that was reviewed, and that Comparator checks, is the following. It lives in the module \lean{CN1Challenges.ClassNumberOne}, which imports only Mathlib and carries a \lean{sorry}; the proof is in \lean{CN1.Main}.
+
+\begin{lstlisting}
+theorem classNumber_eq_one_iff (K : Type*) [Field K] [NumberField K]
+    (hK : Module.finrank ℚ K = 2)
+    (m : ℕ) (hm : Squarefree m) (hsq : ∃ α : K, α ^ 2 = -(m : K)) :
+    classNumber K = 1 ↔ m ∈ ({1, 2, 3, 7, 11, 19, 43, 67, 163} : Finset ℕ) := by
+  sorry
+\end{lstlisting}
+
+\begin{theorem}[\lean{CN1.classNumber_eq_one_iff}]\label{thm:main}
+Let $K$ be a number field of degree two over $\Q$, let $m$ be a squarefree natural number, and suppose $K$ contains an element $\alpha$ with $\alpha^2 = -m$. Then $K$ has class number one if and only if $m \in \{1, 2, 3, 7, 11, 19, 43, 67, 163\}$.
+\end{theorem}
+
+A few remarks on why this phrasing pins down $K = \Q(\sqrt{-m})$. In Mathlib, \lean{Squarefree 0} is false, since $0$ is divisible by every square, so the hypothesis forces $m \ge 1$. For $m \ge 1$ the rational number $-m$ is negative and hence not a square in $\Q$, so $\alpha$ is irrational; both facts are recorded in a small lemma next to the candidate statements (\lean{CN1.Candidates.squarefree_ne_zero_and_not_isSquare_neg}). Since $\alpha$ is irrational and $K$ has degree two, $K = \Q(\alpha) \cong \Q[X]/(X^2+m) \cong \Q(\sqrt{-m})$. The statement is therefore about every model of $\Q(\sqrt{-m})$, in any universe, rather than about one particular construction; that is why it is stated for an abstract $K$ with hypotheses rather than for a concrete \lean{AdjoinRoot}.
+
+The squarefree hypothesis is load-bearing. Without it, $m = 4$ and $K = \Q(i)$ satisfy $\alpha^2 = -4$ with $\alpha = 2i$, $K$ has class number one, and $4$ is not in the list; the statement would be false. One of the negative controls of \cref{sec:controls} is exactly this tampered statement, and Comparator rejects it.
+
+We write $m$ for the radicand and $d = |\disc K|$ for the absolute discriminant. The relation is $d = m$ when $m \equiv 3 \pmod 4$ and $d = 4m$ otherwise. The statement is in terms of $m$ because that gives a one-screen statement in Mathlib's vocabulary; the analytic argument is in terms of $d$ because that is what Chowla--Selberg wants. The function \lean{CN1.Foundations.disc} is the translation, and \lean{CN1.Foundations.discr_eq} proves that it really is $|\disc K|$.
+
+\paragraph{What a reader has to trust.} The trust base is deliberately small.
+\begin{itemize}[nosep]
+\item The statement above, including the Mathlib definitions it uses: \lean{NumberField}, \lean{NumberField.classNumber} (the cardinality of the class group of the ring of integers), \lean{Module.finrank} and \lean{Squarefree}. Everything else in it is Lean's own arithmetic and set notation.
+\item The Lean~4 kernel (toolchain \lean{v4.34.1}) and, independently, the nanoda kernel \cite{nanoda}, a from-scratch reimplementation of Lean's type checker. Both replayed the exported proof.
+\item The three standard axioms of Lean's classical mathematics: \lean{propext}, \lean{Quot.sound} and \lean{Classical.choice}. No \lean{sorry}, no \lean{native_decide}, no further axiom.
+\end{itemize}
+The $7/8$ theorem is not on this list. Its Lean proof is inside the dependency closure that both kernels checked (\cref{sec:audit}). That the accompanying manuscript is unrefereed bears on how well humans understand the proof, not on whether the kernel accepted it.
+
+The development is pinned to Lean \lean{v4.34.1} and the Mathlib revision \lean{d13f23b} used by openai/math \cite{Mathlib2020,Lean4}, so that OpenAI's proof and ours live in one environment. Throughout, Lean names are given with their module; the modules live under \lean{formalization/CN1/} in the repository, so that \lean{CN1.Epstein.Lattice} is the file \lean{formalization/CN1/Epstein/Lattice.lean}.
+
+%=====================================================================================================
+\section{The argument}\label{sec:argument}
+%=====================================================================================================
+
+Fix $K$, $m$ and $\alpha$ as in \cref{thm:main}, with $h_\alpha : \alpha^2 = -m$, $h_K : [K:\Q] = 2$ and $h_m : m$ squarefree.
+
+\subsection{Foundations: the ring of integers, the norm form, the character, the splitting law}\label{sec:foundations}
+
+Set
+\[
+(\omega,\ Q(x,y),\ d) = \begin{cases} \bigl(\tfrac{1+\alpha}{2},\ x^2 + xy + \tfrac{m+1}{4}y^2,\ m\bigr) & m \equiv 3 \pmod 4,\\[4pt] \bigl(\alpha,\ x^2 + my^2,\ 4m\bigr) & \text{otherwise.}\end{cases}
+\]
+
+\begin{proposition}[the ring of integers]\label{prop:ok}
+$\OK = \Z[\omega]$, with $\Z$-basis $\{1, \omega\}$. For integers $x, y$ the norm of $x + y\omega$ is $Q(x,y)$. If $m \notin \{1, 3\}$ then $Q(x,y) = 1$ forces $y = 0$ and $x = \pm 1$, and the units of $\OK$ are exactly $\pm 1$.
+\end{proposition}
+
+\begin{proof}
+An element $x = a + b\alpha$ with $a, b \in \Q$ has trace $2a$ and norm $a^2 + mb^2$. If $x$ is integral both are integers, so $m(2b)^2 \in \Z$; because $m$ is squarefree this forces $2b \in \Z$, and a check modulo $4$ sorts out the parities in the three residue classes of $m$. This is where squarefreeness is used. Positivity of $Q$ and the identity $4Q = (2x+y)^2 + dy^2$ (or $4Q = 4x^2 + 4my^2$) show that $Q \ge d/4$ (or $\ge m$) whenever $y \ne 0$; with $d \ge 7$ or $m \ge 2$ the form cannot take the value $1$ off the $x$-axis. For $m = 1$ and $m = 3$ it can, because $\Q(i)$ and $\Q(\sqrt{-3})$ have four and six units. A unit has norm $\pm 1$, the norm is positive definite, so the norm is $1$ and the previous sentence gives $\varepsilon = \pm 1$.
+\end{proof}
+
+\begin{inlean}
+\lean{CN1.Foundations.omega}, \lean{principalForm} and \lean{disc} are the three definitions in \lean{CN1.Foundations.Basic}. \lean{exists_int_add_int_mul_omega_of_isIntegral} shows that every integral element is $u + v\omega$ with $u, v \in \Z$, \lean{omegaInt} is $\omega$ as an element of $\OK$, and \lean{intBasis} packages $\{1, \omega\}$ as a $\Z$-basis of $\OK$. \lean{norm_int_eq_principalForm} is the norm formula, \lean{principalForm_nonneg} positivity, \lean{principalForm_eq_one} the lemma on $Q = 1$ (hypotheses $m \ne 1$, $m \ne 3$), and \lean{coe_unit_eq_one_or_neg_one} the units.
+\end{inlean}
+
+\paragraph{The character.} The Kronecker character $\chi = \chi_{-d}$ is built as a Mathlib \lean{DirichletCharacter} of level exactly $d$, a multiplicative character on $\Z/d$ with values in $\C$. It is assembled case by case from the Jacobi symbol and Mathlib's characters $\chi_4$, $\chi_8$, $\chi_8'$, and lifted to level $d$ with \lean{changeLevel}: for $m \equiv 3 \pmod 4$ it is the Jacobi symbol $(\,\cdot\mid m)$; for $m \equiv 1 \pmod 4$ it is $\chi_4 \cdot (\,\cdot\mid m)$ at level $4m$; for $m \equiv 2 \pmod 4$ it is $\chi_8' \cdot (\,\cdot \mid m/2)$ or $\chi_8 \cdot (\,\cdot\mid m/2)$ according to $m/2 \bmod 4$, at level $4m$.
+
+\begin{lemma}\label{lem:char}
+$\chi$ is quadratic (its values lie in $\{-1, 0, 1\}$), odd ($\chi(-1) = -1$), hence non-trivial. For an odd prime $p \nmid d$, $\chi(p)$ is the Legendre symbol $\left(\frac{-m}{p}\right)$; for $m \equiv 3 \pmod 4$, $\chi(2) = \chi_8(m)$. For every prime $p$, $\chi(p) = 0$ if and only if $p \mid d$.
+\end{lemma}
+
+\begin{inlean}
+\lean{CN1.Foundations.kroneckerChar} in \lean{CN1.Foundations.Character}, with \lean{kroneckerChar_isQuadratic}, \lean{kroneckerChar_neg_one}, \lean{kroneckerChar_ne_one}, \lean{kroneckerChar_apply_prime_of_ne_two} (quadratic reciprocity for the Jacobi symbol in each residue class) and \lean{kroneckerChar_apply_two}; the vanishing at ramified primes is \lean{kroneckerChar_eq_zero_of_dvd_disc} in \lean{CN1.Foundations.Ramified}.
+\end{inlean}
+
+\paragraph{The splitting law.} The minimal polynomial of $\omega$ over $\Z$ is $X^2 + bX + c$ with $(b, c) = (-1, (m+1)/4)$ for $m \equiv 3 \pmod 4$ and $(0, m)$ otherwise, of discriminant $b^2 - 4c = -d$. Since $\OK = \Z[\omega]$ the conductor is trivial and Mathlib's Kummer--Dedekind theorem (\lean{NumberField.Ideal.primesOverSpanEquivMonicFactorsMod}) applies at every prime: the primes of $\OK$ above $p$ correspond to the monic irreducible factors of $X^2 + bX + c$ modulo $p$, with inertia degree the degree of the factor.
+
+\begin{proposition}[splitting]\label{prop:split}
+Let $p$ be a prime. If $\chi(p) = 1$ there are two primes above $p$, each of inertia degree one, so in particular a prime ideal of norm $p$. If $\chi(p) = -1$ there is one prime above $p$, of inertia degree two. If $p \mid d$ then $X^2 + bX + c \equiv (X-r)^2 \pmod p$, and there is one prime above $p$, of inertia degree one and ramification index two. Moreover $\disc K = -d$.
+\end{proposition}
+
+\begin{proof}
+For $p \nmid d$ the quadratic has a root modulo $p$ exactly when $\chi(p) = 1$, by \cref{lem:char} and the standard criterion, and the root criterion gives the dictionary. For $p \mid d$ the discriminant $-d$ vanishes modulo $p$ and the quadratic is a square. The discriminant of $K$ is computed from the $\Z$-basis $\{1, \omega\}$ with Mathlib's \lean{NumberField.discr_eq_discr}.
+\end{proof}
+
+\begin{inlean}
+In \lean{CN1.Foundations.Splitting}: \lean{bInt}, \lean{cInt}, \lean{minpoly_int_omegaInt}, \lean{bInt_sq_sub_four_mul_cInt}, \lean{exponent_omegaInt_eq_one} (trivial conductor), \lean{kroneckerChar_eq_one_iff_exists_root}, \lean{ncard_primesOver_eq_two_of_kroneckerChar_eq_one}, \lean{exists_prime_absNorm_eq_of_kroneckerChar_eq_one}, \lean{ncard_primesOver_eq_one_of_kroneckerChar_eq_neg_one}. The ramified case is \lean{ramified_of_dvd_disc} in \lean{CN1.Foundations.Ramified}. The discriminant is \lean{discr_eq} in \lean{CN1.Foundations.Discr}. All of this imports only Mathlib; none of it uses the $7/8$ theorem.
+\end{inlean}
+
+\subsection{Class number one makes \texorpdfstring{$\zeta_K$}{zeta\_K} an Epstein zeta function}\label{sec:epstein}
+
+Assume now that the class number is one and $m \notin \{1, 3\}$. Mathlib's \lean{NumberField.classNumber_eq_one_iff} says that class number one is the same as $\OK$ being a principal ideal ring.
+
+Mathlib defines the Dedekind zeta function as the $L$-series of the ideal-counting function, $\zeta_K(s) = \sum_n a_K(n) n^{-s}$ with $a_K(n) = \#\{I \subseteq \OK : \Nm(I) = n\}$ (\lean{NumberField.dedekindZeta}). We record $a_K$ as an \lean{ArithmeticFunction} (\lean{CN1.Epstein.idealCount}, with \lean{dedekindZeta_eq_LSeries_idealCount}).
+
+\begin{proposition}\label{prop:epstein}
+If $K$ has class number one and $m \notin \{1,3\}$, then for $\re s > 1$
+\[
+\zeta_K(s) = \tfrac12 \sum_{(x,y) \in \Z^2} Q(x,y)^{-s},
+\]
+where the term at $(0,0)$ is $0^{-s} = 0$ in Mathlib's complex power, so the sum over $\Z^2$ is already the primed sum.
+\end{proposition}
+
+\begin{proof}
+The map $(x,y) \mapsto x + y\omega$ is a bijection $\Z^2 \to \OK$ carrying $Q$ to the norm. For $\re s > 1$ the lattice sum converges absolutely, because $Q(x,y) \ge \frac12(x^2+y^2)$ and Mathlib's Eisenstein-series summability does the rest. Now regroup by norm. For each $n \ge 1$ the nonzero elements of norm $n$ are in bijection with (units) $\times$ (ideals of norm $n$), via $(u, I) \mapsto u \cdot \mathrm{generator}(I)$; this uses that every ideal is principal and that two generators of the same ideal differ by a unit. There are exactly two units by \cref{prop:ok}, so $\#\{z \ne 0 : |\Nm z| = n\} = 2a_K(n)$. Summing fibrewise along $z \mapsto |\Nm z|$ (Mathlib's \lean{HasSum.tsum_fiberwise}) gives $\sum' Q^{-s} = 2\sum_n a_K(n)n^{-s} = 2\zeta_K(s)$.
+\end{proof}
+
+The factor $\frac12$ is $1/w$ with $w$ the number of units; this is the one place where $m \notin \{1,3\}$ enters the analytic half of the argument. Since $1$ and $3$ are among the nine, the step is only ever needed for $m$ outside the nine, and the exclusion costs nothing.
+
+\begin{inlean}
+In \lean{CN1.Epstein.Lattice}: \lean{intPairEquiv}, \lean{summable_principalForm_cpow}, \lean{unitsProdEquiv}, \lean{card_units_eq_two}, \lean{card_nonzero_normNat_eq}, \lean{latticeSum_eq_two_mul_LSeries}, and the conclusion \lean{dedekindZeta_eq_half_latticeSum} with hypotheses $m \ne 1$, $m \ne 3$, \lean{classNumber K = 1} and $1 < \re s$.
+\end{inlean}
+
+\subsection{\texorpdfstring{$\zeta_K = \zeta \cdot L(\cdot,\chi)$}{zeta\_K = zeta L}}\label{sec:factor}
+
+This step holds for every squarefree $m$, with no class number hypothesis. The strategy is coefficientwise: $\zeta_K$ and $\zeta \cdot L(\cdot,\chi)$ are Dirichlet series with multiplicative coefficients, so it suffices to compare them at prime powers.
+
+\begin{lemma}[multiplicativity]\label{lem:mult}
+$a_K$ is multiplicative: for coprime $a, b$, $a_K(ab) = a_K(a)a_K(b)$.
+\end{lemma}
+
+\begin{proof}
+For an ideal $I$ of norm $ab$, the map $I \mapsto (I + (a), I + (b))$ is a bijection onto pairs of ideals of norms $a$ and $b$, with inverse $(J, J') \mapsto JJ'$. The key observations are that $ab = \Nm(I) \in I$ and $(a) + (b) = (1)$, so $(I+(a))(I+(b)) = I$, and that $\Nm(I+(a))$ divides both $ab$ and $a^2$, hence $a$, while the two norms multiply to $ab$. This is about $120$ lines over Mathlib and avoids any dependence on Euler products.
+\end{proof}
+
+\begin{lemma}[prime powers]\label{lem:pk}
+For every prime $p$ and $k \ge 0$, $a_K(p^k) = \sum_{i=0}^k \chi(p)^i$.
+\end{lemma}
+
+\begin{proof}
+Every prime factor of an ideal of norm $p^k$ lies above $p$, so by unique factorization the ideal is $P^k$ (one prime $P$ of norm $p$), $P^{k/2}$ if $k$ is even and nothing if $k$ is odd (one prime of norm $p^2$), or $P_1^iP_2^{k-i}$ with $0 \le i \le k$ (two primes of norm $p$). The counts are $1$, $[k \text{ even}]$ and $k+1$. Matching against \cref{prop:split} gives the formula in all three cases, including $p \mid d$ where $\chi(p) = 0$ and the count is $1$.
+\end{proof}
+
+\begin{proposition}\label{prop:factor}
+For $\re s > 1$, $\zeta_K(s) = \zeta(s)L(s,\chi)$. Here $\zeta$ and $L$ are Mathlib's analytically continued \lean{riemannZeta} and \lean{DirichletCharacter.LFunction}, which agree with the Dirichlet series on this half-plane. Consequently, under the hypotheses of \cref{prop:epstein},
+\begin{equation}\label{eq:epstein}
+\zeta(s)\,L(s,\chi_{-d}) = \tfrac12 \sum_{(x,y)\in\Z^2} Q(x,y)^{-s} \qquad (\re s > 1).
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+The right side of \cref{lem:pk} is the coefficient at $p^k$ of $\zeta \cdot L(\cdot,\chi)$, since Mathlib's \lean{DirichletCharacter.zetaMul} is the Dirichlet convolution $1 \star \chi$. Two multiplicative functions agreeing on prime powers are equal, and the $L$-series of a convolution is the product of the $L$-series on the common half-plane of absolute convergence.
+\end{proof}
+
+\begin{inlean}
+\lean{CN1.Epstein.card_absNorm_eq_mul} and \lean{isMultiplicative_idealCount} in \lean{CN1.Epstein.IdealCount}; \lean{card_absNorm_eq_pow_of_ncard_eq_one} and \lean{card_absNorm_eq_pow_of_ncard_eq_two} in \lean{CN1.Epstein.PrimePower}; \lean{card_absNorm_eq_prime_pow}, \lean{zetaMul_apply_prime_pow}, \lean{idealCount_eq_zetaMul} and \lean{dedekindZeta_eq_riemannZeta_mul_LFunction} in \lean{CN1.Epstein.Factorization}. The identity \eqref{eq:epstein} is \lean{CN1.Epstein.epstein_identity}. A bridge lemma rewrites its right side in the notation of the Chowla--Selberg module, whose form is written in terms of $d$ rather than $m$: \lean{principalForm_cast_eq_Q} and \lean{CN1.Epstein.epstein_identity_Z} in \lean{CN1.Epstein.Bridge}. This is what the assembly of \cref{sec:assembly} feeds into the analytic machinery.
+\end{inlean}
+
+\subsection{Chowla--Selberg with an explicit remainder, continued to \texorpdfstring{$s = 7/8$}{s = 7/8}}\label{sec:cs}
+
+We now leave number fields behind. Fix an integer $d \ge 3$ with $d \equiv 0$ or $3 \pmod 4$, write $b = d \bmod 2$, $c = (d+b)/4$, $Q(x,y) = x^2 + bxy + cy^2$, and
+\[
+Z_d(s) = \sum_{(x,y)\in\Z^2} Q(x,y)^{-s},
+\]
+the origin again contributing $0$. Completing the square, $Q(x,y) = (x + by/2)^2 + (d/4)y^2 \ge \frac12(x^2+y^2)$, so $Z_d$ converges absolutely for $\re s > 1$.
+
+\paragraph{The classical formula.} For $\re s > 1$,
+\begin{equation}\label{eq:cs}
+\tfrac12 Z_d(s) = \zeta(2s) + 2^{2s-1}\sqrt{\pi}\,\frac{\Gamma(s-\frac12)}{\Gamma(s)}\, d^{\frac12 - s}\,\zeta(2s-1) + E_d(s),
+\end{equation}
+where $E_d(s)$ is the Bessel remainder. In the usual presentation one writes
+\[
+E_d(s) = \frac{2^{s+3/2}\pi^s}{\Gamma(s)\,d^{s/2-1/4}} \sum_{n \ge 1} n^{s-\frac12}\sigma_{1-2s}(n)\cos(\pi bn)\,K_{s-\frac12}(\pi n\sqrt d),
+\]
+with $\sigma$ the divisor function and $K$ the modified Bessel function. (The prefactor is $2^{s+3/2}$, not $2^{s+1/2}$. An earlier numerical script of ours had the latter, which is invisible for $d \ge 67$ where the whole term is around $10^{-11}$; it was caught by the independent review, by cross-checking against direct lattice sums at $s = 2$ and small $d$. The threshold is unaffected.) The Lean development never names a Bessel function. It defines $E_d$ directly as a double series of Mellin-type integrals, which is the form in which the formula is actually proved; the Bessel series above is a closed-form rewriting that we checked numerically but do not use.
+
+\paragraph{How it is proved.} The idea is Poisson summation in $x$ for each fixed $y$, after writing $Q^{-s}$ as a Gamma integral.
+
+\begin{lemma}[the Gamma integral]\label{lem:I}
+For $a > 0$, $b \ge 0$ and $\re s > \frac12$, let
+\[
+I(s; a, b) = \int_0^\infty t^{s-3/2} e^{-at - b/t}\,dt .
+\]
+Then $I(s; a, 0) = a^{-(s-\frac12)}\Gamma(s - \frac12)$, $I(\cdot; a, b)$ is holomorphic on $\re s > \frac12$, and
+\[
+\|I(s;a,b)\| \le e^{-\sqrt{ab}}\,(2/a)^{\re s - \frac12}\,\Gamma(\re s - \tfrac12).
+\]
+\end{lemma}
+
+\begin{proof}
+The integral is the Mellin transform of $t \mapsto e^{-at-b/t}$ at $s - \frac12$, and Mathlib's Mellin machinery gives holomorphy. For $b = 0$ it is the Gamma integral. The inequality is the arithmetic--geometric mean inequality on the exponent: $at + b/t \ge 2\sqrt{ab}$, so $e^{-at-b/t} \le e^{-\sqrt{ab}}e^{-at/2}$, and the remaining integral is a Gamma integral. This is the whole of the ``$K$-Bessel inequality'' and the ``tail bound'' that a classical treatment would quote.
+\end{proof}
+
+\begin{inlean}
+\lean{CN1.CS.I}, \lean{I_zero}, \lean{norm_I_le} and \lean{differentiableAt_I} in \lean{CN1.ChowlaSelberg.GammaIntegral}.
+\end{inlean}
+
+\begin{lemma}[the slice]\label{lem:slice}
+For $y \ne 0$ and $\re s > 1$,
+\[
+\sum_{x\in\Z} Q(x,y)^{-s} = \frac{\pi^s}{\Gamma(s)} \sum_{k\in\Z} (-1)^{kby}\, I\!\left(s;\ \tfrac{\pi d y^2}{4},\ \pi k^2\right).
+\]
+\end{lemma}
+
+\begin{proof}
+Write each $Q(x,y)^{-s}$ as a Gamma integral, exchange sum and integral, apply the Jacobi theta identity with a real shift,
+\[
+\sum_{n\in\Z} e^{-\pi t (n+\alpha)^2} = t^{-1/2}\sum_{k\in\Z} e^{-\pi k^2/t}e^{2\pi i k\alpha},
+\]
+with $\alpha = by/2$, where the phase $e^{2\pi i k\alpha} = (-1)^{kby}$ is a sign, and exchange back. Both exchanges go through Mathlib's \lean{integral_tsum_of_summable_integral_norm}, with the summability supplied by \cref{lem:I}. This is the hardest lemma of the analytic part.
+\end{proof}
+
+\begin{inlean}
+\lean{CN1.CS.theta_shift} (from Mathlib's \lean{Complex.tsum_exp_neg_quadratic}), \lean{sgn}, and \lean{slice} in \lean{CN1.ChowlaSelberg.PoissonSlice}; the two parameters are \lean{ay d y} $= \pi d y^2/4$ and \lean{bk k} $= \pi k^2$.
+\end{inlean}
+
+\begin{theorem}[Chowla--Selberg with remainder]\label{thm:cs}
+For $\re s > 1$,
+\[
+\tfrac12 Z_d(s) = \underbrace{\zeta(2s) + \frac{\pi^s\,\Gamma(s-\frac12)}{\Gamma(s)}\Bigl(\frac{4}{\pi d}\Bigr)^{s-\frac12}\zeta(2s-1)}_{\mathrm{mainTerm}_d(s)} \;+\; \underbrace{\frac{\pi^s}{2\Gamma(s)}\sum_{y\ne0}\sum_{k\ne0}(-1)^{kby}\,I\!\left(s; \tfrac{\pi dy^2}{4}, \pi k^2\right)}_{E_d(s)},
+\]
+and $\pi^s (4/(\pi d))^{s-\frac12} = 2^{2s-1}\sqrt\pi\, d^{\frac12-s}$, which gives \eqref{eq:cs}.
+\end{theorem}
+
+\begin{proof}
+The $y = 0$ slice is $\sum_{x\ne0}(x^2)^{-s} = 2\zeta(2s)$. In each $y \ne 0$ slice the $k = 0$ term is the Gamma integral $(4/(\pi dy^2))^{s-\frac12}\Gamma(s-\frac12)$, and summing it over $y \ne 0$ produces $2\zeta(2s-1)$ times $(4/(\pi d))^{s-\frac12}\Gamma(s-\frac12)$. What is left is $E_d$.
+\end{proof}
+
+\begin{inlean}
+\lean{CN1.CS.tsum_int_sq_cpow}, \lean{mainTerm}, \lean{CS_main} and the classical shape \lean{CS_main_classical} in \lean{CN1.ChowlaSelberg.MainTerm}; the remainder is \lean{CN1.CS.Rterm}, \lean{S} and \lean{E} in \lean{CN1.ChowlaSelberg.Remainder}.
+\end{inlean}
+
+\paragraph{Holomorphy and the remainder bound.} The termwise bound of \cref{lem:I} reads, at any $s$ with $\re s > \frac12$,
+\[
+\bigl\|(-1)^{kby} I(s; \tfrac{\pi dy^2}{4}, \pi k^2)\bigr\| \le \Gamma(\re s - \tfrac12)\Bigl(\frac{8}{\pi d}\Bigr)^{\re s-\frac12} e^{-c|y|}e^{-c|k|}, \qquad c = \frac{\pi\sqrt d}{2},
+\]
+a product of two geometric majorants in $y$ and $k$. The majorant is summable and locally uniform in $s$, so the double series is holomorphic on $\re s > \frac12$. The factor $1/\Gamma(s)$ is kept outside the sum, since it is entire but not bounded on vertical strips, and $E_d$ is holomorphic on $\re s > \frac12$ as a product. The main term is holomorphic on $\{\re s > \frac12\} \setminus \{1\}$, where $\zeta(2s-1)$ has its pole.
+
+\begin{proposition}[remainder bound at $7/8$]\label{prop:B0}
+$E_d(7/8)$ is real, and
+\[
+|E_d(7/8)| \le B(d) := 2\pi^{7/8}\frac{\Gamma(3/8)}{\Gamma(7/8)}\Bigl(\frac{8}{\pi d}\Bigr)^{3/8}\frac{e^{-c}}{(1-e^{-c/2})^2}.
+\]
+For $d \ge 7$, where $e^{-c/2} \le \frac14$, this is at most
+\[
+B_0(d) := 4\pi^{7/8}\frac{\Gamma(3/8)}{\Gamma(7/8)}\Bigl(\frac{8}{\pi d}\Bigr)^{3/8} e^{-\pi\sqrt d/2},
+\]
+which is decreasing in $d$.
+\end{proposition}
+
+At real $\sigma$ every term of $E_d$ is real, which is why $E_d(\sigma)$ is real. Numerically $B_0(655) \approx 10^{-17}$ against a main term of about $10^{-3}$, so there is enormous slack; the true remainder at $d = 655$ is about $10^{-35}$.
+
+\begin{inlean}
+\lean{CN1.CS.norm_Rterm_le} (with the constant \lean{cst d} $= \pi\sqrt d/2$), \lean{differentiableOn_E}, \lean{E_ofReal_im}, \lean{B}, \lean{norm_E_seven_eighths_le}, \lean{B0}, \lean{B_le_B0} and \lean{B0_antitone} in \lean{CN1.ChowlaSelberg.Remainder}; \lean{differentiableOn_mainTerm} in \lean{CN1.ChowlaSelberg.MainTerm}.
+\end{inlean}
+
+\paragraph{Continuation to $7/8$.} The identity of \cref{thm:cs} has been proved on $\re s > 1$. Its right side is holomorphic on $\{\re s > \frac12\}\setminus\{1\}$. If $F$ is any function holomorphic there that agrees with $\frac12 Z_d$ on $\re s > 1$, then $F = \mathrm{mainTerm}_d + E_d$ on the whole connected domain by the identity theorem, in particular at $s = 7/8$. Rather than prove that a half-plane minus a point is connected (the pinned Mathlib has this only for the whole plane minus a point), the development builds an explicit open convex set $V$ containing $7/8$ and a piece of $\{\re s > 1\}$ but not $1$, and applies Mathlib's \lean{AnalyticOnNhd.eqOn_of_preconnected_of_eventuallyEq} there.
+
+\begin{theorem}[Chowla--Selberg at $7/8$]\label{thm:cs78}
+Let $d \ge 3$, $d \equiv 0, 3 \pmod 4$, and let $L$ be holomorphic on $\re s > \frac12$ with $\zeta(s)L(s) = \frac12 Z_d(s)$ for $\re s > 1$. Then
+\begin{equation}\label{eq:at78}
+\zeta(7/8)\,L(7/8) = \zeta(7/4) + \Bigl[\pi^{7/8}\frac{\Gamma(3/8)}{\Gamma(7/8)}\Bigl(\frac{4}{\pi d}\Bigr)^{3/8}\Bigr]\zeta(3/4) + E_d(7/8),
+\end{equation}
+and for $d \ge 7$, $|\re E_d(7/8)| \le B_0(d)$. The bracket equals $2^{3/4}\sqrt\pi\,\Gamma(3/8)/\Gamma(7/8)\cdot d^{-3/8} = C d^{-3/8}$ with $C \approx 6.4847$.
+\end{theorem}
+
+\begin{inlean}
+\lean{CN1.CS.V}, \lean{eqOn_V_of_eqOn_re_gt_one} and \lean{eq_at_ofReal_of_differentiableOn_sdiff} in \lean{CN1.ChowlaSelberg.Continuation}; \lean{CN1.CS.CS_seven_eighths} and the version consumed by the assembly, \lean{CS_seven_eighths_zeta_mul}, together with \lean{abs_E_seven_eighths_re_le_B0}, in \lean{CN1.ChowlaSelberg.SevenEighths}; the main term at $7/8$ is \lean{mainTerm_seven_eighths} in \lean{CN1.ChowlaSelberg.MainTerm}, and the bracket is rewritten by \lean{CN1.Numerics.coeff_eq} in \lean{CN1.Numerics.Glue}.
+\end{inlean}
+
+Everything in this subsection is a theorem about Mathlib's \lean{riemannZeta}, \lean{Complex.Gamma}, \lean{Real.Gamma}, \lean{Real.pi}, \lean{Real.exp}, \lean{Real.sqrt} and real powers; the remainder bound is a theorem about the development's own $E_d$, not about a separately defined look-alike. This matters: a numerical inequality about a function that merely resembles the remainder proves nothing about the function in the identity.
+
+\subsection{The numerics at \texorpdfstring{$s = 7/8$}{s = 7/8}}\label{sec:numerics}
+
+The analytic contradiction needs four real numbers pinned down as statements about Mathlib's \lean{riemannZeta} and \lean{Real.Gamma}: $\zeta(7/4)$, $\zeta(3/4)$, $\zeta(7/8)$ and $\Gamma(3/8)/\Gamma(7/8)$. Two of the zeta values lie left of $\re s = 1$, where the Dirichlet series does not converge, so the first task is a representation of $\zeta$ valid on $\re s > 0$.
+
+\paragraph{$\zeta$ on $\re s > 0$.} Mathlib's \lean{riemannZeta}$_1(s) = (s-1)\zeta(s)$ is entire. Define
+\[
+w(a, s) = s\bigl(a^{1-s} - (a+1)^{1-s}\bigr) - (s-1)\,a\bigl(a^{-s} - (a+1)^{-s}\bigr), \qquad W(s) = \sum_{n\ge0} w(n+1, s).
+\]
+For $\re s > 1$ the series telescopes against the Dirichlet series and gives $(s-1)\zeta(s) = s - W(s)$; each $w(a, s)$ is $O(a^{-\re s - 1})$, so $W$ is holomorphic on $\re s > 0$, and the identity theorem on that convex half-plane extends the equation. For real $\sigma > 0$, $\sigma \ne 1$, this exhibits $\zeta(\sigma)$ as a real number.
+
+\begin{lemma}[Euler--Maclaurin with a one-sided remainder]\label{lem:em}
+For real $\sigma > 0$, $\sigma \ne 1$, and every $M$,
+\[
+\zeta(\sigma) = \sum_{n<M}(n+1)^{-\sigma} + \frac{(M+1)^{1-\sigma}}{\sigma-1} + \frac{(M+1)^{-\sigma}}{2} + R, \qquad 0 \le R \le \frac{\sigma(\sigma+2)}{8}(M+1)^{-\sigma-1}.
+\]
+\end{lemma}
+
+\begin{proof}
+Integrate by parts on each unit interval and telescope the tail.
+\end{proof}
+
+With $M = 1000$ the finite sums are brackets of exact rationals: $1000$-term sums at scale $10^{-10}$, generated by a script in five chunks of $200$ and checked by the kernel with \lean{decide +kernel}. The outcomes are
+\[
+\zeta(3/4) \in [-3.44129, -3.44128], \qquad \zeta(7/8) \in [-7.432, -7.4319], \qquad \zeta(7/4) \in [1.96232, 1.9623202],
+\]
+each in the form ``there is a real $r$ with \lean{riemannZeta q = r} and $r$ in the interval'', so that they substitute directly into the complex identity. The two signs we need, $\zeta(3/4) < 0$ and $\zeta(7/8) < 0$, are corollaries, as is the fact that $\zeta(7/8)$ is real. For comparison, ball arithmetic gives $\zeta(3/4) = -3.44128538694522\ldots$, $\zeta(7/8) = -7.43196132932515\ldots$ and $\zeta(7/4) = 1.96232009945134\ldots$.
+
+\paragraph{The Gamma ratio.} Mathlib has log-convexity of $\Gamma$ (\lean{Real.convexOn_log_Gamma}), which yields two-sided estimates of Bohr--Mollerup type,
+\[
+\Gamma(n+1)(n+x)^{x-1} \le \Gamma(n+x) \le \Gamma(n)\,n^x \qquad (0 < x < 1).
+\]
+Writing $\Gamma(3/8)/\Gamma(7/8) = [\Gamma(n+3/8)/\Gamma(n+7/8)]\cdot\prod_{k<n}(k+7/8)/(k+3/8)$ with $n = 8000$, the ratio of shifted Gamma values is bracketed to relative width about $4\cdot10^{-5}$, and the product is a ratio of two exact integers of about $35{,}000$ digits, which the kernel multiplies out. The result is
+\[
+2.1753 \le \Gamma(3/8)/\Gamma(7/8) \le 2.1755
+\]
+(the true value is $2.1754059\ldots$).
+
+\begin{proposition}[the threshold]\label{prop:threshold}
+Define, for real $d$,
+\[
+M(d) = \zeta(7/4) + 2^{3/4}\sqrt\pi\,\frac{\Gamma(3/8)}{\Gamma(7/8)}\,d^{-3/8}\,\zeta(3/4),
+\]
+and $B_0(d)$ as in \cref{prop:B0}. Then $M(655) \ge 0.00104$, $B_0(655) \le 3\cdot10^{-16}$, $M$ is increasing on $d \ge 655$ (because $\zeta(3/4) < 0$), $B_0$ is decreasing, and hence $M(d) - B_0(d) > 0$ for every real $d \ge 655$. Consequently, for an integer $d \equiv 0$ or $3 \pmod 4$: if $M(d) - B_0(d) \le 0$ then $d \le 652$.
+\end{proposition}
+
+The integers $653$ and $654$ are excluded by the congruence, which is why the bound is $652$ and not $654$. Two numbers that are not in the Lean proof but explain the shape of the result: the main term's zero is at $d^* = 653.98763\ldots$, so $M(652) = -0.0022412 < 0$ and $M(655) = +0.0011379 > 0$ (ball arithmetic, \lean{computations/arb_threshold.py} in the repository, where the values are certified as balls). The method genuinely cannot exclude $d = 652$ by itself; the finite step has to do that. The margin at $655$ is about $10^{-3}$ against a remainder of about $10^{-35}$, so there was room to be crude about the remainder and about the Gamma ratio and still win comfortably.
+
+\begin{inlean}
+\lean{CN1.Numerics.w}, \lean{W}, \lean{riemannZeta}$_1$\lean{_eq_sub_W} and \lean{riemannZeta_eq_of_pos_re} in \lean{CN1.Numerics.ZetaStrip}; \lean{riemannZeta_ofReal_eq} and \lean{riemannZeta_ofReal_eulerMaclaurin} in \lean{CN1.Numerics.ZetaReal}; the generated tables in \lean{CN1.Numerics.ZetaTables}; \lean{riemannZeta_three_quarters}, \lean{riemannZeta_seven_eighths}, \lean{riemannZeta_seven_quarters}, \lean{riemannZeta_three_quarters_re_neg}, \lean{riemannZeta_seven_eighths_re_neg} and \lean{riemannZeta_seven_eighths_im} in \lean{CN1.Numerics.ZetaValues}; \lean{Gamma_ratio_bounds} in \lean{CN1.Numerics.GammaBounds} and \lean{Gamma_ratio_enclosure} in \lean{CN1.Numerics.GammaRatio}; \lean{mainTerm}, \lean{B0}, \lean{mainTerm_655_ge}, \lean{B0_655_le}, \lean{mainTerm_mono}, \lean{B0_anti}, \lean{mainTerm_sub_B0_pos} and \lean{disc_le_652_of_mainTerm_nonpos} in \lean{CN1.Numerics.Threshold}.
+\end{inlean}
+
+The glue lemma that connects these numerics to the Chowla--Selberg identity and performs the whole analytic contradiction of the next subsection is \lean{CN1.Numerics.disc_le_652_of_CS} in \lean{CN1.Numerics.Glue}. Its hypotheses are: $d \equiv 0, 3 \pmod 4$; $d \ge 7$; a function $L$ holomorphic on $\re s > \frac12$; the identity $\zeta(s)L(s) = \frac12 Z_d(s)$ on $\re s > 1$; and $L(7/8)$ real and non-negative. Its conclusion is $d \le 652$.
+
+\subsection{Positivity: \texorpdfstring{$L(7/8,\chi) \ge 0$}{L(7/8, chi) >= 0}, hence \texorpdfstring{$d \le 652$}{d <= 652}}\label{sec:positivity}
+
+This is the step that uses the deep input, and it uses it exactly once. The theorem from openai/math, family 003, in Mathlib's vocabulary, is the following declaration in the module \lean{OAI.NumberTheory.DirichletL.Nonvanishing} \cite{OAImath,OAIqrh}; the \lean{LFunction} is Mathlib's, the same one that appears in \cref{sec:factor}.
+
+\begin{lstlisting}
+theorem LFunction_ne_zero_of_seven_eighths_lt_re
+    {q : ℕ} [NeZero q] (χ : DirichletCharacter ℂ q) {s : ℂ}
+    (hs : (7 / 8 : ℝ) < s.re) (hpole : ¬ (χ = 1 ∧ s = 1)) :
+    _root_.DirichletCharacter.LFunction χ s ≠ 0
+\end{lstlisting}
+
+\begin{proposition}\label{prop:pos}
+Let $\chi$ be a Dirichlet character modulo $N$ whose values are real (every quadratic character qualifies), and suppose $\chi \ne 1$. Then $L(\sigma,\chi)$ is real for real $\sigma$, $L(\sigma,\chi) > 0$ for every real $\sigma > 7/8$, and $L(7/8,\chi)$ is real with $L(7/8,\chi) \ge 0$.
+\end{proposition}
+
+\begin{proof}
+First, $L(\chi,\bar s) = \overline{L(\chi,s)}$ away from the pole of the trivial character: it holds termwise on $\re s > 1$ and extends by the identity principle, in the same way Mathlib proves \lean{riemannZeta_conj}. So $L(\chi,\sigma)$ is real for real $\sigma$. Positivity for $\sigma > 1$ needs no Euler product: $L(\chi,x) \to \chi(1) = 1$ as $x \to +\infty$ (Mathlib's \lean{LSeries.tendsto_atTop}), so $\re L(\chi,x) > 0$ at some real $x > 1$; a continuous real function on an interval that never vanishes and is positive somewhere is positive everywhere; and $L(\chi,\sigma) \ne 0$ for $\sigma > 1$ is Mathlib's \lean{LFunction_ne_zero_of_one_le_re}. Now replace Mathlib's non-vanishing by OpenAI's on the interval $(7/8, \infty)$: the same sign-propagation argument gives $L(\chi,\sigma) > 0$ for every real $\sigma > 7/8$, and continuity from the right gives $L(\chi, 7/8) \ge 0$.
+\end{proof}
+
+Note that $\ge 0$ is the honest conclusion; the zero-free region is open at $7/8$, and nothing here rules out $L(7/8,\chi) = 0$. The argument does not need more.
+
+\begin{inlean}
+In \lean{CN1.Assembly.Positivity}: \lean{MulChar.IsQuadratic.conj_apply}, \lean{CN1.LFunction_conj}, \lean{LFunction_ofReal_im}, \lean{exists_one_lt_and_LFunction_re_pos}, \lean{pos_on_of_continuousOn_of_ne_zero}, \lean{LFunction_ofReal_re_pos_of_one_lt}, \lean{LFunction_ofReal_re_pos_of_seven_eighths_lt} (this is where \lean{OAI.DirichletCharacter.LFunction_ne_zero_of_seven_eighths_lt_re} is invoked), \lean{LFunction_seven_eighths_nonneg}, and the quadratic-character form used by the assembly, \lean{LFunction_seven_eighths_nonneg_of_isQuadratic}.
+\end{inlean}
+
+\begin{theorem}[the bound]\label{thm:652}
+If $K$ has class number one and $m \notin \{1,3\}$, then $d \le 652$.
+\end{theorem}
+
+\begin{proof}
+Take $\chi = \chi_{-d}$; then $d \ge 7$ since the only radicands with $d < 7$ are $m = 1$ and $m = 3$ (and $m = 2$ has $d = 8$). By \cref{prop:epstein,prop:factor}, $\zeta(s)L(s,\chi) = \frac12 Z_d(s)$ on $\re s > 1$; $L(\cdot,\chi)$ is entire because $\chi \ne 1$ (Mathlib's \lean{DirichletCharacter.differentiable_LFunction}); so \cref{thm:cs78} gives
+\[
+\zeta(7/8)\,L(7/8,\chi) = M(d) + E_d(7/8), \qquad |E_d(7/8)| \le B_0(d).
+\]
+The left side is $\le 0$: $\zeta(7/8) < 0$ by \cref{sec:numerics} and $L(7/8,\chi) \ge 0$ by \cref{prop:pos}. The right side is $\ge M(d) - B_0(d)$. So $M(d) - B_0(d) \le 0$, and \cref{prop:threshold} gives $d \le 652$.
+\end{proof}
+
+\begin{inlean}
+\lean{CN1.Numerics.disc_le_652_of_CS} applied with $L = L(\cdot,\chi_{-d})$; the wrapper that supplies the character's properties from \cref{sec:foundations} is \lean{CN1.Assembly.disc_le_652_of_epstein} in \lean{CN1.Assembly.Core}, with \lean{seven_le_disc} for $d \ge 7$. Its only hypotheses are $m$ squarefree, $m \ne 1$, $m \ne 3$, and the Epstein identity as a proposition about $m$, \lean{CN1.Assembly.EpsteinIdentity}.
+\end{inlean}
+
+\subsection{The finite range: split-prime witnesses}\label{sec:finite}
+
+We now know that a class-number-one field outside the nine would have $d \le 652$. It remains to show that no squarefree $m$ outside the nine with $d \le 652$ gives class number one. The argument is Rabinowitsch-style \cite{Rabinowitsch1913}.
+
+\begin{lemma}[the elementary inequality]\label{lem:elem}
+Write the principal form as $Q(x,y) = x^2 + txy + cy^2$ with $t \in \{0,1\}$ and $4c - t^2 = d$. If $p$ is a prime with $4p \le d$ and $p \ne c$, then $p$ is not a value of $Q$.
+\end{lemma}
+
+\begin{proof}
+$4Q(x,y) = (2x+ty)^2 + dy^2$. If $y \ne 0$ this is at least $d$, with equality only when $2x + ty = 0$ and $y = \pm1$. For $t = 1$ that is impossible by parity, so $4Q \ge d + 1 > 4p$. For $t = 0$ it happens exactly at $(0, \pm1)$, where $Q = c = d/4$, which $p \ne c$ excludes. If $y = 0$ then $Q = x^2$ is a square, and a prime is not a square.
+\end{proof}
+
+The condition $4p \le d$ is the same as $p < (d+1)/4$ for integers.
+
+\paragraph{Why ``split'' and not merely ``small''.} The proviso $p \ne c$ is essential, and it is exactly the difference between a split prime and a prime that merely has a degree-one prime above it. Take $d = 8$, the field $\Q(\sqrt{-2})$, which does have class number one. The prime $2$ is ramified, $2 < (8+1)/4$, and the principal form $x^2 + 2y^2$ represents $2$ at $(0, \pm1)$. So ``a prime below $(d+1)/4$ with a degree-one prime above it'' does not force $h \ne 1$. A split prime $p$ satisfies $p \nmid d$, hence $p \ne d/4 = c$, and the inequality applies. Among the $197$ fundamental discriminants with $4 < d \le 652$, $136$ have a ramified prime below the bound, so a proof that checked only ``$p$ does not divide $d$'' or only ``$p$ has a degree-one prime above it'' would have been wrong; $d = 8$ is the one case in range where the distinction bites, but one is enough. This example was flagged while the witnesses were being computed and confirmed by the independent review.
+
+\begin{proposition}[the witness criterion]\label{prop:witness}
+Suppose $\OK = \Z[\theta]$ with $\theta$ of minimal polynomial $X^2 - tX + c$ and norm form $x^2 + txy + cy^2$, $t \in \{0,1\}$. If $p$ is prime, $y^2 - ty + c \equiv 0 \pmod p$ for some integer $y$, $4p \le d$ and $p \ne c$, then the class number of $K$ is not one.
+\end{proposition}
+
+\begin{proof}
+By Kummer--Dedekind the factor $X - y$ of the minimal polynomial modulo $p$ corresponds to a prime $P$ above $p$ of inertia degree one, so $\Nm(P) = p$. If $\OK$ were a principal ideal ring, $P = (\beta)$ with $|\Nm\beta| = p$, $\beta = x + y'\theta$, and $Q(x,y') = p$, contradicting \cref{lem:elem}.
+\end{proof}
+
+The hypothesis ``$y^2 - ty + c$ has a root modulo $p$'' is what the kernel can check per instance; for $p \nmid d$ it is equivalent to $\chi(p) = 1$ by \cref{prop:split}, but the finite part does not need to know that.
+
+\paragraph{The $190$ instances.} For each squarefree $m$ outside the nine with $d \le 652$ we need a prime $p$ and a residue $y$. The predicate \lean{IsWitness m p y} bundles $p$ prime, $p \mid y^2 - ty + c$, $4p \le d$ and $p \ne c$, all over $\N$ so that it is decidable. The instances were found by a script and are checked by the kernel one by one, primality by \lean{norm_num}'s certificate and the rest by \lean{decide}. A typical one is $m = 5$, $d = 20$, $p = 3$, $y = 1$. The $190$ instances are split into four generated files for compile-time reasons: $m$ from $5$ to $93$ ($50$ instances), $94$ to $211$ ($50$), $215$ to $451$ ($50$) and $455$ to $651$ ($40$). Of the $190$, $127$ have $d = m \le 651$ and $63$ have $d = 4m$, so $m \le 163$. The least witness is $p = 2$ for $67$ of them, $p = 3$ for $48$, $p = 5$ for $31$, $p = 7$ for $18$, $p = 11$ for $10$, $p = 13$ for $7$, $p = 17$ for $3$, $p = 19$ for $2$, $p = 23$ for $3$, and the largest least witness is $p = 31$, at $m = 58$ ($d = 232$). The seven discriminants in range with no split prime below the bound are exactly $d = 7, 8, 11, 19, 43, 67, 163$, the Heegner discriminants above $4$; this agrees with two independent class-number computations (reduced forms and Dirichlet's formula), neither of which is used in the proof.
+
+\begin{theorem}[the finite range]\label{thm:finite}
+If $m$ is squarefree, $m \notin \{1, 2, 3, 7, 11, 19, 43, 67, 163\}$ and $d \le 652$, then $K$ does not have class number one.
+\end{theorem}
+
+\begin{proof}
+The range lemma says that every $m < 653$ with no square factor $k^2$ for $2 \le k \le 26$, with $d \le 652$ and outside the nine, is on the list of $190$; this is a \lean{decide +kernel}, and the predicate ``no square factor up to $26^2$'' is a kernel-friendly consequence of \lean{Squarefree} since $26^2 = 676 > 652$. Each member of the list has a witness, and \cref{prop:witness} applies with $\theta = \omega$.
+\end{proof}
+
+\begin{inlean}
+\lean{CN1.Finite.tOf}, \lean{cOf}, \lean{dOf} in \lean{CN1.Finite.Params}, agreeing with the foundations' \lean{disc} and \lean{principalForm} through \lean{CN1.Finite.disc_eq_dOf} and \lean{principalForm_eq} in \lean{CN1.Finite.Bridge}; \lean{not_form_eq_prime} in \lean{CN1.Finite.Elementary}; the interface \lean{CN1.Finite.QuadInt}, instantiated by \lean{quadIntOfFoundations}, and \lean{classNumber_ne_one_of_witness}, \lean{IsWitness}, \lean{SqfBelow} in \lean{CN1.Finite.SplitPrime}; the witnesses \lean{w_5}, \ldots, \lean{w_651} in \lean{CN1.Finite.Witnesses.Chunk1} to \lean{Chunk4}; \lean{nonHeegner190}, \lean{length_nonHeegner190}, \lean{exists_witness_of_mem}, \lean{mem_nonHeegner190} and \lean{classNumber_ne_one_of_quadInt} in \lean{CN1.Finite.Witnesses}; and, in the statement's own terms, \lean{CN1.Finite.classNumber_ne_one_of_foundations} in \lean{CN1.Finite.Bridge}.
+\end{inlean}
+
+\subsection{The converse: the nine fields have class number one}\label{sec:converse}
+
+For the nine fields we use the Minkowski bound, in the form Mathlib gives it: $\OK$ is a principal ideal ring if every nonzero prime ideal of norm at most the Minkowski bound is principal (\lean{RingOfIntegers.isPrincipalIdealRing_of_isPrincipal_of_norm_le_of_isPrime}). For a quadratic field with $|\disc K| \le d$ the bound is $(4/\pi)^{r_2}(2!/2^2)\sqrt{|\disc K|} \le \frac23\sqrt d$, using only $r_2 \le 1$ and $\pi > 3$.
+
+\begin{theorem}[the nine]\label{thm:nine}
+If $m \in \{1, 2, 3, 7, 11, 19, 43, 67, 163\}$ then $K$ has class number one.
+\end{theorem}
+
+\begin{proof}
+A maximal ideal $P$ with residue characteristic $q$ has $\Nm(P) = q$, or $\Nm(P) = q^2$ and $P = (q)$, which is principal. So what has to be excluded is a prime of norm $q$ with $q \le \frac23\sqrt d$. If $\theta \in \OK$ satisfies $\theta^2 = t\theta - c$ and $z^2 - tz + c$ has no root modulo $q$, then $\OK/P \cong \mathbb F_q$ would contain a root, so no such $P$ exists. For $d \in \{3, 4, 7, 8\}$ the bound $\frac23\sqrt d$ is below $2$ and there is nothing to check. For $d = 11, 19$: $q = 2$, and $z^2 - z + 3$, $z^2 - z + 5$ have no root modulo $2$. For $d = 43$: $q \in \{2, 3\}$ against $z^2 - z + 11$. For $d = 67$: $q \in \{2, 3, 5\}$ against $z^2 - z + 17$. For $d = 163$: $q \in \{2, 3, 5, 7\}$ against $z^2 - z + 41$. Each ``no root'' is a \lean{decide} over $\Z/q$.
+\end{proof}
+
+This direction covers $m = 1$ and $m = 3$ too, which is why the analytic half never needed them.
+
+\begin{inlean}
+\lean{CN1.Finite.le_two_thirds_sqrt_of_le_minkowski}, \lean{absNorm_maximal_cases}, \lean{not_absNorm_eq_of_no_root}, \lean{exists_theta} and \lean{classNumber_eq_one_of_mem_nine} in \lean{CN1.Finite.Converse}, with hypothesis $|\disc K| \le d$, which \lean{discr_eq} supplies; the version in the statement's own terms is \lean{CN1.Finite.classNumber_eq_one_of_foundations} in \lean{CN1.Finite.Bridge}.
+\end{inlean}
+
+\subsection{The assembly}\label{sec:assembly}
+
+The main theorem is proved in two layers. The first, \lean{CN1.Assembly.classNumber_eq_one_iff_of_epstein}, is the statement of record with one extra hypothesis $h_E$: whenever the class number is one and $m \notin \{1,3\}$, the Epstein identity \eqref{eq:epstein} holds for $m$, in the Chowla--Selberg module's notation:
+
+\begin{lstlisting}
+def EpsteinIdentity (m : ℕ) [NeZero (disc m)] : Prop :=
+  ∀ s : ℂ, 1 < s.re →
+    riemannZeta s * DirichletCharacter.LFunction (kroneckerChar m) s = (1 / 2 : ℂ) * CS.Z (disc m) s
+\end{lstlisting}
+
+\noindent
+Its proof is short enough to read in full: the direction $\Leftarrow$ is \cref{thm:nine}; for $\Rightarrow$, assume class number one and, for contradiction, $m$ outside the nine; then $m \ne 1$ and $m \ne 3$; \cref{thm:652}, fed by $h_E$, gives $d \le 652$; and \cref{thm:finite} gives the contradiction. The second layer, \lean{CN1.classNumber_eq_one_iff} in \lean{CN1.Main}, discharges $h_E$ with \lean{CN1.Epstein.epstein_identity_Z}:
+
+\begin{lstlisting}
+theorem classNumber_eq_one_iff (K : Type*) [Field K] [NumberField K]
+    (hK : Module.finrank ℚ K = 2)
+    (m : ℕ) (hm : Squarefree m) (hsq : ∃ α : K, α ^ 2 = -(m : K)) :
+    classNumber K = 1 ↔ m ∈ ({1, 2, 3, 7, 11, 19, 43, 67, 163} : Finset ℕ) := by
+  obtain ⟨α, hα⟩ := hsq
+  exact Assembly.classNumber_eq_one_iff_of_epstein K hK m hm ⟨α, hα⟩
+    fun h1 hm1 hm3 s hs => Epstein.epstein_identity_Z hα hK hm hm1 hm3 h1 hs
+\end{lstlisting}
+
+The conditional form is kept on record so that a reader can see exactly which hypothesis the number-field steps supply to the analytic steps, and because the negative controls of \cref{sec:controls} are built on top of it.
+
+The dependency picture is clean. The foundations, the Epstein identity, Chowla--Selberg and the numerics import only Mathlib. The finite part imports only Mathlib and the foundations. The positivity module imports openai/math's non-vanishing theorem. The $7/8$ theorem is used in exactly one place, \cref{sec:positivity}, through \lean{LFunction_ne_zero_of_seven_eighths_lt_re}.
+
+%=====================================================================================================
+\section{Verification}\label{sec:verification}
+%=====================================================================================================
+
+\subsection{Build and axioms}
+
+The main theorem was built with \lean{lake build} in the pinned environment (Lean \lean{v4.34.1}, Mathlib \lean{d13f23b}, the environment of openai/math's $7/8$ theorem, with openai/math at commit \lean{adc7f124} as a dependency), and
+\begin{center}
+\lean{#print axioms CN1.classNumber_eq_one_iff} \quad reports \quad \lean{[propext, Classical.choice, Quot.sound]}.
+\end{center}
+There is no \lean{sorry}, \lean{axiom}, \lean{native_decide} or \lean{admit} anywhere in the solution library. Every intermediate module was axiom-audited on its own as it was built.
+
+\subsection{Comparator and the run of record}\label{sec:comparator}
+
+The artefact was then checked with Comparator \cite{Comparator}, tag \lean{v4.34.0}, running under toolchain \lean{v4.34.1}, the tool openai/math uses for its own challenges, with its export by lean4export and its second kernel nanoda \cite{nanoda}. Comparator builds the challenge module (the statement with \lean{sorry}, importing only Mathlib) and the solution module, exports both constant closures, compares the elaborated statements for syntactic equality, checks that the solution's axioms lie within the permitted set, and then replays the solution export through two kernels: nanoda, an independent reimplementation of Lean's type checker, and Lean's own default kernel.
+
+The run of record was made from a frozen source tree: the md5 of every source file was recorded before the run and re-checked after it, unchanged, and the build products of the last two modules were deleted beforehand so that Comparator's own build recompiled them from the recorded sources. Its verdict was
+\begin{center}
+``nanoda kernel accepts the solution'', \quad ``Lean default kernel accepts the solution'', \quad ``Your solution is okay!'',
+\end{center}
+in about $548$ seconds of wall time, with a peak resident memory of about $9.2$ GB. An earlier run on a tree that had moved by one additive, unused lemma during the run gave the same verdict; the frozen run is the one we cite. The Comparator configuration \lean{formalization/comparator/ClassNumberOne.json} in the repository names the challenge module, the solution module \lean{CN1.Main}, the theorem, the three permitted axioms, and \lean{enable_nanoda: true}.
+
+\subsection{Negative controls}\label{sec:controls}
+
+A checker that accepts everything is worthless, so four deliberately wrong inputs were run through the same pipeline against the frozen tree. All four were rejected.
+\begin{enumerate}[label=(\alph*),nosep]
+\item The challenge statement with the hypothesis \lean{Squarefree m} deleted (a false statement, \cref{sec:statement}), against the real proof: rejected, ``Challenge and solution theorem statement do not match''.
+\item The challenge statement with $163$ replaced by $167$ (false: $\Q(\sqrt{-167})$ has class number $11$), against the real proof: rejected, statement mismatch.
+\item The real challenge against a ``proof'' that derives the statement from a postulated axiom ``every squarefree $m$ has $d \le 652$'', which is false ($m = 1000003$ is a counterexample) but makes the rest of the argument go through: rejected, ``Illegal axiom detected: \lean{CN1.Assembly.fake_bound}''.
+\item[(c$'$)] The same false bound discharged by \lean{sorry} instead of an axiom: rejected, ``Illegal axiom detected: \lean{sorryAx}''.
+\end{enumerate}
+The tampered statements (a) and (b) are in the repository, under \lean{formalization/CN1Challenges/Tamper/}, with their Comparator configurations, so anyone can rerun them. The two tampered proofs (c) and (c$'$) are not published, because a file that declares a false axiom has no business in a public library; their logs are part of our record.
+
+Comparator cannot show that a false statement is unprovable; what the controls show is that a changed statement does not pass as the real one, and that an unproved or postulated input does not pass as a proof. The controls live in a separate library that no build of the solution ever compiles, and the dependency audit confirms that none of their constants are in the main theorem's closure.
+
+\subsection{The dependency audit}\label{sec:audit}
+
+A script walked the transitive closure of \lean{CN1.classNumber_eq_one_iff} through types, proof terms and definition bodies. (An earlier version walked only definition bodies and missed theorem proofs, finding $5{,}517$ constants and no openai/math; it was caught and replaced, and the fact is recorded.) The closure has $129{,}170$ constants, which fall by module root as follows.
+
+\begin{center}\small
+\begin{tabular}{lrp{7.6cm}}
+\toprule
+root & constants & \\
+\midrule
+\lean{Mathlib} & $92{,}527$ & \\
+\lean{OAI} & $26{,}740$ & $2{,}656$ modules, all under \lean{OAI.NumberTheory.DirichletL} (family 003)\\
+Lean core (\lean{Init}, \lean{Std}, \lean{Lean}) & $8{,}091$ & \\
+\lean{CN1} & $1{,}028$ & $40$ modules; this development\\
+\lean{PrimeNumberTheoremAnd} & $375$ & imported by OpenAI's proof (Wiener--Ikehara, Sobolev)\\
+\lean{Batteries} & $215$ & Mathlib's dependency\\
+\lean{RellichKondrachov} & $191$ & imported by OpenAI's proof\\
+\lean{Aesop} & $3$ & Mathlib's dependency\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+So the $7/8$ theorem's proof is inside what was checked, not a hypothesis. The two packages \lean{PrimeNumberTheoremAnd} and \lean{RellichKondrachov} enter through OpenAI's proof, at the commits pinned by openai/math at \lean{adc7f124} (\lean{PrimeNumberTheoremAnd} at \lean{c39a7511}, \lean{rellich-kondrachov} at \lean{70f85d4c}), each with OpenAI's published Lean \lean{v4.34.1} compatibility patch, which we verified applies exactly (the working tree equals the pinned commit plus the patch, by a reverse-apply check).
+
+One checked fact deserves a sentence of its own, since a commenter in the thread (LemmaLab) raised it. At the pinned commit \lean{c39a7511}, the file \lean{Wiener.lean} of \lean{PrimeNumberTheoremAnd} contains two \lean{sorry}, in \lean{prelim_decay_2} and \lean{prelim_decay_3}. OpenAI's published patch for that package removes both; the patched file has no \lean{sorry}; and \lean{sorryAx} is absent from the closure, both by Comparator's axiom check on the export and by our audit. Nothing in the proof rests on an unproved lemma of that package.
+
+A case-insensitive scan of every constant and module name in the closure for \emph{heegner}, \emph{baker}, \emph{stark}, \emph{gross}, \emph{zagier}, \emph{goldfeld}, \emph{heilbronn}, \emph{deuring}, \emph{linfoot}, and \emph{class number one} in its spellings found only this development's own names (the theorem itself, and the list \lean{nonHeegner190}) and Mathlib's \lean{NumberField.classNumber_eq_one_iff}, which is the criterion ``class number one iff principal ideal ring'', not a classification. No classification of class-number-one fields is anywhere in the closure. The $190$ witness primes, the three zeta enclosures, the Gamma enclosure and the threshold were all produced by scripts and then accepted or rejected by the kernel alone; none of the script output is trusted.
+
+\subsection{Independent review and caveats}\label{sec:caveats}
+
+Each module's statements and proofs were read by an independent AI review session, separate from the sessions that wrote them, and the numerics (the threshold, the prefactor of the remainder, the witness list) were recomputed independently with separate code. Two points in the record show why that matters: the review caught the wrong Bessel prefactor described in \cref{sec:cs}, and the $d = 8$ example of \cref{sec:finite}, which is why the finite lemma must require a split prime and not just a small one, was flagged during the witness computation and then confirmed by the review.
+
+The Comparator runs described here are local and unsandboxed: the sandboxing layer that Comparator normally uses was replaced by a pass-through shim on this machine, as in our earlier replay of openai/math's own $7/8$ challenge on 7 October 2026. An independent replay of the final artefact, by a separate review session with its own build and its own copy of nanoda (on the same machine, with the same Comparator binary), was in progress when this version was written; its result will be recorded in the repository. The md5 of every file in the frozen tree, and the hashes of the three tool binaries, are recorded alongside the logs.
+
+%=====================================================================================================
+\section{Method}\label{sec:method}
+%=====================================================================================================
+
+The formalization was produced with Telperion, a certificate engine we have been developing, whose premise is simple: everything a language model produces, whether numbers, enclosures, witness primes or proof drafts, is untrusted input, and the engine emits Lean that only the kernel can accept or reject. A hallucinated inequality does not become a theorem; it fails to check. In this project that discipline shows in the places where the argument is tight: the $1000$-term zeta sums, the $35{,}000$-digit Gamma product, the $190$ witnesses, and the threshold at $655$ were all generated by scripts and then checked by \lean{decide +kernel} or \lean{norm_num}, and the Lean statements they establish are the ones that the analytic lemmas consume, not look-alikes.
+
+What untrusted input cannot be protected against by the kernel is a statement that says the wrong thing. For that reason the statement of \cref{sec:statement} was written first and reviewed, by a separate session, before any proof was built on it; three candidate phrasings were written down and the one whose constant closure is Mathlib's alone was chosen. The review also checked, with a kernel-checked lemma of its own that is not part of this repository, that the hypotheses are satisfiable for every squarefree $m$, so that the theorem is not vacuous. The tampered statements of \cref{sec:controls} are the other half of the same precaution: they show that the checker distinguishes the reviewed statement from near neighbours.
+
+Negative controls are part of the pipeline rather than an afterthought, for a reason we learned the hard way. Our own audits, including known-answer tests, have found real soundness bugs in our tools, among them a winding-number routine that sampled a contour rather than certifying it. They were fixed and disclosed (Arda pull requests \#739 and \#740). A checking pipeline that had never been shown to reject anything would not have found them. We think this is one practical answer to the question Tao raised in posing the challenge, of how to get the benefit of AI assistance in mathematics without trusting what the AI says: let the AI propose, let the kernel decide, review the statement by hand, and prove that the checker can say no.
+
+%=====================================================================================================
+\section{What is not claimed}\label{sec:notclaimed}
+%=====================================================================================================
+
+The bound $d \le 652$ is effective and is proved in Lean, but it rests on openai/math's theorem that Dirichlet $L$-functions do not vanish for $\re s > 7/8$. That theorem's manuscript \cite{OAIqrh} is, as far as we know, not refereed. Its Lean proof has been kernel-checked, here and in our earlier replay, so its correctness is not in question in the sense that matters for the kernel; what a human reader may reasonably want, and does not yet have, is a refereed understanding of why it is true. We are explicit about this because the point of the exercise is to separate what is mechanically certain from what is understood.
+
+Nothing here bears on the Riemann hypothesis. The class number one problem is about the real zeros of Dirichlet $L$-functions of real characters near $s = 1$, and the input we use is a zero-free half-plane, not anything about $\zeta$ on the critical line.
+
+The proof is not optimal and does not try to be. The remainder bound has about thirty orders of magnitude of slack; the Gamma ratio is enclosed to five digits where two would do; the Minkowski argument for the nine uses $\frac23\sqrt d$ rather than $\frac2\pi\sqrt d$. These choices made the Lean proof shorter, not the mathematics sharper. The quantity that is sharp is the threshold itself: the method, with this main term, cannot exclude $d = 652$, and the finite step is genuinely needed up to there.
+
+The Chowla--Selberg module is specific to the principal form with leading coefficient one, which is all that class number one requires. It is not a general Chowla--Selberg formula for arbitrary binary quadratic forms.
+
+Finally, this paper describes the mathematics and the checking; it is not itself checked by anything. Where it says what a Lean lemma states, the lemma is the authority.
+
+%=====================================================================================================
+\section*{Acknowledgments and AI disclosure}
+%=====================================================================================================
+
+The challenge is Terence Tao's. The quasi-Riemann hypothesis at $7/8$ for all Dirichlet $L$-functions, with its Lean proof, is OpenAI's (openai/math, family 003, Apache-2.0). The Chowla--Selberg formula is S.~Chowla's and A.~Selberg's; in the comments of Tao's post, michaelmross gave the expansion of the principal form by Poisson summation, Tao observed that together with the $7/8$ theorem it gives $d < 655$, and LemmaLab evaluated it at the fixed point $s = 7/8$ and certified $d \le 653$ in ball arithmetic; \cref{sec:numerics} is that evaluation, proved in Lean. The finite step is classical, in the spirit of Rabinowitsch's criterion; in the thread it was used by Lior Silberman, Kyle Pratt, twinheterodox and michaelmross. We thank Mathlib and its contributors for the number-field, $L$-series, Gamma, Mellin and Poisson-summation infrastructure that the development leans on throughout, and the authors of the packages OpenAI's proof builds on, including PrimeNumberTheoremAnd and RellichKondrachov; Chris Bailey for nanoda, the second kernel; and the authors of Comparator and lean4export, the checking pipeline.
+
+The formalization, the numerics and this paper were produced with extensive use of an AI assistant (Claude, Anthropic) under the direction of the author, in separate sessions: one session did the work, and another, independent session reviewed each part before it was built on and replayed the final checks. The mathematical route is due to the people credited above. The Lean kernel is the trusted component; every claim here is either a kernel-checked theorem or labelled with how it was obtained.
+
+\bibliographystyle{amsplain}
+\bibliography{refs}
+
+\end{document}

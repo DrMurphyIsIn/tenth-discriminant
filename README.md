@@ -5,13 +5,16 @@ This repository is our attempt at Terence Tao's
 of 20 October 2026: take one of the new arguments ruling out Siegel zeroes, and use it to bound a hypothetical tenth imaginary
 quadratic field of class number one, without Heegner's method.
 
-Our aim is a little more than a bound. We want a **kernel-checked** proof, in Lean 4, of the class number one theorem itself: the
-imaginary quadratic fields ℚ(√−m) of class number one are exactly those with m ∈ {1, 2, 3, 7, 11, 19, 43, 67, 163}. The proof is to
-go through the new zero-free region for Dirichlet L-functions rather than through Heegner, Baker or Stark. We also want that proof
-to be readable by a number theorist, with one Lean lemma per step of the human argument and a short write-up alongside.
+Our aim was a little more than a bound: a **kernel-checked** proof, in Lean 4, of the class number one theorem itself. The
+imaginary quadratic fields ℚ(√−m) of class number one are exactly those with m ∈ {1, 2, 3, 7, 11, 19, 43, 67, 163}. The proof goes
+through the new zero-free region for Dirichlet L-functions rather than through Heegner, Baker or Stark. It is also meant to be
+readable by a number theorist, with one Lean lemma per step of the human argument and a write-up alongside.
 
-**Status: work in progress. Nothing in this repository is yet a finished proof.** The sections below say exactly what is done and
-what is not.
+**Status: the Lean proof is complete.** It proves the theorem above, including the bound d ≤ 652, and Comparator accepts it under
+two independent kernels, Lean's and nanoda, with only the three standard axioms. The accompanying paper, in [`paper/`](paper/README.md),
+describes the proof and how it was checked. The Lean sources are being moved into `formalization/` after a final pass that tidies
+their comments, and the moved copy is being re-checked. Until that lands, this repository holds the statement, the paper and the
+numerical checks. The sections below say exactly what is here and what is still to come.
 
 ## The argument in six steps
 
@@ -26,45 +29,44 @@ real character attached to K.
 3. The Chowla–Selberg formula continues ½ Σ′ Q^{−s} past Re s = 1: it equals ζ(2s) + 2^{2s−1}√π Γ(s − ½)/Γ(s) d^{½−s} ζ(2s − 1),
    plus a K-Bessel series of size about e^{−π√d}.
 4. At s = 7/8 the main part is ζ(7/4) + C·d^{−3/8}·ζ(3/4), where C = 2^{3/4}√π Γ(3/8)/Γ(7/8) ≈ 6.4847, and ζ(3/4) < 0, so it
-   increases with d. It is negative at d = 652 and positive for every d ≥ 655; its zero is at d* = 653.98763…. *(Status: certified
-   numerically in ball arithmetic, see `computations/`; not yet proved in Lean, and the Bessel remainder is bounded there using a
-   standard inequality not yet proved here.)*
+   increases with d. It is negative at d = 652 and positive for every d ≥ 655; its zero is at d* = 653.98763…. *(Proved in Lean,
+   together with an explicit bound on the Bessel remainder; see the paper, §3.4–3.5. An independent ball-arithmetic check is in
+   `computations/`.)*
 5. ζ(7/8) < 0, so for large d, L(7/8, χ) = ζ_K(7/8)/ζ(7/8) < 0. But L(σ, χ) > 0 for σ > 1. By the theorem that no Dirichlet
    L-function vanishes when Re s > 7/8 (apart from the pole of the trivial character at s = 1), L has no zero on (7/8, 1], so by
-   continuity L(7/8, χ) ≥ 0. That is a contradiction, so **d ≤ 652**. *(Status: the argument is standard; the conclusion rests on
-   step 4, so it is not yet proved here.)*
+   continuity L(7/8, χ) ≥ 0. That is a contradiction, so **d ≤ 652**. *(Proved in Lean; see the paper, §3.6.)*
 6. The finite range: if some prime p < (d + 1)/4 splits in K, a prime ideal of norm p would be principal, forcing Q(x, y) = p, which
-   is impossible for such a small p. So K does not have class number one. *(Status: a computation finds such a witness prime for
-   every non-Heegner field in range; it is not yet in `certificates/` or checked by the kernel.)*
+   is impossible for such a small p. So K does not have class number one. *(Proved in Lean: for each of the 190 squarefree
+   non-Heegner m with d ≤ 652 the kernel checks a split-prime witness; see the paper, §3.7.)*
 
-## What is done today
+## What is here today
 
+- `paper/`: the paper, *The class number one theorem without Heegner, kernel-checked: d ≤ 652 from the 7/8 quasi-Riemann hypothesis
+  in Lean 4*. It has the source, the bibliography and the built PDF.
+- `formalization/`: the reviewed Lean statement of the theorem and its Comparator configuration.
 - `computations/`: an independent recomputation of step 4, in mpmath at 50 digits (`cs_threshold.py`) and in Arb ball arithmetic at
-  256 bits (`arb_threshold.py`). The values M(652) = −0.0022412 < 0 and M(655) = +0.0011379 > 0 are certified as balls. Two inputs
-  of the remainder estimate are still standard facts we have not yet proved here: a K-Bessel inequality and a tail bound. The
-  Lean version will replace them with a proved bound.
+  256 bits (`arb_threshold.py`). The values M(652) = −0.0022412 < 0 and M(655) = +0.0011379 > 0 are certified as balls. These
+  scripts are evidence, not part of the proof; the Lean proof bounds the remainder itself.
 - `telperion/`: a vendored copy of the Telperion certificate engine (see below). It is the same snapshot that ships with our
   [Brualdi–Goldwasser repository](https://github.com/DrMurphyIsIn/brualdi-goldwasser).
 
-## What is not done yet
+## Still to come
 
-- The Lean proof (`formalization/`). The statement is written and reviewed, a one-screen theorem using only Mathlib definitions
-  (see `formalization/README.md`); the proof is not.
-- The certificate generators for the numerical inequalities, and the witness primes (`certificates/`).
-- The human-readable write-up (`notes/`).
-
-When the proof is finished it will be checked by Comparator with two independent kernels (Lean's and nanoda). Only the three
-standard axioms will be allowed, with no `sorry` and no `native_decide`. A deliberately tampered statement must be rejected. The
-dependency closure will be audited for any class-number-one input.
+- The Lean sources of the proof, in `formalization/`, with the Lean project files and the tampered statements that Comparator must
+  reject.
+- The generators for the witness primes and the numerical tables, in `certificates/`, with a script that regenerates them and checks
+  them byte-for-byte.
+- The proof written out for a human reader, in `notes/`.
+- The result of an independent replay of the final checks by a separate review session.
+- A newer Telperion snapshot.
 
 ## Trust base
 
 The deep analytic input is the theorem that every Dirichlet L-function is non-zero for Re s > 7/8 (apart from the pole at s = 1),
-from [openai/math](https://github.com/openai/math) (family 003, Apache-2.0). It is an unrefereed preprint, with a Lean proof. Once
-our formalization exists, that proof will sit inside its checked dependency closure, so it will not be something a reader has to
-trust. We replayed its Comparator challenge with both kernels (Lean's and nanoda) on 7 October 2026, locally and without
-Comparator's sandbox. What a reader does have to trust is the statement (and the Mathlib definitions it uses), the kernels, and the
-three standard axioms.
+from [openai/math](https://github.com/openai/math) (family 003, Apache-2.0). It is an unrefereed preprint, with a Lean proof. That
+Lean proof sits inside the dependency closure that our check covers, so it is not something a reader has to trust. What a reader does
+have to trust is the statement (and the Mathlib definitions it uses), the kernels, and the three standard axioms. Our Comparator runs
+are local and do not use Comparator's sandbox.
 
 ## Why Telperion
 
@@ -84,16 +86,17 @@ how to get the benefit of AI assistance in mathematics without trusting what the
 
 - The quasi-Riemann hypothesis at 7/8 for all Dirichlet L-functions: OpenAI, openai/math, family 003.
 - The non-existence of Siegel zeroes and its digests: OpenAI; W. D. Banks (arXiv:2610.15483); B. Kerr (arXiv:2610.21099); B. Green.
-- The Chowla–Selberg formula: S. Chowla and A. Selberg. Its use at s = 7/8 for this challenge, and the finite step (a
-  Rabinowitsch-style criterion), were developed in the comments of Tao's post. We will credit the commenters by name once we have
-  checked the thread at source.
+- The Chowla–Selberg formula: S. Chowla and A. Selberg. In the comments of Tao's post, michaelmross gave the expansion of the
+  principal form by Poisson summation. Tao observed that, with the 7/8 theorem, it gives d < 655. LemmaLab evaluated it at the
+  fixed point s = 7/8 and certified d ≤ 653 in ball arithmetic. Our step 4 is that evaluation, proved in Lean.
+- The finite step is classical, in the spirit of Rabinowitsch's criterion. In the thread it was used by Lior Silberman (every small
+  prime is inert under class number one), Kyle Pratt, twinheterodox and michaelmross.
 - The challenge: T. Tao.
 
 ## AI use
 
 This work is done with extensive use of AI assistance (Anthropic's Claude), in several separate sessions: one does the work and
-another independently reviews it. Our aim is that every claim here is either machine-checked or labelled with how it was obtained;
-while the work is in progress, the labels on steps 4–6 above say what is and is not yet checked.
+another independently reviews it. Every claim here is either machine-checked or labelled with how it was obtained.
 
 ## Licensing
 
