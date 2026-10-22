@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this work, please cite it as below."
-title: "The class number one theorem without Heegner, kernel-checked twice in Lean 4: d <= 652 from the 7/8 quasi-Riemann hypothesis, and a determinant proof with no L-functions"
+title: "Two kernel-checked Lean 4 proofs of the class number one theorem without Heegner: d <= 652 from the 7/8 quasi-Riemann hypothesis, and a determinant proof with no L-functions"
 authors:
   - family-names: Murphy
     given-names: Peter W.
