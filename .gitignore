@@ -23,3 +23,14 @@ determinant/formalization/AxiomCheck.lean
 determinant/formalization/axioms.out
 determinant/formalization/build.log
 determinant/formalization/hashes.txt
+hcn/paper/*.aux
+hcn/paper/*.bbl
+hcn/paper/*.blg
+hcn/paper/*.log
+hcn/paper/*.out
+hcn/paper/*.toc
+hcn/certificates/_regen/
+hcn/formalization/AxiomCheck.lean
+hcn/formalization/axioms.out
+hcn/formalization/axioms.err
+hcn/formalization/build.log
