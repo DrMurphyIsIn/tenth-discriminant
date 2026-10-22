@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""Generate the Lean tables of rational brackets for the Euler-Maclaurin sums (ZetaTables.lean).
+
+For sigma = p/q in {3/4, 7/8, 7/4}, M = C*K terms (n+1)^{-sigma}, n < M, we emit per block c < C
+lists lo_c, hi_c of naturals with lo_c[n]^q * m^p <= S^q <= hi_c[n]^q * m^p, m = K*c + n + 1, so that
+lo/S <= m^{-p/q} <= hi/S. The kernel checks the integer facts (`decide +kernel`); the real side is
+`CN1.Numerics.sum_block_lo_neg/hi_neg` (RpowBounds.lean). Exact integer arithmetic only: no floats.
+
+Also prints the single-value brackets for N = M+1 that ZetaValues.lean needs, and the resulting
+enclosures (COMPUTED, for information only; the Lean proof does not depend on these decimals).
+
+Output: the path given as the first argument, by default ../formalization/CN1/Numerics/ZetaTables.lean.
+"""
+import os, sys
+from fractions import Fraction
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "formalization", "CN1", "Numerics", "ZetaTables.lean")
+
+C, K = 5, 200
+M = C * K
+S = 10**10
+
+def iroot(x, q):
+    """floor(x^(1/q)) for x >= 0 by Newton iteration, exact."""
+    if x < 2:
+        return x
+    r = int(round(x ** (1.0 / q))) if x < 2**900 else 1 << ((x.bit_length() + q - 1) // q)
+    # Newton: ensure convergence from above/below
+    while True:
+        # fix up
+        while r**q > x:
+            r -= 1
+        while (r + 1)**q <= x:
+            r += 1
+        if r**q <= x < (r + 1)**q:
+            return r
+
+def neg_bracket(m, p, q, S):
+    """lo, hi naturals with lo^q m^p <= S^q <= hi^q m^p."""
+    X = S**q // m**p
+    lo = iroot(X, q)
+    assert lo**q * m**p <= S**q
+    hi = lo if lo**q * m**p == S**q else lo + 1
+    assert S**q <= hi**q * m**p
+    assert hi - lo <= 1
+    return lo, hi
+
+def pos_bracket(m, p, q, S):
+    """lo, hi naturals with lo^q <= m^p S^q <= hi^q."""
+    X = m**p * S**q
+    lo = iroot(X, q)
+    assert lo**q <= X
+    hi = lo if lo**q == X else lo + 1
+    assert X <= hi**q
+    return lo, hi
+
+SIGMAS = {"34": (3, 4), "78": (7, 8), "74": (7, 4)}
+
+def lean_list(xs):
+    return "[" + ", ".join(str(x) for x in xs) + "]"
+
+def gen_sigma(tag, p, q, out):
+    out.append(f"\n/-! ### sigma = {p}/{q}: blocks of {K} brackets at scale 10^10 -/\n")
+    tot_lo, tot_hi = 0, 0
+    for c in range(C):
+        los, his = [], []
+        for n in range(K):
+            m = K * c + n + 1
+            lo, hi = neg_bracket(m, p, q, S)
+            los.append(lo); his.append(hi)
+        slo, shi = sum(los), sum(his)
+        tot_lo += slo; tot_hi += shi
+        out.append(f"def zlo{tag}_{c} : List ℕ := {lean_list(los)}\n")
+        out.append(f"def zhi{tag}_{c} : List ℕ := {lean_list(his)}\n")
+        out.append(f"theorem zlo{tag}_{c}_fact : ∀ n < {K}, (zlo{tag}_{c}.getD n 0) ^ {q} * ({K} * {c} + n + 1) ^ {p} ≤ (10000000000) ^ {q} := by\n  decide +kernel\n")
+        out.append(f"theorem zhi{tag}_{c}_fact : ∀ n < {K}, (10000000000) ^ {q} ≤ (zhi{tag}_{c}.getD n 0) ^ {q} * ({K} * {c} + n + 1) ^ {p} := by\n  decide +kernel\n")
+        out.append(f"theorem zlo{tag}_{c}_sum : ∑ n ∈ Finset.range {K}, zlo{tag}_{c}.getD n 0 = {slo} := by\n  decide +kernel\n")
+        out.append(f"theorem zhi{tag}_{c}_sum : ∑ n ∈ Finset.range {K}, zhi{tag}_{c}.getD n 0 = {shi} := by\n  decide +kernel\n")
+    e = f"-(({p} : ℝ) / {q})"
+    # lower bound theorem
+    for side, tot, lemma, lst in (("lo", tot_lo, "sum_block_lo_neg", "zlo"), ("hi", tot_hi, "sum_block_hi_neg", "zhi")):
+        if side == "lo":
+            stmt = f"({tot} : ℝ) / 10000000000 ≤ ∑ i ∈ Finset.range {M}, ((i : ℝ) + 1) ^ ({e})"
+        else:
+            stmt = f"∑ i ∈ Finset.range {M}, ((i : ℝ) + 1) ^ ({e}) ≤ ({tot} : ℝ) / 10000000000"
+        out.append(f"\n/-- COMPUTED enclosure side: Σ_{{n=1}}^{{{M}}} n^(-{p}/{q}) {'≥' if side=='lo' else '≤'} {tot}/10^10. -/\n")
+        out.append(f"theorem zsum{tag}_{side} : {stmt} := by\n")
+        out.append(f"  set f : ℕ → ℝ := fun i => ((i : ℝ) + 1) ^ ({e}) with hf\n")
+        out.append(f"  have hf' : ∀ i, f i = ((i : ℝ) + 1) ^ ({e}) := fun i => by rw [hf]\n")
+        for c in range(C):
+            out.append(f"  have h{c} := {lemma} f ({e}) {p} {q} 10000000000 {K} ({K} * {c}) (by norm_num) (by norm_num) rfl hf' {lst}{tag}_{c} {lst}{tag}_{c}_fact\n")
+            out.append(f"  rw [{lst}{tag}_{c}_sum] at h{c}\n")
+        out.append(f"  rw [show ({M} : ℕ) = {C} * {K} from rfl, sum_range_chunk f {C} {K}]\n")
+        out.append(f"  rw [" + ", ".join(["Finset.sum_range_succ"] * C) + ", Finset.sum_range_zero, zero_add]\n")
+        out.append(f"  push_cast at h0 h1 h2 h3 h4 ⊢\n")
+        out.append(f"  linarith\n")
+    return tot_lo, tot_hi
+
+def main():
+    out = []
+    out.append("import CN1.Numerics.RpowBounds\n\n")
+    out.append("/-!\n# Kernel-checked bracket tables for the Euler–Maclaurin sums (GENERATED)\n\n")
+    out.append("Generated by certificates/gen_zeta_tables.py; do not edit by hand. Pinned environment:\nLean v4.34.1, Mathlib d13f23b. Mathlib only.\n\n")
+    out.append(f"For sigma = 3/4, 7/8, 7/4 and M = {M} = {C} blocks of {K}: lists `zlo`, `zhi` of naturals with\n`lo^q * m^p ≤ (10^10)^q ≤ hi^q * m^p` (m = n + 1), so `lo/10^10 ≤ m^(-p/q) ≤ hi/10^10`.\nThe kernel decides every integer fact (`decide +kernel`, GMP-accelerated `Nat`); the real\ntransport is `sum_block_lo_neg/hi_neg` and `sum_range_chunk` (RpowBounds.lean).\n-/\n\n")
+    out.append("set_option autoImplicit false\nset_option maxRecDepth 4000\n\nnamespace CN1.Numerics\n")
+    report = {}
+    for tag, (p, q) in SIGMAS.items():
+        report[tag] = gen_sigma(tag, p, q, out)
+    out.append("\nend CN1.Numerics\n")
+    with open(OUT, "w") as fh:
+        fh.write("".join(out))
+    print("wrote", OUT)
+    # single-value brackets for N = M+1 (printed for ZetaValues.lean)
+    N = M + 1
+    S2 = 10**12
+    print(f"\nN = {N}, scale S2 = 10^12")
+    singles = {}
+    for name, (p, q, sign) in {
+        "N^(1/4)": (1, 4, +1), "N^(-3/4)": (3, 4, -1), "N^(-7/4)": (7, 4, -1),
+        "N^(1/8)": (1, 8, +1), "N^(-7/8)": (7, 8, -1), "N^(-15/8)": (15, 8, -1),
+        "N^(-11/4)": (11, 4, -1),
+    }.items():
+        lo, hi = (pos_bracket if sign > 0 else neg_bracket)(N, p, q, S2)
+        singles[name] = (lo, hi)
+        print(f"  {name}: lo={lo} hi={hi}   (p={p}, q={q}, {'pos' if sign>0 else 'neg'})")
+    # COMPUTED enclosures of zeta values (sanity only)
+    for tag, (p, q) in SIGMAS.items():
+        sig = Fraction(p, q)
+        tl, th = report[tag]
+        Slo, Shi = Fraction(tl, S), Fraction(th, S)
+        one_minus = 1 - sig
+        if one_minus > 0:
+            lo1, hi1 = pos_bracket(N, one_minus.numerator, one_minus.denominator, S2)
+        else:
+            lo1, hi1 = neg_bracket(N, (-one_minus).numerator, (-one_minus).denominator, S2)
+        A_lo, A_hi = Fraction(lo1, S2), Fraction(hi1, S2)
+        lo2, hi2 = neg_bracket(N, sig.numerator, sig.denominator, S2)
+        B_lo, B_hi = Fraction(lo2, S2), Fraction(hi2, S2)
+        sp1 = sig + 1
+        lo3, hi3 = neg_bracket(N, sp1.numerator, sp1.denominator, S2)
+        Cm_hi = Fraction(hi3, S2)
+        coef = 1 / (sig - 1)
+        Rmax = sig * (sig + 2) / 8 * Cm_hi
+        # zeta = sum + coef*N^{1-sig} + N^{-sig}/2 + R
+        if coef > 0:
+            zlo = Slo + coef * A_lo + B_lo / 2
+            zhi = Shi + coef * A_hi + B_hi / 2 + Rmax
+        else:
+            zlo = Slo + coef * A_hi + B_lo / 2
+            zhi = Shi + coef * A_lo + B_hi / 2 + Rmax
+        print(f"zeta({sig}) in [{float(zlo):.10f}, {float(zhi):.10f}]  width {float(zhi-zlo):.2e}  (Rmax {float(Rmax):.2e})")
+
+if __name__ == "__main__":
+    main()

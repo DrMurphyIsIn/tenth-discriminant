@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "The class number one theorem without Heegner, kernel-checked: d <= 652 from the 7/8 quasi-Riemann hypothesis in Lean 4"
+authors:
+  - family-names: Murphy
+    given-names: Peter W.
+repository-code: "https://github.com/DrMurphyIsIn/tenth-discriminant"
+license:
+  - Apache-2.0
+  - CC-BY-4.0
+  - BUSL-1.1
+version: v1.0.0
+date-released: 2026-10-22
+doi: 10.5281/zenodo.23550258
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23550258
+    description: "Zenodo archive of release v1.0.0"
+keywords:
+  - class number one
+  - imaginary quadratic fields
+  - Siegel zeros
+  - quasi-Riemann hypothesis
+  - Chowla-Selberg formula
+  - Lean 4
+  - formal verification
+  - Comparator
+abstract: >-
+  A Lean 4 proof, accepted by two independent kernels (Lean's and nanoda) through Comparator in local, unsandboxed runs, that for squarefree m >= 1 the
+  field Q(sqrt(-m)) has class number one if and only if m is in {1, 2, 3, 7, 11, 19, 43, 67, 163}. The proof uses no Heegner,
+  Baker, Stark or Gross-Zagier input. It goes through OpenAI's zero-free region Re s > 7/8 for Dirichlet L-functions, whose Lean
+  proof is inside the checked closure, and the Chowla-Selberg formula at s = 7/8, which gives the explicit bound d <= 652 proved
+  in Lean, followed by kernel-checked split-prime witnesses for the finite range. Written for T. Tao's tenth-discriminant
+  challenge (20 October 2026).
