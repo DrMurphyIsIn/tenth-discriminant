@@ -593,11 +593,16 @@ A separate AI review session, under its own identity and not one of the sessions
 
 The replay's caveats are these. Comparator and lean4export were the same binaries as in the run of record, and the Lean kernel is the same toolchain, \lean{v4.34.1}, so the Lean-kernel half of the replay is not independent of the run of record. The independent kernel is nanoda, a separate implementation in a separate build, and the independent build covers the project's own compiled modules. The dependencies, Mathlib and the other pinned packages, came from the same shared package tree and were not rebuilt; their exported constants are re-checked by both kernels through Comparator's export. The runs were local and unsandboxed, through the same kind of pass-through shim. The replay never imported \lean{ELEM.Main} together with the challenge or a control.
 
+\subsection{The published files and a fresh build}\label{sec:freshbuild}
+
+\paragraph{The published files are the checked files.} Before publication, internal references were removed from the comments and docstrings of the Lean files, and nothing else. The published sources therefore differ from the verified ones in comments only. Built side by side against the same Mathlib, the two trees give a byte-identical lean4export export of the closure of \lean{CN1.classNumber_eq_one_iff} (md5 \lean{5b1cacd1}, about $528$\,MB), the export that Comparator's kernels replay. The proof routed through a postulated axiom is not published, because a file that declares a false axiom does not belong in a public library. The method, with a control in which a one-line change to a proof term is detected, is in \lean{determinant/formalization/VERIFICATION.md} in the repository.
+
+\paragraph{A fresh build.} A copy of the published formalization, with no build state, was built from its public lakefile, which requires Mathlib \lean{d13f23b} from git. The Mathlib cache directory was empty, so Mathlib's prebuilt \lean{.olean} files were fetched over the network: \lean{lake exe cache get} downloaded $8{,}908$ files in about $150$ seconds. Then \lean{lake build}, whose default target is \lean{ELEM}, exited $0$ after $8{,}980$ jobs in about $53$ seconds, and building the challenge and the two tampered statements took $10$ seconds more. From nothing to a built proof took about $3.4$ minutes and about $8$\,GB of disk, on an Apple M3 Ultra (32 cores, 96\,GB). Afterwards every package was at its pinned revision with no local changes, and \lean{#print axioms CN1.classNumber_eq_one_iff}, in a file importing only \lean{ELEM.Main}, printed the three standard axioms. Mathlib itself was not recompiled: its compiled files came from the official Mathlib cache, and they are re-checked through the Comparator export of \cref{sec:comparator}. This build was not tested on Linux, and Comparator was not run inside the fresh copy.
+
 \subsection{What is pending}\label{sec:pending}
 
 The following items had no result when this version was written.
 \begin{enumerate}[label=(\roman*),nosep]
-\item A build from a clean copy of the formalization \pending{job count and wall time}.
 \item The author's own check of the final record \pending{author's check}.
 \item Continuous integration, as GitHub Actions in the public repository \pending{CI}.
 \end{enumerate}
@@ -635,7 +640,7 @@ closure & $129{,}170$ constants, $26{,}740$ from openai/math & $69{,}295$ consta
 outside Mathlib & openai/math, PrimeNumberTheoremAnd, RellichKondrachov & none \\
 $L$, $\zeta$, zero-free theorem & all three in the closure & none in the closure \\
 new Lean & about $7{,}500$ lines, $40$ modules & about $4{,}000$ lines, $42$ modules \\
-fresh build & $11{,}914$ jobs, about one hour & \pending{fresh-build job count and time} \\
+fresh build & $11{,}914$ jobs, about one hour & about $3.4$ minutes: cache download $150$\,s, then $8{,}980$ jobs in $53$\,s; Mathlib from its official cache \\
 Comparator run & about $548$\,s, $9.2$\,GB & about $148$\,s, $6.3$\,GB \\
 human-readable source & an unrefereed manuscript for the $7/8$ theorem, plus classical Chowla--Selberg & an unrefereed $8$-page note, plus two short papers \\
 \bottomrule
@@ -652,7 +657,7 @@ human-readable source & an unrefereed manuscript for the $7/8$ theorem, plus cla
 
 \paragraph{The finite range.} The finite range of the determinant proof is fifty times larger, $9{,}955$ non-Heegner fields against $190$, and yet its certificate is smaller and cheaper. The first proof needed a list of its $190$ radicands, a range lemma showing that the list is complete, and one witness with a primality certificate for each. The determinant proof never lists a field. It sieves the $4{,}095$ integers $q \equiv 3 \pmod 8$ below $2^{15}$ with ten primes, in about $3.9$ seconds of kernel time, and it disposes of the other residue classes with two lemmas about the prime $2$. A list of $9{,}955$ fields would in fact have exceeded the elaborator's recursion limit for list literals. The residue sieve is the shape that makes a larger range cheap.
 
-\paragraph{Build cost.} A clean copy of the first project builds in $11{,}914$ jobs, about an hour on Apple silicon, and that build includes openai/math and its two analysis packages. The determinant project requires only Mathlib, so a fresh build should cost the Mathlib cache and the project's own modules. We have not measured it \pending{fresh-build job count and time}. In the shared environment, the recorded builds of the individual steps ran between $2{,}819$ and $2{,}905$ jobs each, and each sieve chunk took about $9$ seconds under \lean{lake build}. The Comparator run of record took about $148$ seconds and $6.3$\,GB, against about $548$ seconds and $9.2$\,GB for the first proof.
+\paragraph{Build cost.} A clean copy of the first project builds in $11{,}914$ jobs, about an hour on Apple silicon, and that build includes openai/math and its two analysis packages. The determinant project requires only Mathlib. From a fresh copy, with an empty Mathlib cache, downloading Mathlib's prebuilt files took about $150$ seconds and building the proof $8{,}980$ jobs in about $53$ seconds: about $3.4$ minutes from nothing to a built proof (\cref{sec:freshbuild}). That build does not recompile Mathlib, whose compiled files come from its official cache; the first project's hour included compiling openai/math and its two analysis packages. In the shared environment, the recorded builds of the individual steps ran between $2{,}819$ and $2{,}905$ jobs each, and each sieve chunk took about $9$ seconds under \lean{lake build}. The Comparator run of record took about $148$ seconds and $6.3$\,GB, against about $548$ seconds and $9.2$\,GB for the first proof.
 
 \paragraph{Human readability.} A reader who wants to understand the first proof must read the manuscript for the $7/8$ theorem, which is new, long and unrefereed, and then the classical Chowla--Selberg evaluation. A reader of the second proof must read an unrefereed note of eight pages, together with Green's Lemma~5.1 and van Dijk's two-page nonvanishing argument. Every displayed step of that note checks by hand; the plan of record and the review both re-derived every constant. Neither proof needs to be understood for the kernel to accept it. The second is short enough to check by hand, and the formalization follows it step for step.
 
@@ -670,7 +675,7 @@ We do not claim that the proof is elementary. Its closure contains measure theor
 
 We do not claim the mathematics. The argument is that of the companion note (twinheterodox/tenth-discriminant, companions/elementary, commit 64694aae), built from the contributions credited in \cref{sec:credit}. That note is not refereed, and its own statement that it passed independent verification names no reviewer. We describe it as formalized by us, not as verified by anyone else. Neither do we claim the theorem, which is classical \cite{Heegner1952,Baker1966,Stark1967}.
 
-A build from a clean copy, the author's own check of the record and continuous integration had not been done when this version was written. They are marked pending in \cref{sec:pending}, and none of the claims above depends on them.
+The author's own check of the record and continuous integration had not been done when this version was written. They are marked pending in \cref{sec:pending}, and none of the claims above depends on them.
 
 Nothing here bears on the Riemann hypothesis, or on Siegel zeros. The proof uses no $L$-function at all.
 

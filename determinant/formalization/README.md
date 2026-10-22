@@ -43,9 +43,11 @@ step is then proved separately against its fixed statement. Equation numbers are
 | The theorem | `ELEM.Main` | `CN1.classNumber_eq_one_iff` |
 
 The eight chunk files `ELEM/Sieve/Chunk*.lean` are generated; their generator is in [`../certificates/`](../certificates/README.md).
-Each is a single `decide +kernel` over 512 values of k. A few declarations are proved but not used by the main theorem (for
-example `LemmaTwoTheta` and `LemmaTwoB`, whose finite-set forms the divisibility step uses instead); their docstrings say so where
-it could be confusing.
+Each is a single `decide +kernel` over 512 values of k.
+
+Not every declaration here is used by the main theorem. [`SURFACE.md`](SURFACE.md) lists, module by module, the ones outside its
+closure. For example, Lemma 2's `θ(x)` and `B` parts are proved but unused (the divisibility step uses finite-set forms of the same
+bounds), and only its `A(m)` part is used.
 
 ## Building
 

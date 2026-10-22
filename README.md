@@ -30,7 +30,7 @@ says what it costs to take the L-function out of the closure.
 There are several ways in, depending on what you want:
 
 - **The papers**: [`paper/paper.pdf`](paper/paper.pdf) for the first proof, about twenty pages, and
-  [`determinant/paper/paper.pdf`](determinant/paper/paper.pdf) for the determinant route and the comparison, about twenty-seven.
+  [`determinant/paper/paper.pdf`](determinant/paper/paper.pdf) for the determinant route and the comparison, about twenty-eight.
 - **The readable proof** of the first route, [`notes/proof.md`](notes/proof.md): the argument step by step, with the Lean lemma for
   each step and a link to its file and line. It takes about an hour.
 - **The Lean**: [`formalization/`](formalization/README.md) and [`determinant/formalization/`](determinant/formalization/README.md).
@@ -162,7 +162,7 @@ over its closure of 69,295 constants found only the three standard axioms and no
 modular-form modules or from outside Mathlib, and twelve recorded checks, controls included, behaved as expected. A separate AI
 review session then replayed those checks with its own build of the project's modules and of nanoda: both kernels accepted the
 theorem again, its own closure audit agreed, and five further controls of its own failed as required. The author's own check of
-the record is still pending; the second paper's §7.6 says so.
+the record is still pending; the second paper's §7.7 says so.
 
 ## Building and checking it yourself
 

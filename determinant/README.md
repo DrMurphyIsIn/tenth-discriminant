@@ -17,7 +17,7 @@ theory of L-functions out of the closure. The paper's §8 makes that comparison 
 There are three ways in:
 
 - **The paper**, [`paper/paper.pdf`](paper/paper.pdf): the mathematics, the verification record and the comparison with the first
-  proof, about twenty-seven pages including an appendix.
+  proof, about twenty-eight pages including an appendix.
 - **The Lean**, [`formalization/`](formalization/README.md): build it and run the checks yourself.
 - **The sieve certificate**, [`certificates/`](certificates/README.md): the generator for the finite range, and a script that shows
   the checked-in Lean files are exactly what it produces.
@@ -176,8 +176,9 @@ source file, of the build configuration and of every tool was recorded before an
   record, and the same shared, already-built Mathlib, so its independent kernel is nanoda; it was local and not sandboxed. It is
   an AI review, not a referee's report.
 
-What is still open is listed in the paper's §7.6: the author's own check of the record, and continuous integration on GitHub. The
-fresh build is recorded in [`formalization/VERIFICATION.md`](formalization/VERIFICATION.md).
+The paper's §7.6 summarizes the check that the published files are the checked ones, and the fresh build, both recorded in full
+in [`formalization/VERIFICATION.md`](formalization/VERIFICATION.md). What is still open is listed in its §7.7: the author's own
+check of the record, and continuous integration on GitHub.
 
 ## What is and is not claimed
 
@@ -200,7 +201,8 @@ by anything: where it says what a Lean lemma states, the lemma is the authority.
 ## Layout
 
 - [`formalization/`](formalization/README.md): the Lean project (libraries `ELEM`, `CN1`, `CN1Challenges`, `ELEMNegControls`), with
-  [`VERIFICATION.md`](formalization/VERIFICATION.md) and the check scripts.
+  [`VERIFICATION.md`](formalization/VERIFICATION.md), [`SURFACE.md`](formalization/SURFACE.md) (the declarations the main
+  theorem does not use) and the check scripts.
 - [`certificates/`](certificates/README.md): `gen_sieve.py` and `regenerate_and_diff.sh`.
 - [`paper/`](paper/): `paper.tex`, `appendix_siegel.tex`, `refs.bib` and the built `paper.pdf`.
 
