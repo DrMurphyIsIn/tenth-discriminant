@@ -28,7 +28,7 @@ build configuration is replaced by a public one. In detail:
     the first proof's zeta enclosures as well (ζ(7/4) ≥ 1.96232, ζ(3/4) ≥ −3.44129) about `-6.697e-5`; and with the full
     chain of rational brackets about `-1.30e-3`. The mathematics of the module, and the margin `0.0687` it proves, are
     unchanged.
-  - *One added sentence.* The docstring of `HCN.Statements.GeneralCS.Bg_mono` gained a sentence saying what is formalised:
+  - *One added sentence.* The docstring of `HCN.CS.Bg_mono` (in `HCN.Statements.GeneralCS`) gained a sentence saying what is formalised:
     the weaker side condition `c ≥ 1/8` at the larger point, `HCN.CSAux.one_eighth_le_cst`.
   - *Three stale remarks rewritten.* The docstrings of `HCN.Assembly.LowerBound`, `HCN.Numerics.Threshold` and a section
     heading of `HCN.Statements.GeneralCS` still spoke of `sorry`ed statement files, from before those files were proved.
@@ -59,7 +59,8 @@ build configuration is replaced by a public one. In detail:
   declares a false axiom, or replaces a step of a proof by `sorry`, does not belong in a public library (the challenge and the
   tampered statements are statements left as `sorry` by design, as Comparator requires). Nothing else imports them.
 - **The build configuration is replaced by a public one.** The checked tree's `lakefile.lean` required openai/math as a path
-  dependency on a local checkout of commit `adc7f124`, with a shared `packagesDir`, and its manifest recorded openai/math as a
+  dependency on a local, unversioned copy, which agrees with commit `adc7f124` except for four additions made for replays,
+  none of them in a Lean library, with a shared `packagesDir`, and its manifest recorded openai/math as a
   path package. The public `lakefile.lean` requires openai/math from git at that commit, as `../../formalization/` does, has
   no `packagesDir`, and declares the four libraries above; its comments are new. `lake-manifest.json` is
   `../../formalization/lake-manifest.json` with the project name changed: the same 43 packages at the same revisions as the checked tree's manifest. `lean-toolchain` is unchanged
@@ -103,7 +104,10 @@ So the published modules compile to the same declarations, term for term, as the
 that Comparator checked is the closure of the published theorems. Tree B was built and compared three times: first, again after
 the `Threshold` docstring correction (which rebuilt `HCN.Numerics.Threshold`, `HCN.Assembly.LowerBound`, `HCN.Assembly` and
 `HCN.Main`), and a third time, rebuilt from scratch from the final sources (`lake build HCN CN1 HCNChallenges HCNNegControls`,
-exit 0, 11,952 jobs); all three results were the same every time. Docstrings enter neither export: the two
+exit 0, 11,952 jobs); and a fourth time, after the last comment-only edits (the Heegner wording in the docstring of the
+generated `HCN/Main.lean` and in its template `certificates/Main.lean.in`, and one wording change in the `Threshold`
+docstring), rebuilt from the final sources with `lake build HCN CN1 HCNChallenges` (exit 0, 11,948 jobs). All three results
+were the same every time. Docstrings enter neither export: the two
 `--export-mdata` exports are identical although the docstrings of A and B differ.
 
 The export also gives an independent count of that closure: 108,547 theorems, 22,281 definitions, 1,473 inductive types (with
@@ -198,7 +202,9 @@ We ran the set twice:
 - **Run 1**, in the fresh copy of section 3, with the public lakefile, synced to the sources as they were before the last
   comment-only edits (the challenge's pointer to the first proof's challenge, and the three stale remarks of section 1).
 - **Run 2**, on the final sources (challenge md5 `00b03da302cae50b565b0c80380f4afc`, `HCN/Main.lean` md5
-  `866ee907b7c129a24c09a198977937b4`), in tree B of section 1, that is with the checked tree's build configuration.
+  `866ee907b7c129a24c09a198977937b4`), in tree B of section 1, that is with the checked tree's build configuration. The
+  docstring of `HCN/Main.lean` changed once more after this run (its md5 is now `233a954bfe8c496e5e9734a41a76f096`); the
+  fourth comparison of section 1 shows that the exported closure is unchanged by that edit.
 
 Between them, the two runs cover the public build configuration and the final sources. Comparator's view of a challenge is
 its export, and the final challenge's export is byte-identical to the checked challenge's (section 1).

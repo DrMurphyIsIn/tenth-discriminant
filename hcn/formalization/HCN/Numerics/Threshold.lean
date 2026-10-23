@@ -23,7 +23,7 @@ This file proves, about Mathlib's `riemannZeta`, `Real.Gamma`, `Real.exp`, `Real
 **Why the non-principal `y = 0` term is kept.** A simpler bound drops the non-principal `y = 0` term
 `a^{-7/8} ζ(7/4) > 0`. Without it the margin at `D = 4778` is `+2.05e-5` exactly, which CN-1's proved enclosure
 `Γ(3/8)/Γ(7/8) ∈ [2.1753, 2.1755]` cannot resolve. That enclosure alone, with every other constant exact, moves the
-worst case below zero, to about `-6.437e-5`; with CN-1's zeta enclosures as well (`ζ(7/4) ≥ 1.96232`,
+worst case below zero, to about `-6.437e-5`; with the first proof's zeta enclosures as well (`ζ(7/4) ≥ 1.96232`,
 `ζ(3/4) ≥ -3.44129`) it is about `-6.697e-5`, and with the full chain of rational brackets about `-1.30e-3`.
 Keeping it (`Tv`) gives the margin `0.0687`. The theorem proved downstream is still exactly `h ≤ 2 ⇒ dOf m ≤ 4777`.
 

@@ -13,7 +13,7 @@ see where every generated file came from, and confirm that the checked-in files 
 
 | Script | Produces |
 |---|---|
-| `gen_sets.py` | `HCNChallenges/ClassNumberLeTwo.lean`, the two statements with their sets inserted, never typed by hand. It enumerates the fundamental discriminants up to 340,000 from the definition, reads h(−d) from the data below, checks that five methods agree on every one of them, and converts the fields with h ≤ 2 to radicands. It also writes the list of the 1,429 radicands with h ≥ 3 and dOf m ≤ 4777, which `gen_certs.py` must reproduce. |
+| `gen_sets.py` | `HCNChallenges/ClassNumberLeTwo.lean`, the two statements with their sets inserted, never typed by hand. It enumerates the fundamental discriminants up to 340,000 from the definition, reads h(−d) from the data below, checks that five class-number sources, from three independent programs, agree on every one of them, and converts the fields with h ≤ 2 to radicands. It also writes the list of the 1,429 radicands with h ≥ 3 and dOf m ≤ 4777, which `gen_certs.py` must reproduce. |
 | `gen_certs.py` | `HCN/Finite/Certs.lean` and `Certs/Chunk1.lean` … `Chunk15.lean`: for each of the 1,429 radicands, a certificate of chosen split primes that certifies exactly h ≥ 3. Every hypothesis it emits is checked here twice, by the same search the Lean code runs and by a brute-force search over a box, before it is written. It re-derives the certificates and checks them against an earlier, separate implementation's output (`data/cert_norm_4777.csv`). |
 | `gen_classtwo.py` | `HCN/Finite/ClassTwo.lean`: for each of the eighteen fields with h = 2, the bound B, a nonprincipal ramified prime and a positive witness for every other prime below B. |
 | `gen_range.py` | `HCN/Assembly/Range.lean` (the range lemma, checked here against the certificate files), `HCN/Assembly.lean`, and `HCN/Main.lean` from the template `Main.lean.in`. The sets are read from the statement file, never typed. |
@@ -35,7 +35,8 @@ programs that produced them. We re-ran every program, and each reproduced its fi
 | `classno_340000_independent.csv` | d ≤ 340,000, by a separately written count of reduced forms | `independent_classno 340000` (`independent_classno.c`) |
 | `cert_norm_4777.csv` | the chosen primes of each h ≥ 3 certificate, from an earlier, separate implementation, for comparison only | not included |
 
-Together with an in-script count up to d = 5000, that is five methods, and they agree on every discriminant.
+That is five class-number sources from three independent programs (PARI, `hcn_classno.c` and `independent_classno.c`), and
+they agree on every discriminant; `gen_sets.py` also runs a reduced-form count of its own up to d = 5000.
 
 ## Checking
 

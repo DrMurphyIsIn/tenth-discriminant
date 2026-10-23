@@ -2,7 +2,8 @@
 
 This is the Lean 4 project of the class number two proof. It proves `HCN.classNumber_le_two_iff` and
 `HCN.classNumber_eq_two_iff` without Heegner's method (no j-invariant or singular moduli occur in the closure), linear forms
-in logarithms, or Gross–Zagier. It is pinned exactly as the first proof in
+in logarithms, or Gross–Zagier; it does use modular objects, the Jacobi theta function and, through OpenAI's proof of the
+7/8 theorem, non-holomorphic Eisenstein series. It is pinned exactly as the first proof in
 [`../../formalization/`](../../formalization/README.md) is:
 - Lean v4.34.1;
 - openai/math at commit [`adc7f124`](https://github.com/openai/math/tree/adc7f1241b42e322a6451854ab7e4b4c146bf78a), which provides
@@ -105,6 +106,6 @@ figures in the docstring of `HCN.Numerics.Threshold`, added one true sentence to
 formalised side condition is `c ≥ 1/8` at the larger point), and rewrote three stale remarks about `sorry`ed statement
 files. Nothing else in the Lean sources changed. The generators were changed in the same way, so that
 they now produce the published files. The build configuration (`lakefile.lean`, `lake-manifest.json`) is replaced by the
-public one, which takes openai/math from git instead of a local checkout. The vendored first-proof modules are the
+public one, which takes openai/math from git at commit `adc7f124` instead of a local copy. The vendored first-proof modules are the
 already-published copies, which differ from the copies in the run of record only in comments. [`VERIFICATION.md`](VERIFICATION.md)
 records how we checked all of this on the compiled declarations, and a fresh Comparator run on the published files.

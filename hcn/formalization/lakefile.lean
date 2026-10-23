@@ -5,7 +5,8 @@ open System Lake DSL
 /-!
 Lean project for the proof that the imaginary quadratic fields of class number at most two are
 exactly the 9 of class number one and the 18 of class number two, without Heegner's method (no
-j-invariant or singular moduli occur in the closure), linear forms in logarithms, or Gross–Zagier
+j-invariant or singular moduli occur in the closure), linear forms in logarithms, or Gross–Zagier;
+it does use the Jacobi theta function and, through OpenAI's proof, non-holomorphic Eisenstein series
 (`HCN.classNumber_le_two_iff` and `HCN.classNumber_eq_two_iff` in `HCN/Main.lean`).
 
 The one dependency is openai/math at the same pinned commit as the first proof in

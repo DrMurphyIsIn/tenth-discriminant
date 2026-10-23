@@ -125,8 +125,13 @@ jobs:
           status=0
           lake env lean AxiomCheck.lean > axioms.out 2> axioms.err || status=$?
           cat axioms.out
-          if [ "$status" != 0 ] || ! scripts/check_axioms.sh axioms.out; then
-            echo "lean exited with status $status; its standard error:"
+          if [ "$status" != 0 ]; then
+            echo "lake env lean failed (exit status $status); its standard error:"
+            cat axioms.err
+            exit 1
+          fi
+          if ! scripts/check_axioms.sh axioms.out; then
+            echo "The axiom check failed (lean itself exited 0); lean's standard error, for reference:"
             cat axioms.err
             exit 1
           fi

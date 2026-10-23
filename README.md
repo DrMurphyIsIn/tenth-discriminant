@@ -30,7 +30,8 @@ says what it costs to take the L-function out of the closure.
 
 The repository has a third entry, which goes past class number one. In [`hcn/`](hcn/README.md) the first proof's route is extended
 from one ideal class to every class, and proves, again kernel-checked and again without Heegner's method (no j-invariant or
-singular moduli occur in the closure), linear forms in logarithms, or Gross–Zagier, that the
+singular moduli occur in the closure), linear forms in logarithms, or Gross–Zagier (it does use modular objects: the Jacobi
+theta function and, through OpenAI's proof, non-holomorphic Eisenstein series), that the
 imaginary quadratic fields of class number at most two are exactly the 27 known ones, and those of class number two exactly the
 eighteen:
 
@@ -196,14 +197,16 @@ the comments of Tao's challenge:
 3. **The threshold.** With the 7/8 theorem, as in the first proof, class number at most two forces d ≤ 4777. To close there,
    the positive y = 0 term of the non-principal class has to be kept.
 4. **The finite range.** Below 4778, a short certificate built from the principal norm form alone shows class number at least
-   three for the 1,429 other fields; explicit ideal witnesses show class number two for the eighteen; and the first proof's
+   three for the 1,429 other fields; short certificates, built on a non-principal
+   ramified prime, show class number two for the eighteen; and the first proof's
    theorem gives class number one for the nine.
 
 The first proof's Lean files are vendored verbatim, and its main theorem settles the nine. The check was the same as for the
 other two: Comparator accepted both theorems under nanoda and Lean's kernel (local runs, not sandboxed), a walk over the closure
 of 135,435 constants found only the three standard axioms, with OpenAI's 7/8 theorem walked as a theorem, and twelve recorded
-checks, ten of them controls that must fail, behaved as expected. A separate AI review session rebuilt the project, re-ran
-Comparator with its own build of nanoda, and ran five controls of its own; both kernels accepted the theorems again.
+checks, ten of them controls that must fail, behaved as expected. A separate AI review session re-ran Comparator and the
+closure audit with its own build of the project's modules and of nanoda, and ran five controls of its own (the dependencies
+were not rebuilt); both kernels accepted the theorems again.
 
 ## Building and checking it yourself
 
@@ -337,8 +340,11 @@ For class number two (as its paper gives them; [`hcn/README.md`](hcn/README.md) 
 - **The 7/8 quasi-Riemann hypothesis**, with its Lean proof: OpenAI.
 - **The Chowla–Selberg formula:** S. Chowla and A. Selberg; in the thread, michaelmross, Tao and LemmaLab, as for the first proof.
 - **The extension to all class numbers:** LemmaLab, who certified d ≤ 4164 for class number at most two (comment 698478). The
-  analytic half of this proof is that extension, in the form that Mathlib and the first proof make provable.
-- **The classical solution** of the class number two problem: A. Baker and H. M. Stark (1971).
+  analytic half of this proof is that extension, in the form that Mathlib and the first proof make provable. The commenters'
+  own statements of their AI use, and Pace P. Nielsen's report of a Codex-produced Lean proof in the same thread, are recorded in
+  [`hcn/README.md`](hcn/README.md) and the paper.
+- **The classical solution** of the class number two problem: A. Baker and H. M. Stark, who made it effective (1971), and
+  H. L. Montgomery and P. J. Weinberger (1974) and Stark (1975), who completed the list.
 - **Tools:** Mathlib and its contributors; the authors of the packages OpenAI's proof builds on, including PrimeNumberTheoremAnd
   and RellichKondrachov; Chris Bailey for nanoda; the authors of Comparator and lean4export.
 
@@ -372,8 +378,8 @@ the run of record, and then replayed the final checks with its own build of our 
 did the work, one per step of the argument, and an independent session reviewed the plan, the interface and each delivered step,
 and then re-ran Comparator and the closure audit with its own build of the project and of nanoda, and ran five controls of its
 own. For class number two, several sessions did the work, one for each part of the plan, and an independent session reviewed the
-plan, the statements and the delivered parts, and replayed the run of record with its own build of the project and of nanoda,
-with five controls of its own. The mathematical routes are due to the people credited
+plan, the statements and the delivered parts, and re-ran Comparator and the closure audit with its own build of the
+project's modules and of nanoda, with five controls of its own; the dependencies were not rebuilt. The mathematical routes are due to the people credited
 above. The mathematical claims are kernel-checked; the history, the attributions and the account of how the work was checked are
 ours, and we say how each was obtained.
 
