@@ -115,7 +115,7 @@ As the paper gives them:
   RellichKondrachov; Chris Bailey for nanoda, the second kernel; and the authors of Comparator and lean4export.
 
 The paper also discusses related work: Watkins's determination of all class numbers up to 100, and, from October 2026,
-Kimura's unconditional determination up to 2000, whose analytic bounds are proved in Lean. We do not claim priority among Lean
+Kimura's unconditional determination up to 2000, whose two analytic steps are, according to its abstract, proved in Lean. We do not claim priority among Lean
 formalizations of results of this kind. We claim a kernel-checked proof by this route.
 
 ## Building it and checking it

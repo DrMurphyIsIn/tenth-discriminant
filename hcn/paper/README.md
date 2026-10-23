@@ -9,7 +9,7 @@ extends the first paper's route (in `paper/` at the top of the repository) from 
 - The paper is licensed under [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/), like the repository's other documents;
   see [`../../LICENSING.md`](../../LICENSING.md).
 - The paper is archived as a version of the tenth-discriminant Zenodo record, DOI
-  [10.5281/zenodo.23578359](https://doi.org/10.5281/zenodo.23578359) (reserved, not yet published). The DOI for all versions
+  [10.5281/zenodo.23578359](https://doi.org/10.5281/zenodo.23578359). The DOI for all versions
   of the record is [10.5281/zenodo.23550257](https://doi.org/10.5281/zenodo.23550257).
 
 ## What the paper says

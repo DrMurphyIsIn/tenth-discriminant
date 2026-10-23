@@ -352,11 +352,19 @@ For class number two (as its paper gives them; [`hcn/README.md`](hcn/README.md) 
 ## Citing
 
 Please cite the archived release: [doi:10.5281/zenodo.23550257](https://doi.org/10.5281/zenodo.23550257) for all versions,
-which resolves to the latest. Version 1.1.0, [doi:10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656), is the
-first to contain both proofs and both papers. See [`CITATION.cff`](CITATION.cff).
+which resolves to the latest. Version 1.2.0, [doi:10.5281/zenodo.23578359](https://doi.org/10.5281/zenodo.23578359), is the
+first to contain all three entries and their three papers; version 1.1.0,
+[doi:10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656), was the first to contain both proofs of class number one.
+See [`CITATION.cff`](CITATION.cff).
 
 ## Versions
 
+- **v1.2.0** (2026-10-23, [doi:10.5281/zenodo.23578359](https://doi.org/10.5281/zenodo.23578359)):
+  - adds the third entry, class number two, in [`hcn/`](hcn/README.md): its Lean project, its certificate generators and
+    class-number data, and its paper;
+  - adds a GitHub Actions workflow that builds the third entry and checks the axioms of its two theorems.
+
+  The first two entries, their certificates and their papers are unchanged.
 - **v1.1.0** ([doi:10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656)):
   - adds the second proof, the determinant route, in [`determinant/`](determinant/README.md): its Lean project, the generator for
     its residue sieve, and its paper;
