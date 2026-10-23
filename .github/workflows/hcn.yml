@@ -1,0 +1,148 @@
+# Build the class number two proof (hcn/formalization) from a clean checkout and check the axioms of both theorems.
+# Mathlib's compiled files come from Mathlib's official build cache. openai/math and the other pinned packages are cloned
+# at the revisions in lake-manifest.json, patched by scripts/apply_oai_patches.sh, and compiled from source; their
+# compiled files are kept in the Actions cache (Mathlib's excluded), so that a build which does not finish within one run
+# resumes in the next. The project's own modules are always compiled from source, so every certificate and proof of the
+# HCN and CN1 libraries is re-checked by the kernel in every run.
+name: hcn proof
+
+on:
+  push:
+    paths:
+      - "hcn/formalization/**"
+      - "hcn/certificates/**"
+      - ".github/workflows/hcn.yml"
+  pull_request:
+    paths:
+      - "hcn/formalization/**"
+      - "hcn/certificates/**"
+      - ".github/workflows/hcn.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    defaults:
+      run:
+        shell: bash
+        working-directory: hcn/formalization
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Self-test the check scripts on their fixtures
+        run: scripts/test_checks.sh
+
+      - name: Regenerate the generated Lean files and compare them byte for byte
+        run: ../certificates/regenerate_and_diff.sh
+
+      - name: Make room for the build (disk and swap)
+        # The compiled packages take about 22 GB, and one generated module, HCN.Assembly.Range, needed 26 GB of memory
+        # (peak resident set) in our fresh build, more than a standard runner has. Remove preinstalled tools that the build
+        # does not use, and add a swap file. The swap file goes on /mnt, the runner's separate temporary disk, when that has
+        # room for it, so that it does not take space from the build on /; only otherwise does it go on /.
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          dir=/
+          if [ -d /mnt ] && [ "$(df -k --output=avail /mnt | tail -1)" -gt $((30 * 1024 * 1024)) ]; then dir=/mnt; fi
+          echo "swap file on $dir"
+          sudo fallocate -l 24G "$dir/hcn.swap"
+          sudo chmod 600 "$dir/hcn.swap"
+          sudo mkswap "$dir/hcn.swap"
+          sudo swapon "$dir/hcn.swap"
+          df -h / /mnt || true
+          free -g
+
+      - name: Install elan (v4.2.4, checksum-pinned)
+        env:
+          ELAN_VERSION: v4.2.4
+          ELAN_SHA256: 42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
+        run: |
+          curl -sSfL "https://github.com/leanprover/elan/releases/download/${ELAN_VERSION}/elan-x86_64-unknown-linux-gnu.tar.gz" -o elan.tar.gz
+          echo "${ELAN_SHA256}  elan.tar.gz" | sha256sum -c -
+          tar xzf elan.tar.gz
+          ./elan-init -y --default-toolchain none
+          rm elan-init elan.tar.gz
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Restore the compiled packages (all but Mathlib's build) from the Actions cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            hcn/formalization/.lake/packages
+            !hcn/formalization/.lake/packages/mathlib/.lake
+          key: hcn-packages-${{ hashFiles('hcn/formalization/lake-manifest.json', 'hcn/formalization/lean-toolchain', 'hcn/formalization/scripts/apply_oai_patches.sh') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            hcn-packages-${{ hashFiles('hcn/formalization/lake-manifest.json', 'hcn/formalization/lean-toolchain', 'hcn/formalization/scripts/apply_oai_patches.sh') }}-
+
+      - name: Fetch the pinned packages and apply openai/math's patches (verified)
+        run: scripts/apply_oai_patches.sh
+
+      - name: Show the toolchain
+        run: |
+          cat lean-toolchain
+          lean --version
+          lake --version
+
+      - name: Fetch the Mathlib build cache
+        run: lake exe cache get
+
+      - name: Build HCN, CN1 and HCNChallenges
+        id: build
+        continue-on-error: true
+        timeout-minutes: 300
+        run: |
+          set -o pipefail
+          lake build HCN CN1 HCNChallenges 2>&1 | tee build.log
+
+      - name: Save the compiled packages, also after a timeout
+        if: always()
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            hcn/formalization/.lake/packages
+            !hcn/formalization/.lake/packages/mathlib/.lake
+          key: hcn-packages-${{ hashFiles('hcn/formalization/lake-manifest.json', 'hcn/formalization/lean-toolchain', 'hcn/formalization/scripts/apply_oai_patches.sh') }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Fail if the build did not complete (a timed-out build resumes from the cache in the next run)
+        if: steps.build.outcome != 'success'
+        run: |
+          echo "The build did not complete in this run (outcome: ${{ steps.build.outcome }})."
+          exit 1
+
+      - name: Exactly two sorries, the challenge statements'
+        run: scripts/check_no_sorry.sh build.log
+
+      - name: Axioms of both theorems (importing HCN.Main only)
+        run: |
+          # The only project import is HCN.Main. Never add HCNChallenges or HCNNegControls here: they declare the same
+          # theorem names, and #print axioms would then be unreliable. Lake's warnings about the patched packages go to
+          # standard error; only Lean's output (standard output) is checked.
+          printf 'import HCN.Main\n\n#print axioms HCN.classNumber_le_two_iff\n#print axioms HCN.classNumber_eq_two_iff\n' > AxiomCheck.lean
+          status=0
+          lake env lean AxiomCheck.lean > axioms.out 2> axioms.err || status=$?
+          cat axioms.out
+          if [ "$status" != 0 ]; then
+            echo "lake env lean failed (exit status $status); its standard error:"
+            cat axioms.err
+            exit 1
+          fi
+          if ! scripts/check_axioms.sh axioms.out; then
+            echo "The axiom check failed (lean itself exited 0); lean's standard error, for reference:"
+            cat axioms.err
+            exit 1
+          fi
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: hcn-logs
+          path: |
+            hcn/formalization/build.log
+            hcn/formalization/axioms.out
+            hcn/formalization/axioms.err
+          if-no-files-found: ignore

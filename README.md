@@ -28,14 +28,28 @@ foundational modules and the converse (the Minkowski-bound proof that the nine f
 We have kept the first proof exactly as it was. It is the comparison point: the second paper's §8 sets the two side by side and
 says what it costs to take the L-function out of the closure.
 
+The repository has a third entry, which goes past class number one. In [`hcn/`](hcn/README.md) the first proof's route is extended
+from one ideal class to every class, and proves, again kernel-checked and again without Heegner's method (no j-invariant or
+singular moduli occur in the closure), linear forms in logarithms, or Gross–Zagier (it does use modular objects: the Jacobi
+theta function and, through OpenAI's proof, non-holomorphic Eisenstein series), that the
+imaginary quadratic fields of class number at most two are exactly the 27 known ones, and those of class number two exactly the
+eighteen:
+
+> For squarefree m ≥ 1, ℚ(√−m) has class number two if and only if
+> m ∈ {5, 6, 10, 13, 15, 22, 35, 37, 51, 58, 91, 115, 123, 187, 235, 267, 403, 427}.
+
+Its analytic half proves that class number at most two forces d ≤ 4777, from the 7/8 theorem; its finite half certifies class
+number at least three for the 1,429 other fields below that bound, from the principal norm form alone.
+
 There are several ways in, depending on what you want:
 
-- **The papers**: [`paper/paper.pdf`](paper/paper.pdf) for the first proof, about twenty pages, and
-  [`determinant/paper/paper.pdf`](determinant/paper/paper.pdf) for the determinant route and the comparison, 28 pages.
+- **The papers**: [`paper/paper.pdf`](paper/paper.pdf) for the first proof, about twenty pages,
+  [`determinant/paper/paper.pdf`](determinant/paper/paper.pdf) for the determinant route and the comparison, 28 pages, and
+  [`hcn/paper/paper.pdf`](hcn/paper/paper.pdf) for class number two.
 - **The readable proof** of the first route, [`notes/proof.md`](notes/proof.md): the argument step by step, with the Lean lemma for
   each step and a link to its file and line. It takes about an hour.
-- **The Lean**: [`formalization/`](formalization/README.md) and [`determinant/formalization/`](determinant/formalization/README.md).
-  Build them and run the checks yourself.
+- **The Lean**: [`formalization/`](formalization/README.md), [`determinant/formalization/`](determinant/formalization/README.md)
+  and [`hcn/formalization/`](hcn/formalization/README.md). Build them and run the checks yourself.
 
 ## The statement, and what you have to trust
 
@@ -168,6 +182,32 @@ published files compile to exactly the same declarations as the checked ones, an
 about 3.4 minutes; the second paper's §7.6 records both. The author read back the final paper and the verification record on
 22 October 2026 and approved them, and the GitHub Actions workflow passed on a clean Linux runner the same day (§7.7 and §7.8).
 
+## The third entry: class number two
+
+The full story is in [`hcn/README.md`](hcn/README.md) and its paper. The statements are new, two of them, in
+[`hcn/formalization/HCNChallenges/ClassNumberLeTwo.lean`](hcn/formalization/HCNChallenges/ClassNumberLeTwo.lean), in the same
+vocabulary as the class number one statement: `HCN.classNumber_le_two_iff` (class number at most two exactly for the 27
+radicands) and `HCN.classNumber_eq_two_iff` (class number two exactly for the 18). The two sets were generated from computed
+class-number data and are the classical lists. The route is the first proof's, extended to every class, as LemmaLab posted in
+the comments of Tao's challenge:
+
+1. **ζ_K splits into class sums.** ζ_K(s) = Σ_C ½ Z_{Q_C}(s), one Epstein zeta function per ideal class, where Q_C is the norm
+   form of a Hermite basis of an ideal in C⁻¹, with leading coefficient between 1 and (2/3)√d (Minkowski).
+2. **Chowla–Selberg for every positive definite form**, with an explicit remainder bound, continues each class sum to s = 7/8.
+3. **The threshold.** With the 7/8 theorem, as in the first proof, class number at most two forces d ≤ 4777. To close there,
+   the positive y = 0 term of the non-principal class has to be kept.
+4. **The finite range.** Below 4778, a short certificate built from the principal norm form alone shows class number at least
+   three for the 1,429 other fields; short certificates, built on a non-principal
+   ramified prime, show class number two for the eighteen; and the first proof's
+   theorem gives class number one for the nine.
+
+The first proof's Lean files are vendored verbatim, and its main theorem settles the nine. The check was the same as for the
+other two: Comparator accepted both theorems under nanoda and Lean's kernel (local runs, not sandboxed), a walk over the closure
+of 135,435 constants found only the three standard axioms, with OpenAI's 7/8 theorem walked as a theorem, and twelve recorded
+checks, ten of them controls that must fail, behaved as expected. A separate AI review session re-ran Comparator and the
+closure audit with its own build of the project's modules and of nanoda, and ran five controls of its own (the dependencies
+were not rebuilt); both kernels accepted the theorems again.
+
 ## Building and checking it yourself
 
 You need [elan](https://github.com/leanprover/elan), git and Python 3. For the first proof, from [`formalization/`](formalization/README.md):
@@ -193,9 +233,24 @@ Its README explains the axiom check and Comparator, and one rule that matters: n
 challenge or a control, because they declare the same theorem name. [`determinant/certificates/regenerate_and_diff.sh`](determinant/certificates/README.md)
 regenerates the sieve chunks and checks them byte for byte. A GitHub Actions workflow,
 [`.github/workflows/determinant.yml`](.github/workflows/determinant.yml), builds the determinant route from a clean checkout and
-checks the axioms of its main theorem. All our Comparator runs, for both proofs, were local and not sandboxed: landrun, Comparator's
+checks the axioms of its main theorem. All our Comparator runs, for all three entries, were local and not sandboxed: landrun, Comparator's
 sandbox, is Linux-only, and on macOS we used a pass-through shim in its place. The first proof has no such workflow, because its build needs openai/math's patched
 dependency tree and takes about an hour even on a fast machine.
+
+For class number two, from [`hcn/formalization/`](hcn/formalization/README.md), with the first proof's patch script:
+
+```sh
+scripts/apply_oai_patches.sh   # fetch the pinned dependencies and apply openai/math's Lean-v4.34.1 patches
+lake exe cache get             # Mathlib build cache
+lake build HCN CN1 HCNChallenges
+```
+
+Its README explains the axiom check and Comparator, and the same one rule: never import `HCN.Main` together with the
+challenge or a control. [`hcn/certificates/regenerate_and_diff.sh`](hcn/certificates/README.md) regenerates the statement's sets,
+the certificates and the other generated files, and checks them byte for byte. A second workflow,
+[`.github/workflows/hcn.yml`](.github/workflows/hcn.yml), builds it from a clean checkout, openai/math included, and checks the
+axioms of both theorems. It passed on GitHub-hosted runners on 22-23 October 2026; a standard runner takes about three hours,
+most of it compiling one generated module ([`hcn/formalization/VERIFICATION.md`](hcn/formalization/VERIFICATION.md), section 3).
 
 ## Repository layout
 
@@ -215,7 +270,14 @@ dependency tree and takes about an hour even on a fast machine.
   - [`determinant/certificates/`](determinant/certificates/README.md): the generator for the residue sieve, with a script that
     regenerates the chunk files and checks them byte for byte.
   - [`determinant/paper/`](determinant/paper/README.md): the second paper, 28 pages.
-- [`.github/workflows/`](.github/workflows/): continuous integration for the determinant route.
+- [`hcn/`](hcn/README.md): the third entry, class number two.
+  - [`hcn/formalization/`](hcn/formalization/README.md): its Lean project, which uses the same pinned openai/math as the first
+    proof and vendors the first proof's modules, with the challenge statements, the tampered statements, the Comparator
+    configurations, the check scripts and [`VERIFICATION.md`](hcn/formalization/VERIFICATION.md).
+  - [`hcn/certificates/`](hcn/certificates/README.md): the generators, the computed class-number data with the programs that
+    produced it, and a script that regenerates every generated Lean file and checks it byte for byte.
+  - [`hcn/paper/`](hcn/paper/): its paper.
+- [`.github/workflows/`](.github/workflows/): continuous integration for the determinant route and for class number two.
 
 ## The method, and Telperion
 
@@ -273,14 +335,36 @@ more):
   paper he posted were generated by AI systems (its byline names GPT-6 Pro and Claude Opus 5.5).
 - **Tools:** Mathlib and its contributors; Chris Bailey for nanoda; the authors of Comparator and lean4export.
 
+For class number two (as its paper gives them; [`hcn/README.md`](hcn/README.md) has more):
+
+- **The challenge:** T. Tao.
+- **The 7/8 quasi-Riemann hypothesis**, with its Lean proof: OpenAI.
+- **The Chowla–Selberg formula:** S. Chowla and A. Selberg; in the thread, michaelmross, Tao and LemmaLab, as for the first proof.
+- **The extension to all class numbers:** LemmaLab, who certified d ≤ 4164 for class number at most two (comment 698478). The
+  analytic half of this proof is that extension, in the form that Mathlib and the first proof make provable. The commenters'
+  own statements of their AI use, and Pace P. Nielsen's report of a Codex-produced Lean proof in the same thread, are recorded in
+  [`hcn/README.md`](hcn/README.md) and the paper.
+- **The classical solution** of the class number two problem: A. Baker and H. M. Stark, who made it effective (1971), and
+  H. L. Montgomery and P. J. Weinberger (1974) and Stark (1975), who completed the list.
+- **Tools:** Mathlib and its contributors; the authors of the packages OpenAI's proof builds on, including PrimeNumberTheoremAnd
+  and RellichKondrachov; Chris Bailey for nanoda; the authors of Comparator and lean4export.
+
 ## Citing
 
 Please cite the archived release: [doi:10.5281/zenodo.23550257](https://doi.org/10.5281/zenodo.23550257) for all versions,
-which resolves to the latest. Version 1.1.0, [doi:10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656), is the
-first to contain both proofs and both papers. See [`CITATION.cff`](CITATION.cff).
+which resolves to the latest. Version 1.2.0, [doi:10.5281/zenodo.23578359](https://doi.org/10.5281/zenodo.23578359), is the
+first to contain all three entries and their three papers; version 1.1.0,
+[doi:10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656), was the first to contain both proofs of class number one.
+See [`CITATION.cff`](CITATION.cff).
 
 ## Versions
 
+- **v1.2.0** (2026-10-23, [doi:10.5281/zenodo.23578359](https://doi.org/10.5281/zenodo.23578359)):
+  - adds the third entry, class number two, in [`hcn/`](hcn/README.md): its Lean project, its certificate generators and
+    class-number data, and its paper;
+  - adds a GitHub Actions workflow that builds the third entry and checks the axioms of its two theorems.
+
+  The first two entries, their certificates and their papers are unchanged.
 - **v1.1.0** ([doi:10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656)):
   - adds the second proof, the determinant route, in [`determinant/`](determinant/README.md): its Lean project, the generator for
     its residue sieve, and its paper;
@@ -302,12 +386,14 @@ Another, independent session reviewed the statement before the assembly that pro
 the run of record, and then replayed the final checks with its own build of our modules. For the determinant route, several sessions
 did the work, one per step of the argument, and an independent session reviewed the plan, the interface and each delivered step,
 and then re-ran Comparator and the closure audit with its own build of the project and of nanoda, and ran five controls of its
-own. The mathematical routes are due to the people credited
+own. For class number two, several sessions did the work, one for each part of the plan, and an independent session reviewed the
+plan, the statements and the delivered parts, and re-ran Comparator and the closure audit with its own build of the
+project's modules and of nanoda, with five controls of its own; the dependencies were not rebuilt. The mathematical routes are due to the people credited
 above. The mathematical claims are kernel-checked; the history, the attributions and the account of how the work was checked are
 ours, and we say how each was obtained.
 
 ## Licensing
 
-The mathematics (Lean, generators, frozen certificates, scripts, in both proofs) is Apache-2.0, and the documents (including both
-papers) are CC-BY-4.0. `telperion/` is under the Business Source License 1.1, which permits research, teaching, review and evaluation
+The mathematics (Lean, generators, frozen certificates, data, scripts, in all three entries) is Apache-2.0, and the documents
+(including the three papers) are CC-BY-4.0. `telperion/` is under the Business Source License 1.1, which permits research, teaching, review and evaluation
 outright. See [LICENSING.md](LICENSING.md).

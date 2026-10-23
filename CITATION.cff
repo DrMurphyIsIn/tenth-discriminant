@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this work, please cite it as below."
-title: "Two kernel-checked Lean 4 proofs of the class number one theorem without Heegner: d <= 652 from the 7/8 quasi-Riemann hypothesis, and a determinant proof with no L-functions"
+title: "Kernel-checked Lean 4 proofs of the class number one theorem (two routes) and of the class number two list, without Heegner's method"
 authors:
   - family-names: Murphy
     given-names: Peter W.
@@ -9,10 +9,13 @@ license:
   - Apache-2.0
   - CC-BY-4.0
   - BUSL-1.1
-version: v1.1.0
-date-released: 2026-10-22
-doi: 10.5281/zenodo.23563656
+version: v1.2.0
+date-released: 2026-10-23
+doi: 10.5281/zenodo.23578359
 identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23578359
+    description: "Zenodo archive of release v1.2.0 (all three entries and their papers)"
   - type: doi
     value: 10.5281/zenodo.23563656
     description: "Zenodo archive of release v1.1.0 (both proofs and both papers)"
@@ -24,10 +27,12 @@ identifiers:
     description: "Zenodo concept DOI (all versions; resolves to the latest)"
 keywords:
   - class number one
+  - class number two
   - imaginary quadratic fields
   - Siegel zeros
   - quasi-Riemann hypothesis
   - Chowla-Selberg formula
+  - Epstein zeta function
   - derivative determinant
   - Frobenius
   - residue sieve
@@ -47,8 +52,18 @@ abstract: >-
   on contributions of L. Silberman, K. Pratt, B. Green and R. van Dijk: Green's derivative determinant, made nonzero modulo an
   auxiliary inert prime by van Dijk's finite-field argument and divisible by Frobenius at the inert primes, rules out
   discriminants q >= 2^15 under class number one, and a kernel-checked residue sieve settles the range below. The two proofs
-  share the statement, the foundational modules and the converse for the nine fields. Written for T. Tao's tenth-discriminant
-  challenge (20 October 2026).
+  share the statement, the foundational modules and the converse for the nine fields. A third entry extends the first route from
+  one ideal class to every class and proves, again kernel-checked and without Heegner's method (no j-invariant or singular moduli
+  occur in its closure), linear forms in logarithms or the Gross-Zagier formula, that Q(sqrt(-m)) has class number at most two
+  exactly for those nine radicands and eighteen more, and class number two exactly for the eighteen: 5, 6, 10, 13, 15, 22, 35,
+  37, 51, 58, 91, 115, 123, 187, 235, 267, 403, 427. The Dedekind zeta function splits into one Epstein zeta function per ideal
+  class; a Chowla-Selberg formula for every positive definite form continues each to s = 7/8, and the 7/8 theorem, again proved
+  inside the checked closure, forces d <= 4777 when the class number is at most two, once the positive y = 0 term of the
+  non-principal class is kept. Below 4778, certificates from the principal norm form show class number at least three for the
+  1,429 other fields, certificates built on a non-principal ramified prime show class number two for the eighteen, and the first
+  proof gives the nine. The route is LemmaLab's extension of the Chowla-Selberg argument to all class numbers, from the comments
+  of Tao's post. The theorem is classical: Baker and Stark (1971) made the problem effectively solvable, and Montgomery and
+  Weinberger (1974) and Stark (1975) completed the list. Written for T. Tao's tenth-discriminant challenge (20 October 2026).
 references:
   - type: generic
     title: "The class number one theorem without Heegner, kernel-checked: d <= 652 from the 7/8 quasi-Riemann hypothesis in Lean 4"
@@ -64,3 +79,11 @@ references:
         given-names: Peter W.
     year: 2026
     notes: "The paper of the determinant route, determinant/paper/paper.pdf (new in v1.1.0)."
+  - type: generic
+    title: "Imaginary quadratic fields of class number two, kernel-checked: the eighteen fields from the 7/8 quasi-Riemann hypothesis in Lean 4"
+    authors:
+      - family-names: Murphy
+        given-names: Peter W.
+    year: 2026
+    doi: 10.5281/zenodo.23578359
+    notes: "The paper of the third entry, hcn/paper/paper.pdf (new in v1.2.0)."
