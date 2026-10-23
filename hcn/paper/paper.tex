@@ -47,8 +47,6 @@
 \newcommand{\disc}{\operatorname{disc}}
 \newcommand{\Nm}{\operatorname{N}}
 \newcommand{\Cl}{\operatorname{Cl}}
-% Visible placeholder for an item that is still open.
-\newcommand{\pending}[1]{\textbf{[PENDING: #1]}}
 
 \definecolor{leanbg}{HTML}{F4F2EC}
 
@@ -702,7 +700,7 @@ The author read back the final paper and the verification record on 22 October 2
 
 \subsection{Continuous integration}\label{sec:ci}
 
-\pending{CI}
+The repository runs the workflow \lean{hcn proof} (\lean{.github/workflows/hcn.yml}) on GitHub-hosted \lean{ubuntu-latest} runners, with $16$\,GB of memory and a $24$\,GB swap file that the workflow adds. Mathlib comes from its official cache; openai/math and its packages are fetched at their pinned revisions, and all $23$ patches are applied and verified. It passed at two commits of the pull request that added \lean{hcn/}, each time on both the push and the pull-request trigger, on 22 and 23 October 2026: at commit \lean{c817d937}, runs \lean{39877766137} and \lean{39877769711}, in about $2$\,h\,$45$\,min and $2$\,h\,$53$\,min; and at commit \lean{1052154}, runs \lean{39886536733} and \lean{39886540694}, in about $2$\,h\,$50$\,min and $3$\,h\,$18$\,min. Each run did the following, in order, and every step passed. First, the check scripts were tested against their fixtures, crafted bypass attempts among them. Second, the generated Lean files were regenerated and compared with the published ones byte for byte. Third, \lean{lake build HCN CN1 HCNChallenges} reported ``Build completed successfully (11948 jobs)''. Fourth, a check of the build log found exactly two \lean{sorry} warnings, both the challenge statements'. Fifth, an axiom check in a file importing only \lean{HCN.Main} passed: its check is that the entire output is the two axiom reports, for \lean{HCN.classNumber_le_two_iff} and \lean{HCN.classNumber_eq_two_iff}, and that every entry is one of \lean{propext}, \lean{Classical.choice} and \lean{Quot.sound}. The generated range lemma \lean{HCN.Assembly.Range} alone took between $9{,}001$ and $10{,}715$ seconds on the runner: it needs about $26.5$\,GB of memory, and the runner gets through it by swapping. On the Apple M3 Ultra of the fresh build it takes about two minutes.
 
 \subsection{Independent review}\label{sec:review}
 

@@ -249,7 +249,8 @@ Its README explains the axiom check and Comparator, and the same one rule: never
 challenge or a control. [`hcn/certificates/regenerate_and_diff.sh`](hcn/certificates/README.md) regenerates the statement's sets,
 the certificates and the other generated files, and checks them byte for byte. A second workflow,
 [`.github/workflows/hcn.yml`](.github/workflows/hcn.yml), builds it from a clean checkout, openai/math included, and checks the
-axioms of both theorems.
+axioms of both theorems. It passed on GitHub-hosted runners on 22-23 October 2026; a standard runner takes about three hours,
+most of it compiling one generated module ([`hcn/formalization/VERIFICATION.md`](hcn/formalization/VERIFICATION.md), section 3).
 
 ## Repository layout
 

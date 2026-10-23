@@ -185,9 +185,25 @@ Two things matter for anyone repeating this on a smaller machine. The package di
 14.5 GB openai/math's compiled files), and the project's own build adds 0.6 GB. And one generated module needs a lot of memory:
 `HCN.Assembly.Range` reached a peak resident set of 26.5 GB when compiled on its own (124 s), against about 5.9 GB for a
 certificate chunk; it was also the slowest module of the build. The workflow in `.github/workflows/hcn.yml` therefore frees
-disk space and adds a swap file before it builds. **The workflow has not yet run on GitHub**: whether a standard runner
-builds `HCN.Assembly.Range` in time is untested, and the first run, with its date, runner, wall time and that module's peak
-memory, will be recorded here.
+disk space and adds a swap file before it builds.
+
+**The workflow on GitHub.** It ran on GitHub-hosted `ubuntu-latest` runners (16 GB of memory, plus the 24 GB swap file the
+workflow adds on `/mnt`) and passed at two commits of the pull request that added this entry, each on both the push and the
+pull-request trigger, on 22-23 October 2026:
+
+| commit | run | trigger | `HCN.Assembly.Range` | whole run |
+|---|---|---|---|---|
+| `c817d937` | 39877766137 | push | 9,001 s | about 2 h 45 min |
+| `c817d937` | 39877769711 | pull request | (log not retrieved) | about 2 h 53 min |
+| `1052154` | 39886536733 | push | 9,358 s | about 2 h 50 min |
+| `1052154` | 39886540694 | pull request | 10,715 s | about 3 h 18 min |
+
+In every run the steps were the same and all passed: the self-test of the check scripts, the byte-for-byte regeneration of
+the generated Lean files, `lake build HCN CN1 HCNChallenges` ("Build completed successfully (11948 jobs)"), exactly two
+`sorry` warnings (the challenge statements'), and the axiom check importing only `HCN.Main`, which printed `[propext,
+Classical.choice, Quot.sound]` for both theorems. `HCN.Assembly.Range` is where the runner's time goes: about 2.5 to 3 hours
+of swapping, against about 2 minutes on the machine of section 3. The project's own compiled modules are not cached between
+runs, so every run pays that cost.
 
 ## 4. Comparator on the published files
 
