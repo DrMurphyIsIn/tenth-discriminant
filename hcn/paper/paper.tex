@@ -1,0 +1,738 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{listings}
+\setlength{\emergencystretch}{2.5em}
+\usepackage[obeyspaces,spaces]{url} % keep the spaces inside \lean{decide +kernel}, \lean{lake build}, ...
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue}
+\usepackage[capitalise,noabbrev]{cleveref}
+% Allow URLs (and Lean names) to break at hyphens as well.
+\makeatletter\g@addto@macro\UrlBreaks{\do\-}\makeatother
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+% cleveref names shared-counter environments after the counter ("Theorem"); alias them per environment.
+\usepackage{etoolbox}
+\AtBeginEnvironment{lemma}{\crefalias{theorem}{lemma}}
+\AtBeginEnvironment{proposition}{\crefalias{theorem}{proposition}}
+\AtBeginEnvironment{corollary}{\crefalias{theorem}{corollary}}
+\AtBeginEnvironment{definition}{\crefalias{theorem}{definition}}
+\AtBeginEnvironment{remark}{\crefalias{theorem}{remark}}
+
+% Lean identifiers: typewriter, with line breaks allowed at dots and underscores.
+\DeclareUrlCommand\lean{\urlstyle{tt}}
+\newcommand{\re}{\operatorname{Re}}
+\newcommand{\im}{\operatorname{Im}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\OK}{\mathcal{O}_K}
+\newcommand{\disc}{\operatorname{disc}}
+\newcommand{\Nm}{\operatorname{N}}
+\newcommand{\Cl}{\operatorname{Cl}}
+% Visible placeholder for an item that is still open.
+\newcommand{\pending}[1]{\textbf{[PENDING: #1]}}
+
+\definecolor{leanbg}{HTML}{F4F2EC}
+
+% The formal side of each step, set off from the mathematics.
+\newenvironment{inlean}{\par\medskip\noindent\begin{tikzpicture}\node[fill=leanbg,rounded corners=2pt,
+  inner sep=6pt,text width=\dimexpr\linewidth-12pt\relax,font=\small]\bgroup\textbf{In Lean.}\ }%
+  {\egroup;\end{tikzpicture}\par\medskip}
+
+\lstdefinelanguage{Lean}{
+  morekeywords={theorem,lemma,def,noncomputable,import,namespace,end,open,by,fun,sorry,example,variable,structure,where},
+  sensitive=true, morecomment=[l]{--}, morecomment=[s]{/-}{-/}, morestring=[b]",
+}
+\lstset{language=Lean, basicstyle=\small\ttfamily, backgroundcolor=\color{leanbg},
+  frame=single, framerule=0pt, framesep=5pt, xleftmargin=5pt, xrightmargin=5pt,
+  breaklines=true, columns=fullflexible, keepspaces=true, showstringspaces=false,
+  literate={ℝ}{{$\mathbb{R}$}}1 {ℂ}{{$\mathbb{C}$}}1 {ℕ}{{$\mathbb{N}$}}1 {ℤ}{{$\mathbb{Z}$}}1 {ℚ}{{$\mathbb{Q}$}}1
+           {∀}{{$\forall$}}1 {∃}{{$\exists$}}1 {→}{{$\to$}}1 {≠}{{$\neq$}}1 {≤}{{$\le$}}1 {≥}{{$\ge$}}1
+           {∧}{{$\wedge$}}1 {∨}{{$\vee$}}1 {¬}{{$\neg$}}1 {↔}{{$\leftrightarrow$}}1 {∈}{{$\in$}}1 {∉}{{$\notin$}}1
+           {α}{{$\alpha$}}1 {χ}{{$\chi$}}1 {σ}{{$\sigma$}}1 {ω}{{$\omega$}}1 {θ}{{$\theta$}}1 {π}{{$\pi$}}1
+           {∑}{{$\sum$}}1 {↦}{{$\mapsto$}}1 {·}{{$\cdot$}}1 {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1
+           {₀}{{$_0$}}1 {²}{{$^2$}}1 {ε}{{$\varepsilon$}}1 {𝓞}{{$\mathcal{O}$}}1 {∣}{{$\mid$}}1
+           {⊔}{{$\sqcup$}}1 {Γ}{{$\Gamma$}}1 {√}{{$\surd$}}1 {′}{{$'$}}1 {ζ}{{$\zeta$}}1
+           {⁴}{{$^4$}}1 {⁵}{{$^5$}}1 {⌊}{{$\lfloor$}}1 {⌋}{{$\rfloor$}}1 {₊}{{$_+$}}1
+           {⁻}{{$^{-}$}}1 {¹}{{$^{1}$}}1 {⁰}{{$^{0}$}}1 {‖}{{$\Vert$}}1 {⊤}{{$\top$}}1 {⊢}{{$\vdash$}}1}
+
+
+\title{Imaginary quadratic fields of class number two,\\ kernel-checked: the eighteen fields from the\\ $7/8$ quasi-Riemann hypothesis in Lean~4}
+\author{Peter W. Murphy}
+\date{October 2026 (v1.2.0)\\[2pt] \small Repository \url{https://github.com/DrMurphyIsIn/tenth-discriminant}, directory \lean{hcn/}\\ \small DOI \url{https://doi.org/10.5281/zenodo.23578359}\\ \small (all versions: \url{https://doi.org/10.5281/zenodo.23550257})}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We present a proof, written in Lean~4 over Mathlib and accepted by two independent kernels, that the imaginary quadratic fields of class number at most two are exactly the $27$ known ones. For squarefree $m \ge 1$, the field $\Q(\sqrt{-m})$ has class number at most two if and only if $m$ is one of the nine radicands of class number one or one of eighteen further radicands, and it has class number exactly two if and only if $m \in \{5, 6, 10, 13, 15, 22, 35, 37, 51, 58, 91, 115, 123, 187, 235, 267, 403, 427\}$. The statements use only Mathlib's definitions, in the vocabulary of our first paper, which proved the class number one theorem by the same method. The route is an extension of that method to all class numbers, posted in the comments of Terence Tao's tenth-discriminant challenge. The Dedekind zeta function of $K$ splits into one sum for each ideal class. Each class sum is half the Epstein zeta function of a positive definite binary form whose leading coefficient lies in $[1, \frac23\sqrt d]$, where $d = |\disc K|$. A general Chowla--Selberg formula with an explicit remainder bound continues each class sum to $s = 7/8$. OpenAI's theorem that no Dirichlet $L$-function vanishes in $\re s > 7/8$, whose Lean proof lies inside the checked closure, then forces $d \le 4777$ when the class number is at most two. To close at $4777$ with the enclosures of the first paper, the positive $y = 0$ term of the non-principal class has to be kept. Without it the margin at $d = 4778$ is about $2\cdot 10^{-5}$, which the proved enclosure of $\Gamma(3/8)/\Gamma(7/8)$ cannot resolve. With it the margin is about $0.069$, and at least $0.0674$ from the proved rational brackets alone. Below $4778$, a certificate that uses only the norm form of the ring of integers gives class number at least three for each of the $1{,}429$ remaining fields; a second kind of certificate, which names a non-principal ramified prime and, where needed, explicit elements of the small prime ideals, gives class number exactly two for the eighteen; and the theorem of the first paper gives class number one for the nine. Comparator accepts both theorems under nanoda and Lean's kernel (in local runs, not sandboxed). An audit of the closure, $135{,}435$ constants, finds only the three standard axioms, with the $7/8$ theorem walked as a theorem, and twelve recorded checks, ten of them controls that must fail, behave as expected. An independent AI review session re-ran Comparator and the closure audit with its own build of the project's modules and of nanoda, and ran five controls of its own; the dependencies were not rebuilt. Both kernels accepted the theorems again. The theorem itself is classical. The contribution is a kernel-checked proof by this route, with its verification record.
+\end{abstract}
+
+%=====================================================================================================
+\section{Introduction}
+%=====================================================================================================
+
+\subsection{The theorem and its history}
+
+The class number one problem goes back to Gauss. The nine fields $\Q(\sqrt{-m})$ with $m \in \{1, 2, 3, 7, 11, 19, 43, 67, 163\}$ have class number one, and the proof that there is no tenth goes back to Heegner, Baker and Stark \cite{Heegner1952,Baker1966,Stark1967}. Our first paper \cite{CN1paper} tells that story and gives a kernel-checked proof of the class number one theorem along a route from the comments of Tao's challenge \cite{Tao2026}.
+
+The class number two problem was also solved classically. Baker and Stark showed in 1971, by transcendence methods in the line of Baker's linear forms in logarithms, that it is effectively solvable \cite{Baker1971,Stark1971}, and the list of eighteen fields was completed by Montgomery and Weinberger \cite{MontgomeryWeinberger1974} and by Stark \cite{Stark1975}. There are exactly eighteen fields, with absolute discriminants
+\[
+d = |\disc K| \in \{15, 20, 24, 35, 40, 51, 52, 88, 91, 115, 123, 148, 187, 232, 235, 267, 403, 427\}.
+\]
+Watkins later determined all imaginary quadratic fields of class number at most $100$ \cite{Watkins2004}. In October 2026 Kimura determined unconditionally all imaginary quadratic fields of class number at most $2000$ \cite{Kimura2026}, making explicit OpenAI's argument excluding Landau--Siegel zeros \cite{OAIsiegel}. According to its abstract, the two analytic steps of that work, the bound for real zeros and the resulting bound for $|d_K|$, are proved in Lean and checked by two kernels, while the fields below the bound are excluded by a sieve or read from class group tables.
+
+Nothing in this paper is a new theorem. What we add is a kernel-checked proof of the class number two theorem, by the route described next, with its verification record.
+
+\subsection{The route, and where it comes from}\label{sec:credit}
+
+The first paper followed the route assembled in the comments of Tao's post \cite{Tao2026}, with the attributions checked against the comment page itself. The commenter michaelmross wrote down the Chowla--Selberg expansion of the Epstein zeta function of the principal form, obtained by Poisson summation in one variable (comment 698466). Tao observed that combining it with the $7/8$ theorem gives $d < 655$ (comment 698471). LemmaLab evaluated the expansion at the fixed point $s = 7/8$ and certified $d \le 653$ in ball arithmetic (comment 698472). The analytic identity goes back to Chowla and Selberg \cite{ChowlaSelberg1967}. The deep input is OpenAI's theorem that no Dirichlet $L$-function vanishes in $\re s > 7/8$ \cite{OAImath,OAIqrh}.
+
+The present paper follows the extension of that argument to all class numbers that LemmaLab posted in the same thread (comment 698478, 20 October 2026, checked against a saved copy of the comment page). For a fundamental discriminant $-d$ with $d \ge 5$, the Dedekind zeta function of $K$ is half the sum of the Epstein zeta functions of the $h$ reduced forms of discriminant $-d$, and the Chowla--Selberg expansion applies to each of them. Using only that the principal form occurs, that every leading coefficient satisfies $1 \le a_i \le \sqrt{d/3}$, and a bound for the $K$-Bessel function in the remainder, LemmaLab obtained $\zeta_K(s) \ge \zeta(2s) - \frac h2\bigl(A(s)d^{1/2-s} + R(d,s)\bigr)$ for $s \in [7/8, 1)$, and certified with ball arithmetic that every field with $h \le 2$ has $d \le 4164$.
+
+We formalize that extension for $h \le 2$. The work followed a written plan, which fixed the route, the statements, the finite range and the checks before any Lean was written; ``the plan'' below means that document. Three changes are forced by what Mathlib and the first project prove.
+\begin{itemize}[nosep]
+\item \textbf{Ideal classes instead of reduced forms.} Mathlib has no theory of binary quadratic forms of a given discriminant: no reduction theory, no form class group and no correspondence between forms and ideal classes. We sum over Mathlib's class group directly, and attach to each class a representative ideal $J$ with its Hermite basis. The leading coefficient of its norm form is then at most $\Nm(J)$, and Minkowski's bound, in Mathlib's form, gives $a \le \frac23\sqrt d$ in place of $\sqrt{d/3}$ (\cref{sec:partition}).
+\item \textbf{The first project's kernel bound instead of the $K$-Bessel bound.} The remainder is bounded with the first paper's inequality for the kernel integral, proved there by the arithmetic--geometric mean inequality, together with a geometric majorant for the double sum that is sharper than the first paper's (\cref{sec:cs}). According to the plan's computations, which an independent review reproduced, these two changes together move the threshold from $4164$ to $4777$. Most of the difference comes from the kernel bound: by the review's computation, the $K$-Bessel bound with $a \le \frac23\sqrt d$ would give $4177$. LemmaLab's code was not available, so the review also reconstructed their $4164$ from the $K$-Bessel bound and $a \le \sqrt{d/3}$. These figures are floating-point computations, not proofs; the threshold $4777$ itself is proved (\cref{sec:threshold}).
+\item \textbf{The positive $y = 0$ term of the non-principal class is kept.} LemmaLab's inequality drops it, and so did the plan. With the enclosures proved in the first project, the inequality without it does not close at $4778$ (\cref{sec:yzero}).
+\end{itemize}
+
+Here is the argument in one paragraph. Let $K = \Q(\sqrt{-m})$, $d = |\disc K|$ and $\chi = \chi_{-d}$, and suppose $m \notin \{1, 3\}$. For $\re s > 1$,
+\[
+\zeta(s)L(s,\chi) = \zeta_K(s) = \sum_{C \in \Cl(K)} \tfrac12 Z_{Q_C}(s),
+\]
+where $Q_C(x,y) = a_Cx^2 + b_Cxy + c_Cy^2$ is the norm form of a Hermite basis of an ideal in $C^{-1}$, of discriminant $-d$, with $1 \le a_C \le \frac23\sqrt d$ and $a_C = 1$ for the principal class. A Chowla--Selberg formula for every positive definite form continues each $\frac12 Z_{Q_C}$ to $s = 7/8$, as $a_C^{-7/8}\zeta(7/4)$, plus a negative term, a positive multiple of $\zeta(3/4) < 0$ of size $O(d^{-3/8})$, plus a remainder whose size is bounded by an explicit, increasing function of $a_C$. At $s = 7/8$ the left side is $\zeta(7/8)L(7/8,\chi) \le 0$, because $\zeta(7/8) < 0$ and the $7/8$ theorem gives $L(7/8,\chi) \ge 0$. If $h \le 2$ and $d \ge 4778$, the right side is positive. So $h \le 2$ forces $d \le 4777$. Below $4778$ there are $1{,}456$ fields. For the $1{,}429$ of them outside the known $27$, a short certificate shows class number at least three, using only which numbers the principal norm form represents. For the eighteen, a certificate built on a non-principal ramified prime shows class number exactly two, and for the nine the first paper's theorem gives class number one.
+
+\subsection{What is new here, and what is not}
+
+The route is the thread's, extended as just described, and the theorem is classical. Nothing in this paper bears on the Riemann hypothesis, or on Siegel zeros beyond what the $7/8$ theorem itself gives (\cref{sec:notclaimed}).
+
+What this paper records is the following. First, a Lean~4 proof of both statements, from Mathlib's definition of the class number of a number field to the last certificate, built on the first paper's foundations and theorem. Second, three pieces of theory that the class-number-two case needs and the class-number-one case did not: a Chowla--Selberg formula for every positive definite binary form, with an explicit remainder bound; the partition of the Dedekind zeta function into class sums over Mathlib's class group, with Hermite bases and representatives of norm at most $\frac23\sqrt d$; and a lower bound for the class number that needs no correspondence between ideals and forms. Third, the threshold $d \le 4777$, proved as a statement about Mathlib's \lean{riemannZeta} and \lean{Real.Gamma}, with OpenAI's Lean proof of the $7/8$ theorem inside the checked closure, not assumed. Fourth, acceptance by two kernels through Comparator against a reviewed statement, a closure audit, controls that must fail and do (\cref{sec:verification}), and an independent re-run of Comparator and the closure audit, with five controls of its own (\cref{sec:replay}).
+
+We repeat the caution of the first paper. In the same thread Pace P.~Nielsen reported that Codex, given comments from the thread, was able to prove ``using only the Lean kernel'', and subject to the $7/8$ claim, that Euler's list of $65$ convenient numbers is complete, and invited those interested to email for the Lean code (comment 698545). Kimura's Lean work covers the analytic bounds for $h \le 2000$ \cite{Kimura2026}. We do not claim priority. We claim a kernel-checked proof by this route.
+
+\subsection{The claim, and how we phrase it}\label{sec:framing}
+
+The proof does not use Heegner's method (no $j$-invariant or singular moduli occur in the closure), linear forms in logarithms, or the Gross--Zagier formula. Its deep input is the $7/8$ theorem, and its closure contains the Riemann zeta function, Dirichlet $L$-functions, Mathlib's Dedekind zeta function, Mellin transforms, Gamma-function enclosures, the Jacobi theta function and its modular transformation, and, through OpenAI's proof of the $7/8$ theorem, non-holomorphic Eisenstein series with their automorphy. The analytic step is meant to use them.
+
+Every claim about what the proof does or does not use is phrased over the \emph{closure}, the set of constants the two theorems actually depend on, and not over the import graph. The environment imports far more than the proof uses: $11$ of the $41$ vendored \lean{CN1} modules of the first project ($15$ of the $45$ vendored files) begin with \lean{import Mathlib}, and the openai/math development brings $2{,}924$ modules of its own, $268$ of which contribute no constant to the closure. The audit of \cref{sec:audit} counts the constants of the closure, module by module.
+
+%=====================================================================================================
+\section{The statement and the trust base}\label{sec:statement}
+%=====================================================================================================
+
+The statements that were reviewed, and that Comparator checks, are the following. They live in the module \lean{HCNChallenges.ClassNumberLeTwo}, which imports only Mathlib and carries two \lean{sorry}; the proofs are in \lean{HCN.Main}.
+
+\begin{lstlisting}
+theorem classNumber_le_two_iff (K : Type*) [Field K] [NumberField K]
+    (hK : Module.finrank ℚ K = 2)
+    (m : ℕ) (hm : Squarefree m) (hsq : ∃ α : K, α ^ 2 = -(m : K)) :
+    classNumber K ≤ 2 ↔ m ∈ ({1, 2, 3, 7, 11, 19, 43, 67, 163, 5, 6, 10, 13, 15, 22, 35, 37, 51, 58, 91, 115, 123, 187, 235, 267, 403, 427} : Finset ℕ) := by
+  sorry
+
+theorem classNumber_eq_two_iff (K : Type*) [Field K] [NumberField K]
+    (hK : Module.finrank ℚ K = 2)
+    (m : ℕ) (hm : Squarefree m) (hsq : ∃ α : K, α ^ 2 = -(m : K)) :
+    classNumber K = 2 ↔ m ∈ ({5, 6, 10, 13, 15, 22, 35, 37, 51, 58, 91, 115, 123, 187, 235, 267, 403, 427} : Finset ℕ) := by
+  sorry
+\end{lstlisting}
+
+\begin{theorem}[\lean{HCN.classNumber_le_two_iff}, \lean{HCN.classNumber_eq_two_iff}]\label{thm:main}
+Let $K$ be a number field of degree two over $\Q$, let $m$ be a squarefree natural number, and suppose $K$ contains an element $\alpha$ with $\alpha^2 = -m$. Then $K$ has class number at most two if and only if
+\[
+m \in S_9 \cup S_{18}, \qquad S_9 = \{1, 2, 3, 7, 11, 19, 43, 67, 163\},
+\]
+\[
+S_{18} = \{5, 6, 10, 13, 15, 22, 35, 37, 51, 58, 91, 115, 123, 187, 235, 267, 403, 427\},
+\]
+and $K$ has class number exactly two if and only if $m \in S_{18}$.
+\end{theorem}
+
+The hypotheses are those of the first paper's theorem, token for token; only the conclusions differ. The first paper explains why this phrasing pins down $K \cong \Q(\sqrt{-m})$ and why the squarefree hypothesis is load-bearing. We write $m$ for the radicand and $d = |\disc K|$ for the absolute discriminant: $d = m$ if $m \equiv 3 \pmod 4$ and $d = 4m$ otherwise. In Lean $d$ is the first project's \lean{CN1.Finite.dOf m}. The $27$-element set lists the nine radicands of class number one first, then the eighteen of class number two; the order inside a \lean{Finset} literal does not matter.
+
+\paragraph{Where the sets come from.} The two sets were not typed by hand. A generator script inserted them into the statement file from class-number data, after checking that the sources agree. It enumerates the fundamental discriminants $-d$ with $3 \le d \le 340{,}000$ from the definition ($103{,}355$ of them), and checks five class-number sources, from three independent programs, against this enumeration and against each other: PARI's \lean{qfbclassno}, a count of reduced forms and Dirichlet's class number formula, both in C, for the $91{,}183$ discriminants with $d \le 300{,}000$; the same reduced-form count run to $340{,}000$; and an independent reduced-form count to $340{,}000$, written by the review session without reading the plan's code. All agree on every discriminant, and the script runs a reduced-form count of its own up to $d = 5000$. Class number one occurs at nine radicands and class number two at eighteen, and no field with $h \le 2$ has $d > 427$ anywhere in that range. None of these computations is part of the proof. The kernel checks every claim the proof makes about a particular field, so a wrong set would make the proof fail, as the tampered statements of \cref{sec:controls} show.
+
+\paragraph{What a reader has to trust.}
+\begin{itemize}[nosep]
+\item The two statements above, with the Mathlib definitions they use (\lean{NumberField}, \lean{NumberField.classNumber}, \lean{Module.finrank}, \lean{Squarefree}).
+\item The Lean~4 kernel (toolchain \lean{v4.34.1}) and, independently, the nanoda kernel \cite{nanoda}.
+\item The three standard axioms \lean{propext}, \lean{Quot.sound} and \lean{Classical.choice}.
+\end{itemize}
+Everything else is checked: the closure is walked (\cref{sec:audit}) and replayed through both kernels by Comparator (\cref{sec:comparator}). The $7/8$ theorem is not on the list. Its Lean proof is inside the checked closure, and that its manuscript is unrefereed bears on how well humans understand the proof, not on whether the kernels accept it. Before any proof was assembled, the independent review session checked the two statements definitionally, by elaborating \lean{type_of% @HCN.classNumber_le_two_iff.{0}} against its own re-typing of the statement, and the same for the second theorem, and confirmed both sets against its own class-number count.
+
+The development is pinned to Lean \lean{v4.34.1} and Mathlib \lean{d13f23b} \cite{Mathlib2020,Lean4}, the environment of openai/math's $7/8$ theorem. openai/math is a path dependency on a local, unversioned copy, which agrees with the public commit \lean{adc7f124} except for four additions outside any Lean library (\cref{sec:trust}).
+
+\paragraph{Module paths.} Lean names are given with their module. The development is the third entry of the repository of the first paper, next to the first proof (\lean{formalization/}) and the second (\lean{determinant/}). Its modules live under \lean{hcn/formalization/}, so the module \lean{HCN.Assembly.Range} is the file \lean{hcn/formalization/HCN/Assembly/Range.lean}. The vendored modules keep their names from the first project: \lean{CN1.Foundations.Basic} is \lean{hcn/formalization/CN1/Foundations/Basic.lean}.
+
+\subsection{Relation to the two proofs of class number one}\label{sec:cn1}
+
+The checked development contains the first project's Lean tree, $41$ modules under \lean{CN1} and $4$ under \lean{CN1Challenges}, vendored unchanged. These $45$ files are byte-for-byte the files of the first project's checked tree, the one its run of record verified, before the comment cleanup that preceded its publication. They are code-identical to the files published as version~1.0.0 of the first project, but not byte-identical to them: before that publication, internal labels were removed from the comments of the published copies, and nothing else. With comments stripped, all $45$ files agree. The published directory \lean{hcn/formalization/} vendors instead the $41$ \lean{CN1} modules as already published with the first proof, which differ from the checked copies in comments only, and it does not include \lean{CN1Challenges}, which served only the regression check (\cref{sec:freshbuild}).
+
+The new proof uses the following from the first project: the ring of integers $\Z[\omega]$, its norm form and its Kronecker character; the factorization $\zeta_K = \zeta \cdot L(\cdot,\chi)$; the kernel integral of the Chowla--Selberg proof and its bound; the continuation lemma that carries an identity from $\re s > 1$ to $s = 7/8$; the enclosures of $\zeta(7/4)$, $\zeta(3/4)$, $\zeta(7/8)$ and $\Gamma(3/8)/\Gamma(7/8)$; the positivity $L(7/8,\chi) \ge 0$, which is where the $7/8$ theorem enters; the bound of the Minkowski constant by $\frac23\sqrt d$; and, for the nine fields, the first paper's theorem \lean{CN1.classNumber_eq_one_iff} itself. The first paper's main module \lean{CN1.Main} still builds in the same tree, and the general Chowla--Selberg formula of \cref{sec:cs} specializes to the first paper's formula, as a proved regression.
+
+The same repository holds a second proof of the class number one theorem, by a determinant route with no $L$-function, no zeta function and no zero-free theorem in its closure \cite{DETpaper}. The present proof does not use it. It follows the first route instead. The determinant argument, as formalized, derives its contradiction from two consequences of class number one, that every prime below $|\disc K|/4$ is inert and that every split prime is the norm of an element, and so it gives no lower bound for the class number of a general field. With a zero-free half-plane, the sum of the class sums at $s = 7/8$ is non-positive for every field, while the Chowla--Selberg formula bounds each class sum from below; that is what $h \le 2$ needs. \Cref{tab:compare} sets the three proofs side by side.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.6cm}}
+\toprule
+ & first proof \cite{CN1paper} & determinant proof \cite{DETpaper} & this proof\\
+\midrule
+statement & $h = 1$ & $h = 1$ & $h \le 2$ and $h = 2$\\
+deep input & the $7/8$ theorem & Frobenius at inert primes; Chebyshev-type prime estimates & the $7/8$ theorem\\
+analytic bound & $|\disc K| \le 652$ & $|\disc K| < 2^{15}$ & $|\disc K| \le 4777$\\
+finite range & $190$ fields, one witness each & $4{,}095$ integers in a residue sieve, and two lemmas at $p = 2$ & $1{,}429$ fields, one certificate each for $h \ge 3$; $18$ fields, one certificate each for $h = 2$\\
+closure & $129{,}170$ constants & $69{,}295$ constants & $135{,}435$ constants\\
+Comparator run & about $548$\,s & about $148$\,s & about $660$\,s\\
+\bottomrule
+\end{tabular}
+\caption[The three proofs in the repository.]{The three proofs in the repository. The figures for the first two are from their papers. The closure sizes are as each run of record counted them; the walks of the second and of this proof count the two auxiliary recursors of \lean{Lean.Syntax} (\cref{sec:replay}), and the closure of this proof contains the first proof's theorem together with its closure.}
+\label{tab:compare}
+\end{table}
+
+%=====================================================================================================
+\section{The shape of the development}\label{sec:shape}
+%=====================================================================================================
+
+The development was built around interfaces fixed before the hard proofs were written. Two statement modules state the two new pieces of analytic theory, with \lean{sorry}: \lean{HCN.Statements.GeneralCS} the general Chowla--Selberg formula, and \lean{HCN.Statements.ClassPartition} the class partition. The independent review checked both before any analytic proof was built: it re-derived each object from the Poisson computation, confirmed that the six statements of each module are true as stated, and checked that the general formula specializes to the first paper's. The proofs were then installed in place. A comparison of every declaration before and after found $28$ of $28$ declarations of the first module and $17$ of $17$ of the second identical in header, body and docstring, in the same order, with only the \lean{sorry} lines removed. At the level of elaborated terms, the declarations of the first module are identical, and those of the second agree up to hygienic binder names and auxiliary constants of numerals. One comment-only change was made afterwards: two docstrings, one in the first statement module and one in the build configuration, still described the proved files as \lean{sorry} files, and they were corrected before the run of record, with no Lean term changed.
+
+The assembly consumes the two interfaces as propositions, \lean{HCN.Assembly.CSFacts} and \lean{HCN.Assembly.EFacts}, whose fields copy the statements verbatim. The module \lean{HCN.Main} instantiates them from the proved theorems, as \lean{HCN.csFacts} and \lean{HCN.eFacts}, which also checks that the interfaces say what the statements say. The two headline theorems carry no such hypothesis: their binders and conclusions are the challenge's, character for character.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}p{9.4cm}r}
+\toprule
+piece & main Lean module(s) & here\\
+\midrule
+general Chowla--Selberg & \lean{HCN.Statements.GeneralCS}, \lean{HCN.CS.*} & \S\ref{sec:cs}\\
+class partition of $\zeta_K$ & \lean{HCN.Statements.ClassPartition}, \lean{HCN.Epstein.IdealZeta} & \S\ref{sec:partition}\\
+threshold at $s = 7/8$ & \lean{HCN.Numerics.Threshold}, \lean{HCN.Assembly.LowerBound} & \S\ref{sec:threshold}\\
+lower bounds $h \ge 3$ & \lean{HCN.Finite.NotRep}, \lean{HCN.Finite.ClassLower}, \lean{HCN.Finite.Certs} & \S\ref{sec:lower}\\
+class number two & \lean{HCN.Finite.Generation}, \lean{HCN.Finite.IdealLite}, \lean{HCN.Finite.ClassTwo} & \S\ref{sec:classtwo}\\
+range lemma and assembly & \lean{HCN.Assembly.Range}, \lean{HCN.Assembly}, \lean{HCN.Main} & \S\ref{sec:range}, \S\ref{sec:assembly}\\
+\bottomrule
+\end{tabular}
+\caption{The pieces of the development.}
+\label{tab:pieces}
+\end{table}
+
+\paragraph{Size.} The new code is $34$ modules under \lean{HCN}. Fourteen are written by hand, $3{,}334$ lines in all, the two statement modules included. Twenty are generated by scripts, $10{,}800$ lines, of which $10{,}414$ are the fifteen certificate chunks of \cref{sec:lower}. The generators are untrusted; the kernel checks what they emit. The vendored first project adds $7{,}562$ lines in its $41$ modules.
+
+%=====================================================================================================
+\section{The analytic half: class number at most two forces \texorpdfstring{$d \le 4777$}{d <= 4777}}\label{sec:analytic}
+%=====================================================================================================
+
+\subsection{Chowla--Selberg for every positive definite form}\label{sec:cs}
+
+Let $a, b, c$ be real with $a > 0$ and $D = 4ac - b^2 > 0$, so that the form below is positive definite with discriminant $b^2 - 4ac = -D$, put $Q(x,y) = ax^2 + bxy + cy^2$ and $Z_Q(s) = \sum_{(x,y) \in \Z^2} Q(x,y)^{-s}$, where the origin contributes $0^{-s} = 0$. Completing the square, $Q(x,y) = a(x + \frac{b}{2a}y)^2 + \frac{D}{4a}y^2$. With the first paper's kernel integral
+\[
+I(s; A, B) = \int_0^\infty t^{s-3/2}e^{-At - B/t}\,dt \qquad (A > 0,\ B \ge 0,\ \re s > \tfrac12),
+\]
+put $A_y = \pi D y^2/(4a)$, $B_k = \pi k^2/a$ and the phase $e(k,y) = e^{2\pi i k \cdot by/(2a)}$, a complex number of modulus one.
+
+\begin{theorem}[Chowla--Selberg for a general form]\label{thm:cs}
+For $\re s > 1$,
+\[
+\tfrac12 Z_Q(s) = \mathrm{mainTerm}_Q(s) + E_Q(s),
+\]
+where
+\[
+\mathrm{mainTerm}_Q(s) = a^{-s}\zeta(2s) + \frac{\pi^s\,\Gamma(s - \frac12)}{\Gamma(s)}\,a^{-1/2}\Bigl(\frac{4a}{\pi D}\Bigr)^{s - \frac12}\zeta(2s-1),
+\]
+\[
+E_Q(s) = \frac{\pi^s}{2\Gamma(s)}\,a^{-1/2}\sum_{y \ne 0}\sum_{k \ne 0} e(k,y)\,I(s; A_y, B_k).
+\]
+The right side is holomorphic on $\{\re s > \frac12\} \setminus \{1\}$, and $E_Q(7/8)$ is real.
+\end{theorem}
+
+\begin{proof}
+For fixed $y \ne 0$, write each $Q(x,y)^{-s}$ as $\frac{\pi^s}{\Gamma(s)}\int_0^\infty t^{s-1}e^{-\pi t Q(x,y)}\,dt$ and apply the theta identity with the real shift $\alpha = by/(2a)$, scaled by $a$:
+\[
+\sum_{x \in \Z} e^{-\pi t a(x + \alpha)^2} = (ta)^{-1/2}\sum_{k \in \Z} e^{-\pi k^2/(ta)}e^{2\pi i k\alpha} .
+\]
+Exchanging sum and integral twice gives the slice $\sum_x Q(x,y)^{-s} = \frac{\pi^s}{\Gamma(s)}a^{-1/2}\sum_k e(k,y)\,I(s; A_y, B_k)$. The slice $y = 0$ is $\sum_{x \ne 0}(ax^2)^{-s} = 2a^{-s}\zeta(2s)$. In each slice with $y \ne 0$, the term $k = 0$ is $\frac{\pi^s}{\Gamma(s)}a^{-1/2}\Gamma(s - \frac12)A_y^{-(s - 1/2)}$, and summed over $y \ne 0$ these terms give the $\zeta(2s - 1)$ term. What is left is $E_Q$. Holomorphy follows from the termwise bound below, which is uniform on vertical strips, as in the first paper. At real $s$, pairing $k$ with $-k$ conjugates the phase and fixes $B_k$, so $E_Q(7/8)$ is real.
+\end{proof}
+
+\paragraph{The remainder.} The first paper's bound for the kernel, $|I(s; A, B)| \le e^{-\sqrt{AB}}(2/A)^{\sigma - 1/2}\Gamma(\sigma - \frac12)$ with $\sigma = \re s$, comes from $At + B/t \ge 2\sqrt{AB}$, which gives $e^{-At - B/t} \le e^{-\sqrt{AB}}e^{-At/2}$. Here $\sqrt{A_yB_k} = c_Q|k||y|$ with
+\[
+c_Q = \frac{\pi\sqrt D}{2a},
+\]
+and $(2/A_y)^{\sigma - 1/2} \le (8a/(\pi D))^{\sigma - 1/2}$ for $|y| \ge 1$. The double sum is then bounded through $(|k| - 1)(|y| - 1) \ge 0$, that is $|k||y| \ge |k| + |y| - 1$:
+\[
+\sum_{y \ne 0}\sum_{k \ne 0} e^{-c|k||y|} \le e^{c}\Bigl(\sum_{k \ne 0}e^{-c|k|}\Bigr)^2 = \frac{4e^{-c}}{(1 - e^{-c})^2} .
+\]
+
+\begin{proposition}[the remainder bound]\label{prop:Bg}
+For every positive definite form,
+\[
+|E_Q(7/8)| \le B(a, D) := 2\pi^{7/8}\frac{\Gamma(3/8)}{\Gamma(7/8)}\,a^{-1/2}\Bigl(\frac{8a}{\pi D}\Bigr)^{3/8}\frac{e^{-c}}{(1 - e^{-c})^2}, \qquad c = \frac{\pi\sqrt D}{2a}.
+\]
+\end{proposition}
+
+The first paper split $|k||y| \ge \frac12(|k| + |y|)$, which gives the factor $(1 - e^{-c/2})^{-2}$. That is ample for class number one, where the margin is about $10^{-3}$ against a remainder bound of about $10^{-17}$. For class number two the remainder matters: a floating-point estimate made when the statements were written found that the weaker split, generalized to $a$, would only give $d \le 5248$. The kernel bound itself still halves the true exponent, since $I(s; A, B)$ decays like $e^{-2\sqrt{AB}}$; only the split of the double sum is sharper than the first paper's. At $a = 1$ the new bound is at most the first paper's, which is proved.
+
+\begin{lemma}[monotonicity in $a$]\label{lem:mono}
+If $D > 0$ and $0 < a \le a' \le \frac23\sqrt D$, then $B(a, D) \le B(a', D)$.
+\end{lemma}
+
+\begin{proof}
+Write $a' = at^8$ with $t \ge 1$, and $c' = c(a')$. The factor $a^{-1/2}(8a/(\pi D))^{3/8}$ scales by $t^3/t^4 = 1/t$. Since $c = c't^8 \ge c'$, we have $(1 - e^{-c'})^2 \le (1 - e^{-c})^2$, so passing from $a$ to $a'$ the denominator can only shrink, which helps. And $te^{-c} \le e^{-c'}$, because $c - c' = c'(t^8 - 1) \ge (t^8 - 1)/8 \ge t - 1$ by Bernoulli's inequality, and $e^{x} \ge 1 + x$. This uses only $c' \ge 1/8$, which holds because $a' \le \frac23\sqrt D$ gives $c' \ge 3\pi/4$. No derivative is taken.
+\end{proof}
+
+The formal side condition is $c(a') \ge 1/8$. The stronger $c(a') \ge 3\pi/4$, which the checked docstring mentioned, is true on this range, but it is not what is formalized; the published docstring states $c \ge 1/8$ (\cref{sec:freshbuild}).
+
+\begin{inlean}
+In \lean{HCN.Statements.GeneralCS} (namespace \lean{HCN.CS}): the definitions \lean{disc}, \lean{Qg}, \lean{Zg}, \lean{phase}, \lean{ayg}, \lean{bkg}, \lean{Rtermg}, \lean{Sg}, \lean{Eg}, \lean{mainTermg}, \lean{cstg} and \lean{Bg}; the theorems \lean{CS_main_general}, \lean{differentiableOn_mainTermg_add_Eg}, \lean{mainTermg_seven_eighths}, \lean{Eg_seven_eighths_im}, \lean{norm_Eg_seven_eighths_le}, \lean{Bg_mono} and \lean{CS_seven_eighths_general}. The work is done in the helper modules \lean{HCN.CS.Form}, \lean{HCN.CS.Slice} (\lean{HCN.CSAux.slice_gen}), \lean{HCN.CS.Remainder} (\lean{HCN.CSAux.norm_tsum_T_le}, \lean{differentiableOn_tsum_T}, \lean{tsum_T_ofReal_im}), \lean{HCN.CS.MainTerm} and \lean{HCN.CS.Mono} (\lean{HCN.CSAux.bg_core_mono}, with the side condition $1/8 \le \pi\sqrt D/(2a')$, and \lean{HCN.CSAux.one_eighth_le_cst}, which proves it from $a' \le \frac23\sqrt D$). The kernel bound is the first paper's \lean{CN1.CS.norm_I_le}. The regression to the first paper: \lean{Zg_principal}, \lean{mainTermg_principal}, \lean{Eg_principal}, and \lean{CS_main_principal}, which proves the first paper's identity \lean{CN1.CS.CS_main} exactly; \lean{Bg_one_le_B} compares the bounds at $a = 1$.
+\end{inlean}
+
+\subsection{The partition of \texorpdfstring{$\zeta_K$}{zeta\_K} into class sums}\label{sec:partition}
+
+Let $K$, $m$, $\alpha$ be as in \cref{thm:main}, with $\OK = \Z[\omega]$ and norm form $x^2 + txy + cy^2$, where $t \in \{0, 1\}$ and $4c - t^2 = d$ (the first project's \lean{CN1.Finite.tOf} and \lean{CN1.Finite.cOf}).
+
+\begin{proposition}[Hermite bases]\label{prop:hermite}
+Every nonzero ideal $J \subseteq \OK$ has a basis $J = \Z A \oplus \Z(B + C\omega)$ with $A, C > 0$ and $A$ the least positive integer in $J$. For such a basis $\Nm(J) = AC$ and $C \mid A$. Its norm form $Q_J(x, y) = \Nm\bigl(xA + y(B + C\omega)\bigr)/\Nm(J)$ has the coefficients
+\[
+a = \frac AC, \qquad b = \frac{2B + tC}{C}, \qquad c_J = \frac{B^2 + tBC + cC^2}{AC},
+\]
+with $4ac_J - b^2 = d$, so that $Q_J$ has discriminant $-d$, and $1 \le a \le \Nm(J)$.
+\end{proposition}
+
+\begin{proof}
+Take $A$ least with $A \in J$, which exists since $\Nm(J) \in J$, and $C$ least with $u + C\omega \in J$ for some $u$, which exists since $A\omega \in J$. Euclidean division shows that $J \cap \Z = A\Z$ and that the $\omega$-coordinates of $J$ form $C\Z$, so $(A, B + C\omega)$ spans. The norm is the index, computed as the determinant of the change of basis against $\{1, \omega\}$. Writing $A\omega \in J$ in the basis forces $yC = A$, so $C \mid A$, hence $1 \le a = A/C$, and $a \le AC = \Nm(J)$.
+\end{proof}
+
+An arbitrary $\Z$-basis would not do: replacing $A$ by $A + k(B + C\omega)$ makes the leading coefficient unbounded. Fixing the Hermite basis is what puts $a$ inside the range of \cref{lem:mono}.
+
+\begin{proposition}[the class sum, with the class named]\label{prop:classsum}
+Let $m \notin \{1, 3\}$, and let $J$ be a nonzero ideal with Hermite basis as above. For $\re s > 1$,
+\[
+\sum_{\substack{I \subseteq \OK,\ I \ne 0\\ [I] = [J]^{-1}}} \Nm(I)^{-s} = \tfrac12 Z_{Q_J}(s),
+\]
+as an absolutely convergent sum. For every number field, $\zeta_K(s) = \sum_{C \in \Cl(K)}\sum_{I \in C}\Nm(I)^{-s}$ for $\re s > 1$.
+\end{proposition}
+
+\begin{proof}
+For $\beta = xA + y(B + C\omega) \ne 0$ in $J$, the ideal $(\beta)$ is divisible by $J$, so $(\beta) = JI$ with $I$ integral, $[I] = [J]^{-1}$, and $\Nm(I) = |\Nm\beta|/\Nm(J) = Q_J(x, y)$. Every integral $I$ in the class $[J]^{-1}$ arises, because $IJ$ is principal with a generator in $J$, and the fibres are $\{\pm\beta\}$, since the units are $\pm1$ for $m \notin \{1, 3\}$. Summability follows by comparison with the principal form. The partition of $\zeta_K$ regroups Mathlib's Dirichlet series by the class of each ideal.
+\end{proof}
+
+The class has to be named. The sum over the ideals of one fixed class $C$ is $\frac12 Z_{Q_J}$ for a representative $J$ of $C^{-1}$, not of $C$. Mathlib's Minkowski lemma applies to every class, so the representatives can be chosen in the inverse classes at no cost.
+
+\begin{proposition}[representatives]\label{prop:reps}
+Let $m \notin \{1, 3\}$. For each class $C$ there is an ideal $J_C$ with $[J_C] = C^{-1}$, a Hermite basis $(A_C, B_C + C_C\omega)$ and $\Nm(J_C) \le \frac23\sqrt d$, with $J_1 = \OK$ and $(A_1, B_1, C_1) = (1, 0, 1)$. Then every leading coefficient satisfies $1 \le a_C \le \frac23\sqrt d$, the principal class has $a_1 = 1$ and the principal form, and for $\re s > 1$
+\[
+\zeta_K(s) = \sum_{C \in \Cl(K)} \tfrac12 Z_{Q_{J_C}}(s).
+\]
+\end{proposition}
+
+\begin{proof}
+Mathlib's \lean{NumberField.exists_ideal_in_class_of_norm_le} gives an ideal in $C^{-1}$ of norm at most the Minkowski bound, which the first paper bounds by $\frac23\sqrt d$. \Cref{prop:hermite} gives its Hermite basis, and \cref{prop:classsum} the identity, since $(C^{-1})^{-1} = C$. For the principal class, $\OK = \Z\cdot 1 \oplus \Z\omega$ is a Hermite basis with $(1, 0, 1)$, and $\Nm(\OK) = 1 \le \frac23\sqrt d$ since $d \ge 3$.
+\end{proof}
+
+Everything here is stated over Mathlib's \lean{ClassGroup.mk0}, \lean{Ideal.absNorm} and \lean{NumberField.dedekindZeta}. No binary quadratic form is ever reduced, and no correspondence between forms and ideal classes is built.
+
+\begin{inlean}
+In \lean{HCN.Statements.ClassPartition} (namespace \lean{HCN.Epstein}): \lean{formA}, \lean{formB}, \lean{formC}, the structure \lean{IsHermite}, \lean{exists_isHermite}, \lean{IsHermite.absNorm_eq} (through Mathlib's \lean{Ideal.natAbs_det_basis_change} against the first project's \lean{intBasis}), \lean{IsHermite.C_dvd_A}, \lean{IsHermite.one_le_formA}, \lean{IsHermite.formA_le_absNorm}, \lean{IsHermite.norm_eq}, \lean{disc_form}, \lean{isHermite_top}, \lean{form_one_zero_one}, \lean{hasSum_classSum} (stated as a \lean{HasSum}, so that no junk value of \lean{tsum} can hide a divergent sum), \lean{dedekindZeta_eq_sum_classes} and \lean{exists_classReps}. The new Mathlib-only module \lean{HCN.Epstein.IdealZeta} supplies \lean{hasSum_dedekindZeta}, the Dedekind zeta function as a sum over the nonzero ideals. The units are the first project's \lean{CN1.Foundations.coe_unit_eq_one_or_neg_one}, and the Minkowski bound is \lean{CN1.Finite.le_two_thirds_sqrt_of_le_minkowski} with \lean{CN1.Foundations.discr_eq}.
+\end{inlean}
+
+\subsection{The threshold}\label{sec:threshold}
+
+\paragraph{One class at $s = 7/8$.} At $s = 7/8$ the main term of a form with $4ac - b^2 = D$ is
+\[
+\mathrm{mainTerm}_Q(7/8) = a^{-7/8}\zeta(7/4) + k(a, D)\,\zeta(3/4), \qquad k(a, D) = \pi^{7/8}\frac{\Gamma(3/8)}{\Gamma(7/8)}\,a^{-1/2}\Bigl(\frac{4a}{\pi D}\Bigr)^{3/8},
+\]
+and $k(a, D) = a^{-1/8}k(1, D) \le k(1, D)$ for $a \ge 1$. Since $\zeta(3/4) < 0$, \cref{prop:Bg,lem:mono} give, for $1 \le a \le a_{\max} = \frac23\sqrt D$,
+\begin{equation}\label{eq:oneclass}
+\re\bigl(\mathrm{mainTerm}_Q(7/8) + E_Q(7/8)\bigr) \ge a^{-7/8}\zeta(7/4) + k(1, D)\,\zeta(3/4) - B(a_{\max}, D).
+\end{equation}
+For the principal class, $a = 1$, the right side is
+\[
+P(D) = \zeta(7/4) + k(1, D)\,\zeta(3/4) - B(a_{\max}, D),
+\]
+and for every class, since $a^{-7/8} \ge a_{\max}^{-7/8}$ and $\zeta(7/4) > 0$, it is at least
+\[
+T(D) = a_{\max}^{-7/8}\zeta(7/4) + k(1, D)\,\zeta(3/4) - B(a_{\max}, D).
+\]
+If $h \le 2$, the sum over the classes is therefore at least $P(D) + \min(T(D), 0)$.
+
+\begin{proposition}[the numerics]\label{prop:numerics}
+For every real $D \ge 4778$, $P(D) > 0$ and $P(D) + T(D) > 0$.
+\end{proposition}
+
+\begin{proof}
+One evaluation covers every $D \ge 4778$. Put $u = D^{1/16}$, so that $\sqrt D = u^8$. At $a_{\max}$ the exponent is $c(a_{\max}) = \pi\sqrt D/(2\cdot\frac23\sqrt D) = 3\pi/4$ exactly. Hence $k(1, D) = k_1u^{-6}$, $a_{\max}^{-7/8} = (2/3)^{-7/8}u^{-7}$ and $B(a_{\max}, D) = \kappa u^{-7}$ for constants $k_1, \kappa > 0$, and
+\[
+P + T = \zeta(7/4) + 2k_1\zeta(3/4)\,u^{-6} + \bigl((2/3)^{-7/8}\zeta(7/4) - 2\kappa\bigr)u^{-7},
+\]
+with $u^{-6} \le 4778^{-3/8}$ and $u^{-7} \le 4778^{-7/16}$. The sign of the coefficient of $u^{-7}$ is handled by cases, with no numerical assumption. The constants are bracketed by the rationals of \cref{tab:brackets}, each proved by \lean{norm_num} from Mathlib's bounds on $\pi$ and $e$ and the first paper's enclosures.
+\end{proof}
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{7.4cm}>{\raggedright\arraybackslash}p{6.4cm}}
+\toprule
+bracket & source\\
+\midrule
+$\pi^{7/8} \le 6807/2500$ & $\pi < 3.141593$ (Mathlib)\\
+$(4/\pi)^{3/8} \le 10949/10000$, $(16/(3\pi))^{3/8} \le 3049/2500$ & $\pi > 3.141592$ (Mathlib)\\
+$\sqrt{2/3} \ge 2041/2500$, $(2/3)^{7/8} \le 3507/5000$ & exact\\
+$e^{-3\pi/4} \le 4767/50000$ & $\pi > 3.141592$, $e > 2.7182818283$ and $1 + x + x^2/2 \le e^x$\\
+$4778^{-3/8} \le 41721/10^6$, $4778^{-7/16} \le 24567/10^6$ & exact\\
+$\zeta(7/4) \ge 1.96232$, $\zeta(3/4) \in [-3.44129, -3.44128]$ & first paper\\
+$\Gamma(3/8)/\Gamma(7/8) \in [2.1753, 2.1755]$ & first paper\\
+\bottomrule
+\end{tabular}
+\caption{The rational brackets behind \cref{prop:numerics}. From these brackets alone, $P(4778) \ge 0.98050$ and $P(4778) + T(4778) \ge 0.06742$. A separate script checks every bracket in exact rational arithmetic.}
+\label{tab:brackets}
+\end{table}
+
+\paragraph{Why the $y = 0$ term is kept.}\label{sec:yzero} The term $a^{-7/8}\zeta(7/4)$ in \eqref{eq:oneclass} is the slice $y = 0$ of the class's Epstein sum, and it is positive. LemmaLab's inequality drops it for every non-principal class, and so did the plan. With the present bounds and $h \le 2$, dropping it leaves the plan's bound
+\[
+F(D) = \zeta(7/4) + 2k(1, D)\,\zeta(3/4) - 2B(a_{\max}, D).
+\]
+The threshold $4777$ comes from this bound: in $50$-digit floating point, $F(4777) \approx -1.35\cdot 10^{-4}$ and $F(4778) \approx +2.05\cdot 10^{-5}$. A margin of $2\cdot 10^{-5}$ cannot be certified with the enclosures the first paper proved. The proved enclosure $2.1753 \le \Gamma(3/8)/\Gamma(7/8) \le 2.1755$ alone, with every other constant exact, moves the worst case at $d = 4778$ below zero, to about $-6.4\cdot 10^{-5}$. With the first paper's zeta enclosures as well ($\zeta(7/4) \ge 1.96232$, $\zeta(3/4) \ge -3.44129$) it is about $-6.7\cdot 10^{-5}$, and with the full chain of rational brackets about $-1.3\cdot 10^{-3}$. So the plan's derivation does not close at $4777$ with the proved bounds. Keeping the term closes it with room to spare. In floating point $P(4778) \approx 0.98117$, $T(4778) \approx -0.91241$ and $P(4778) + T(4778) \approx 0.06876$. The proved brackets alone give $P + T \ge 0.06742$, and only the positivity is used. The kept term needs no new assumption: it is exactly the first term of the main term as stated in \cref{thm:cs}, bounded below through $a_C \le a_{\max}$ and $\zeta(7/4) \ge 1.96232$. The theorem proved is unchanged, $h \le 2 \Rightarrow d \le 4777$, which is the range of the finite half. The kept term would allow a smaller threshold, $d \le 4345$ in floating point (the root of $P + T$ is near $4345.7$), but the range was not tightened.
+
+\paragraph{The analytic theorem.}
+
+\begin{theorem}\label{thm:analytic}
+Let $K$, $m$ be as in \cref{thm:main} with $m \notin \{1, 3\}$. If $d = |\disc K| \ge 4778$, then $K$ has class number at least three. Equivalently, class number at most two forces $d \le 4777$.
+\end{theorem}
+
+\begin{proof}
+By the first paper, $\zeta(s)L(s,\chi) = \zeta_K(s)$ for $\re s > 1$, and by \cref{prop:reps} and \cref{thm:cs} this is $\sum_C(\mathrm{mainTerm}_{Q_C}(s) + E_{Q_C}(s))$ there. Both sides are holomorphic on $\{\re s > \frac12\} \setminus \{1\}$, since $\chi$ is non-trivial and $L(\cdot,\chi)$ is entire, so the first paper's continuation lemma gives the identity at $s = 7/8$. Take real parts. On the left, $\zeta(7/8)$ is real and negative, and $L(7/8,\chi) \ge 0$ by the first paper's positivity argument from the $7/8$ theorem, so the left side is at most $0$. Suppose $h \le 2$. On the right, the principal class contributes at least $P(d)$ and any other class at least $T(d)$, so the sum is at least $P(d) + \min(T(d), 0)$, which is positive by \cref{prop:numerics}. This is a contradiction.
+\end{proof}
+
+The $7/8$ theorem is used exactly as in the first paper, through the positivity lemma, and that lemma calls OpenAI's theorem, in the module \lean{OAI.NumberTheory.DirichletL.Nonvanishing}:
+\begin{lstlisting}
+theorem LFunction_ne_zero_of_seven_eighths_lt_re
+    {q : ℕ} [NeZero q] (χ : DirichletCharacter ℂ q) {s : ℂ}
+    (hs : (7 / 8 : ℝ) < s.re) (hpole : ¬ (χ = 1 ∧ s = 1)) :
+    _root_.DirichletCharacter.LFunction χ s ≠ 0
+\end{lstlisting}
+It is a theorem in the closure, with its proof, and the closure walk of \cref{sec:audit} walks that proof.
+
+\begin{inlean}
+In \lean{HCN.Numerics.Threshold}: \lean{coeffg} ($k(a, D)$), \lean{Pv} ($P$), \lean{Tv} ($T$), the brackets \lean{pi_rpow_78_le}, \lean{four_div_pi_rpow_le}, \lean{sixteen_div_rpow_le}, \lean{sqrt_two_thirds_ge}, \lean{two_thirds_rpow_neg_ge} and \lean{exp_neg_three_pi_div_four_le}, the normal form \lean{pos_of_e}, and \lean{Pv_pos_and_add_Tv_pos} (\cref{prop:numerics}). In \lean{HCN.Assembly.LowerBound}: \lean{coeffg_le_coeffg_one}, \lean{re_term_ge} (\cref{eq:oneclass}, from the interface fields \lean{mainTermg_seven_eighths}, \lean{norm_Eg_seven_eighths_le} and \lean{Bg_mono}), and \lean{three_le_classNumber_of_ge} (\cref{thm:analytic}), whose step for $T$ uses Mathlib's \lean{Real.rpow_le_rpow_iff_of_neg} and the first paper's \lean{CN1.Numerics.riemannZeta_seven_quarters}. The first paper's inputs are \lean{CN1.Foundations.kroneckerChar} with \lean{CN1.Foundations.kroneckerChar_isQuadratic} and \lean{CN1.Foundations.kroneckerChar_ne_one}, \lean{CN1.Epstein.disc_ne_zero}, \lean{CN1.Epstein.dedekindZeta_eq_riemannZeta_mul_LFunction}, \lean{CN1.CS.eq_at_ofReal_of_differentiableOn_sdiff}, \lean{CN1.Numerics.riemannZeta_seven_eighths_re_neg}, \lean{CN1.Numerics.riemannZeta_seven_eighths_im}, \lean{CN1.Numerics.riemannZeta_three_quarters}, \lean{CN1.Numerics.riemannZeta_three_quarters_re_neg}, \lean{CN1.Numerics.Gamma_ratio_enclosure} and \lean{CN1.LFunction_seven_eighths_nonneg_of_isQuadratic}, which invokes \lean{OAI.DirichletCharacter.LFunction_ne_zero_of_seven_eighths_lt_re}. The corollary \lean{dOf_le_4777_of_classNumber_le_two} states the threshold in the form $h \le 2 \Rightarrow d \le 4777$; the assembly uses \lean{three_le_classNumber_of_ge} directly.
+\end{inlean}
+
+%=====================================================================================================
+\section{The finite half: \texorpdfstring{$d \le 4777$}{d <= 4777}}\label{sec:finite}
+%=====================================================================================================
+
+\subsection{The range}\label{sec:range}
+
+There are $1{,}456$ fundamental discriminants $-d$ with $3 \le d \le 4777$, so $1{,}456$ squarefree radicands $m$ with $d = $ \lean{dOf m} $\le 4777$. Twenty-seven have class number at most two. For each of the other $1{,}429$ the kernel checks a certificate of class number at least three. The list of those radicands, \lean{hcnGe3}, is emitted by the certificate generator, and its completeness is a single kernel decision.
+
+\begin{lemma}[the range lemma]\label{lem:range}
+Every $m < 4778$ that has no square factor $k^2$ with $2 \le k \le 69$, satisfies \lean{dOf m} $\le 4777$ and lies outside the $27$ is in \lean{hcnGe3}.
+\end{lemma}
+
+The predicate ``no square factor $k^2$ with $2 \le k \le 69$'' follows from \lean{Squarefree m}, and the kernel can decide it. It is also exact on $[0, 4778)$: every prime $p$ with $p^2 \le 4777$ is at most $67$, since $69^2 = 4761 \le 4777 < 70^2$, and $m = 0$ is excluded by $4 \mid 0$. So the list need contain no non-squarefree number.
+
+\begin{inlean}
+\lean{HCN.Assembly.SqfBelow69}, \lean{sqfBelow69_of_squarefree} and \lean{mem_hcnGe3_of_range} in \lean{HCN.Assembly.Range}, the last by \lean{decide +kernel} over \lean{Finset.range 4778} (about $96$ seconds to build). The coverage is stated over the certificate list \lean{HCN.Finite.Certs.hcnGe3} itself, so no gap between two lists is closed outside the kernel. \lean{three_le_classNumber_of_lt} combines it with the certificates.
+\end{inlean}
+
+\subsection{Class number at least three, from the norm form alone}\label{sec:lower}
+
+Mathlib at the pin has no theory of binary quadratic forms of a given discriminant, no reduced forms and no form class group, so a lower bound for the class number cannot be read off from a count of reduced forms. The certificate below needs none of that. It talks only about which numbers the norm form $Q(x,y) = x^2 + txy + cy^2$ of $\OK$ represents, and about Mathlib's class group.
+
+\begin{lemma}[three classes]\label{lem:three}
+Let $p$ be a prime and $P$ a prime ideal of norm $p$. Suppose that
+\begin{enumerate}[label=(\alph*),nosep]
+\item $p \nmid d$ and $X^2 - tX + c$ has a root modulo $p$, so that $p$ splits;
+\item $Q$ does not represent $p$;
+\item every solution of $Q(x,y) = p^2$ has $y = 0$.
+\end{enumerate}
+Then the classes $1$, $[P]$ and $[P]^{-1}$ are pairwise distinct, so $h(K) \ge 3$.
+\end{lemma}
+
+\begin{proof}
+Since $(p) \subseteq P$ and $\Nm(P) = p$, there is an ideal $P'$ of norm $p$ with $PP' = (p)$, so $[P'] = [P]^{-1}$. If $P$ or $P'$ were principal, a generator would have norm $p$ and $p$ would be a value of $Q$, contrary to (b). If $[P] = [P]^{-1}$, then $P^2 = (\beta)$ with $\Nm\beta = p^2$, so by (c) $\beta$ is a rational integer and $\beta = \pm p$. Now $\omega - z \in P$ for a root $z$ of $X^2 - tX + c$ modulo $p$, so $p \mid (\omega - z)^2$ in $\OK$, which forces $p \mid t - 2z$ and then $p \mid d$, contrary to (a).
+\end{proof}
+
+No hypothesis on the units is needed. For $d = 3$ and $d = 4$, condition (c) simply cannot hold, since a unit carries the solution $(\pm p, 0)$ to one with $y \ne 0$; those two fields have class number one anyway.
+
+\paragraph{Pairs.} For two primes $p \ne p'$ as in the lemma, ``$Q$ does not represent $pp'$'' says that no product of a prime above $p$ and a prime above $p'$ is principal. That gives exactly the cross-distinctness $\{[P], [P]^{-1}\} \cap \{[P'], [P']^{-1}\} = \emptyset$, and nothing more.
+
+\paragraph{The certificate.} A certificate for $K$ is a list of \emph{chosen} primes $p_1 < \cdots < p_k$, each with a root and a flag $f_i$. Its hypotheses are: (a) for each $p_i$; (b) for each $p_i$; non-representation of $p_ip_j$ for each $i < j$; and (c) for exactly the $p_i$ with $f_i$ true. Its conclusion is that the classes $1$, $[P_i]$ for every $i$, and $[P_i]^{-1}$ for every flagged $i$ are pairwise distinct, so
+\[
+h(K) \ge 1 + \sum_i (\text{$2$ if $f_i$, else $1$}).
+\]
+The generator walks the primes in order and records only the chosen ones. A split prime that fails (b), or fails the pair test against an already chosen prime, is skipped and leaves no hypothesis. A chosen prime that fails (c) has order two, gets the flag false and adds one class. The generator stops as soon as the count reaches three, and it never emits a hypothesis it has not checked to be true. A repeated prime could not be certified, since its pair test would ask that $Q$ not represent $p^2 = Q(p, 0)$, so no hypothesis that the primes are distinct is needed.
+
+\paragraph{Decidability.} Since $4Q(x,y) = (2x + ty)^2 + dy^2$, the equation $Q(x,y) = n$ forces $dy^2 \le 4n$. ``$Q$ does not represent $n$'' is therefore a bounded search over $y \ge 0$, testing whether $4n - dy^2$ is a square $z^2$ with $z \equiv ty \pmod 2$; the variant over $y \ge 1$ is (c). Both are written over $\N$ with structural fuel, so that the kernel can evaluate them, and both come with soundness lemmas. Primality inside these checks is trial division, with its own soundness lemma.
+
+\paragraph{The numbers.} The $1{,}429$ certificates use one chosen prime in $1{,}392$ cases and two in $37$. All $37$ two-prime certificates have both flags false, for fields of class number $4$ ($24$ of them) or $8$ ($13$), and every one-prime certificate has its flag true. In all there are $2{,}895$ non-representation hypotheses ($1{,}503$ of type (b) and pair tests, $1{,}392$ of type (c)) and $1{,}466$ split witnesses, and the largest prime used is $71$. Every certificate certifies exactly three classes. The generator re-derives every certificate with its own search, checks every hypothesis twice before emitting it, once by the search above and once by a brute-force search over a box of $(x,y)$, and checks its chosen primes against the plan's computation on every field and its counts against the review's independent computation. The fifteen generated chunks of at most $100$ certificates each take about $65$ seconds of wall time to build.
+
+\begin{inlean}
+In \lean{HCN.Finite.NotRep}: \lean{NotRep}, \lean{NotRepYNonzero}, \lean{NotRep.sound} and \lean{NotRepYNonzero.sound}. In \lean{HCN.Finite.ClassLower}: \lean{primeB} with \lean{primeB_sound}, \lean{SplitW}, \lean{PairsOK}, \lean{ClassCert}, \lean{weight}; the class inequalities \lean{mk0_ne_one} (from (b)), \lean{mk0_ne_inv} (the pair test) and \lean{mk0_ne_inv_self} (from (c)), stated over Mathlib's \lean{ClassGroup.mk0}; \lean{exists_mul_eq_span_of_absNorm_eq} for the ideal $P'$, \lean{exists_sub_mem} for the residue; and the consumer \lean{le_classNumber_of_cert}, with \lean{three_le_classNumber_of_cert} and \lean{le_classNumber_of_cert_foundations}. All of this is over the first project's interface \lean{CN1.Finite.QuadInt}. The generated aggregate \lean{HCN.Finite.Certs} defines \lean{hcnGe3} as the concatenation of the fifteen chunks (with \lean{length_hcnGe3} $= 1429$ by \lean{decide +kernel}) and proves \lean{exists_cert_of_mem} and \lean{three_le_classNumber_of_mem}.
+\end{inlean}
+
+\paragraph{Controls on the certificate.} A certificate format that the kernel accepted whatever its content would be worthless, so corrupted certificates were built through a forcing adapter, since the honest generator refuses these inputs. Under false claims of $h \ge 3$, at $d = 8$ (class number one) and $d = 15$ (class number two), the forced files fail: the kernel's \lean{decide} finds the hypotheses false. Under the true claim $h \ge 3$ at $d = 23$, the honest certificate, the prime $2$ with its flag true, passes. Two corruptions of it fail: replacing its non-representation instance $n = 2$ by $n = 6 = c$, which $Q(0, 1)$ represents, and declaring the ramified prime $23$ as the chosen prime, whose split witness cannot hold. The independent review re-ran all of these controls except the one at $d = 8$, and saw each behave as required.
+
+\subsection{Class number exactly two}\label{sec:classtwo}
+
+For the eighteen fields we need an upper bound, and here the absence of reduction theory is felt most. We use instead explicit witnesses for the prime ideals below the Minkowski bound, which covers only the direction from ideals to their norm forms.
+
+\begin{proposition}[generation]\label{prop:generation}
+If the class of every nonzero prime ideal of norm at most the Minkowski bound lies in a submonoid $S$ of the class group, then every class lies in $S$.
+\end{proposition}
+
+\begin{proof}
+Every class contains an ideal of norm at most the Minkowski bound (Mathlib), and that ideal is the product of its prime factors, each of norm at most its own. This is Mathlib's proof of the Minkowski criterion for principal ideal rings, with the principal ideals replaced by the preimage of $S$.
+\end{proof}
+
+A prime ideal $I$ of prime norm $q$ contains $\omega - z$ for a root $z$ of $X^2 - tX + c$ modulo $q$, and this residue determines the ideal: two ideals of norm $q$ containing the same $\omega - z$ are equal. So the primes of norm $q$ can be named by pairs $(q, z)$. A positive witness for $(q, z)$ is an element $\beta = x + y\omega$ with $q \mid x + yz$, so that $\beta \in I$. If $\Nm\beta = q$, then $I = (\beta)$ is principal. If $\Nm\beta = qq_0$ and $q_0 \mid x + yz_0$, then $IP_0 = (\beta)$, where $P_0$ is the prime named by $(q_0, z_0)$, and $[I] = [P_0]^{-1}$. When $X^2 - tX + c$ has a unique root $z_0$ modulo the prime $q_0$, so that $q_0$ ramifies, $P_0^2 = (q_0)$ and $g = [P_0]$ satisfies $g^2 = 1$.
+
+\begin{proposition}[class number two from a certificate]\label{prop:bridge}
+Suppose $B$ satisfies $4d < 9B^2$, so that the Minkowski bound, which is at most $\frac23\sqrt d$, is below $B$. Suppose $q_0$ is a prime with a unique root $z_0$ modulo $q_0$, that $Q$ does not represent $q_0$, and that every root $z$ modulo every prime $q < B$, other than $(q_0, z_0)$, carries a positive witness. Then $h(K) = 2$.
+\end{proposition}
+
+\begin{proof}
+A prime ideal of norm at most the Minkowski bound either has a prime norm $q < B$, or is generated by a rational prime and is principal, by the first paper's description of maximal ideals. Every prime of prime norm $q < B$ is named by a root, so its class is $1$, or $g^{-1} = g$, or $g$ itself for $P_0$. By \cref{prop:generation} every class lies in $\{1, g\}$. Non-representation of $q_0$ makes $g \ne 1$. So the class group is $\{1, g\}$.
+\end{proof}
+
+For the eighteen fields the certificates are small: $B \le 14$, eleven of the eighteen need no witness at all, and the other seven need thirteen witnesses in all. Every check is decided by the kernel. Two forced controls, class number two claimed at $m = 431$ (class number $21$) and at $m = 23$ (class number $3$), fail: the certificate check evaluates to false, and so does the non-representation check.
+
+\begin{inlean}
+\lean{HCN.Finite.mem_of_forall_prime_le_minkowski} in \lean{HCN.Finite.Generation} (from Mathlib's \lean{NumberField.exists_ideal_in_class_of_norm_le} and \lean{Ideal.prod_normalizedFactors_eq_self}). In \lean{HCN.Finite.IdealLite}: \lean{rootB}, \lean{BWit}, \lean{witOK}, \lean{BridgeCert}, \lean{exists_residue}, \lean{eq_of_sub_mem} (the residue determines the ideal), \lean{span_eq_of_witness}, \lean{mul_eq_span_of_witness} and \lean{classNumber_eq_two_of_bridge}; norms come from \lean{Ideal.absNorm_span_singleton} and multiplicativity. The generated module \lean{HCN.Finite.ClassTwo} holds one theorem per field, from \lean{classNumber_eq_two_5} to \lean{classNumber_eq_two_427}, the set \lean{classTwo18}, and \lean{classNumber_eq_two_of_mem}.
+\end{inlean}
+
+\subsection{The nine}\label{sec:nine}
+
+For the nine radicands of class number one, the assembly calls the first paper's theorem \lean{CN1.classNumber_eq_one_iff}. Only its converse direction, the Minkowski argument of the first paper, is used here, but the whole theorem is in the closure with its proof.
+
+%=====================================================================================================
+\section{The assembly}\label{sec:assembly}
+%=====================================================================================================
+
+The analytic theorem and the finite half are both stated over the same quantity, $d = $ \lean{dOf m}, and the assembly derives the two complementary ranges from one comparison, so that no off-by-one slip and no confusion between $m$ and $4m$ can open a gap. The direction $\Rightarrow$ assumes $h \le 2$ and, for contradiction, $m$ outside the $27$; then $m \ne 1, 3$, and one case split on $d < 4778$ or $d \ge 4778$ gives $h \ge 3$ either way. The direction $\Leftarrow$ is the first paper's theorem for the nine and \cref{prop:bridge} for the eighteen. The second theorem follows from the first, the first paper's theorem and \cref{prop:bridge}.
+
+\begin{lstlisting}
+theorem classNumber_le_two_iff_of_facts (hC : CSFacts) (K : Type*) [Field K] [NumberField K]
+    (hK : Module.finrank ℚ K = 2)
+    (m : ℕ) (hm : Squarefree m) (hsq : ∃ α : K, α ^ 2 = -(m : K))
+    (hE : ∀ (α : K) (hα : α ^ 2 = -(m : K)), EFacts hα) :
+    classNumber K ≤ 2 ↔ m ∈ ({1, 2, 3, 7, 11, 19, 43, 67, 163, 5, 6, 10, 13, 15, 22, 35, 37, 51, 58, 91, 115, 123, 187, 235, 267, 403, 427} : Finset ℕ) := by
+  constructor
+  · intro h2
+    by_contra h27
+    have hm1 : m ≠ 1 := fun h => h27 (by simp [h])
+    have hm3 : m ≠ 3 := fun h => h27 (by simp [h])
+    obtain ⟨α, hα⟩ := hsq
+    have h3 : 3 ≤ classNumber K := by
+      rcases lt_or_ge (dOf m) 4778 with hlt | hge
+      · exact three_le_classNumber_of_lt hK hm ⟨α, hα⟩ hlt h27
+      · exact three_le_classNumber_of_ge hC hα hK hm hm1 hm3 (hE α hα) hge
+    omega
+  · intro h27
+    by_cases h9 : m ∈ ({1, 2, 3, 7, 11, 19, 43, 67, 163} : Finset ℕ)
+    · have := (CN1.classNumber_eq_one_iff K hK m hm hsq).mpr h9
+      omega
+    · have h18 : m ∈ HCN.Finite.ClassTwo.classTwo18 := by
+        rw [HCN.Finite.ClassTwo.classTwo18]
+        simp only [Finset.mem_insert, Finset.mem_singleton] at h27 h9 ⊢
+        omega
+      have := HCN.Finite.ClassTwo.classNumber_eq_two_of_mem hK hm hsq h18
+      omega
+\end{lstlisting}
+
+\noindent The final theorems, in \lean{HCN.Main}, apply this and its companion \lean{classNumber_eq_two_iff_of_facts} to the proved interfaces:
+\begin{lstlisting}
+theorem classNumber_le_two_iff (K : Type*) [Field K] [NumberField K]
+    (hK : Module.finrank ℚ K = 2)
+    (m : ℕ) (hm : Squarefree m) (hsq : ∃ α : K, α ^ 2 = -(m : K)) :
+    classNumber K ≤ 2 ↔ m ∈ ({1, 2, 3, 7, 11, 19, 43, 67, 163, 5, 6, 10, 13, 15, 22, 35, 37, 51, 58, 91, 115, 123, 187, 235, 267, 403, 427} : Finset ℕ) :=
+  Assembly.classNumber_le_two_iff_of_facts csFacts K hK m hm hsq fun _ hα => eFacts hα hK hm
+\end{lstlisting}
+\lean{#print axioms} reports \lean{[propext, Classical.choice, Quot.sound]} for both theorems and for \lean{HCN.csFacts} and \lean{HCN.eFacts}. That report reads a cache stored with the compiled modules, so the gate is the closure walk of \cref{sec:audit}. In the proof term of the assembly there is exactly one order split, \lean{lt_or_ge (CN1.Finite.dOf m) 4778}.
+
+%=====================================================================================================
+\section{Verification}\label{sec:verification}
+%=====================================================================================================
+
+\subsection{The run of record}\label{sec:record}
+
+The checks of \cref{sec:record,sec:comparator,sec:audit,sec:controls} were made on one frozen source tree, on 22 October 2026, in a single chain of steps, with two exceptions quoted in \cref{sec:audit} and marked there as the review's: the nine-step path to the $7/8$ theorem and the count of constants named like \emph{classNumber}, which the independent review found separately on the same tree. The md5 of every \lean{.lean} file of the project, of the build configuration and of the tools was recorded before the chain. The file lines were recorded again after it, and the two records agree: the tree did not change. The compiled files of \lean{HCN.Main} and of the assembly modules were deleted first, so that they were rebuilt from the recorded sources. The build of every library, the new code, the vendored first project including its main module, both challenge libraries and the controls, reported ``Build completed successfully (11960 jobs)''. A text comparison found the two statements of \lean{HCN.Main} identical to the challenge's. There is no \lean{sorry}, \lean{admit}, \lean{native_decide} or \lean{axiom} in any module of the solution.
+
+\subsection{Comparator}\label{sec:comparator}
+
+Comparator \cite{Comparator}, the same binary as in the first project's checks, ran under toolchain \lean{v4.34.1} with the challenge module \lean{HCNChallenges.ClassNumberLeTwo} and the solution module \lean{HCN.Main}, the theorems \lean{HCN.classNumber_le_two_iff} and \lean{HCN.classNumber_eq_two_iff}, the permitted axioms \lean{propext}, \lean{Quot.sound} and \lean{Classical.choice}, and nanoda enabled. It built both modules, exported both, compared the statements, checked the axioms, and replayed the solution through nanoda \cite{nanoda} and through Lean's own kernel. Its verdict was
+\begin{center}
+``nanoda kernel accepts the solution'', \quad ``Lean default kernel accepts the solution'', \quad ``Your solution is okay!'',
+\end{center}
+in about $660$ seconds of wall time, with a maximum resident set size of about $24$\,GB. Comparator's export and its two kernel replays cover the full exported closure, the openai/math and package constants included.
+
+\subsection{The closure audit}\label{sec:audit}
+
+A closure walk from both theorems follows types, the values of theorems, definitions and opaque constants, inductive types with their constructors, mutual blocks, recursors and recursor rules. It does not read the axiom cache of the compiled modules. It runs in an environment that imports \lean{HCN.Main} and nothing else of the project, $13{,}761$ modules in all, and it checks that no other module of that environment declares either target name (\cref{sec:controls} explains why). Its verdict is PASS.
+
+\begin{itemize}[nosep]
+\item \textbf{Size.} The closure has $135{,}435$ constants, with no referenced name missing from the environment: $108{,}547$ theorems, $22{,}281$ definitions, $1{,}473$ inductive types, $1{,}598$ constructors, $1{,}475$ recursors, $54$ opaque constants, $4$ quotient constants and $3$ axioms. By root they fall as in \cref{tab:roots}.
+\item \textbf{Axioms.} The axioms met by the walk are exactly \lean{Classical.choice}, \lean{Quot.sound} and \lean{propext}, and Lean's \lean{collectAxioms} agrees at both roots. There is no \lean{sorryAx}, no \lean{Lean.ofReduceBool}, no \lean{Lean.trustCompiler} and no unsafe constant.
+\item \textbf{The $7/8$ theorem.} \lean{OAI.DirichletCharacter.LFunction_ne_zero_of_seven_eighths_lt_re}, declared in \lean{OAI.NumberTheory.DirichletL.Nonvanishing}, is in the closure as a theorem, and its proof is walked, not assumed. The review found a path of nine steps from \lean{HCN.classNumber_le_two_iff} through \lean{HCN.Assembly.three_le_classNumber_of_ge} and \lean{CN1.LFunction_seven_eighths_nonneg_of_isQuadratic} into that proof. All $26{,}740$ openai/math constants of the closure lie under \lean{OAI.NumberTheory.DirichletL}.
+\item \textbf{Analytic objects, as intended.} This proof is meant to use $L$-functions, so the audit has no deny-list for them: \lean{riemannZeta}, \lean{DirichletCharacter.LFunction} and \lean{NumberField.dedekindZeta} are in the closure.
+\item \textbf{No outside classification.} A case-insensitive scan of constant and module names, by name component, for \emph{heegner}, \emph{baker}, \emph{stark}, \emph{gross}, \emph{zagier}, \emph{goldfeld}, \emph{heilbronn}, \emph{idoneal}, \emph{genus} and \emph{class number two} in its spellings finds three constants, all the first project's own list \lean{CN1.Finite.nonHeegner190} of non-Heegner radicands and its lemmas, and no closure module. Outside the project, the review found $80$ Mathlib constants named like \emph{classNumber} (the definition, finiteness of the class group, the principal-ideal criterion, positivity, the Minkowski bound) and $2$ in openai/math (cardinalities of ray class quotients); none is a classification.
+\item \textbf{Project modules.} Each of the $74$ project modules in the environment, $34$ new and $40$ vendored, contributes at least one constant. Of the $2{,}924$ openai/math modules, $268$ contribute none.
+\item \textbf{Determinism.} The audit log and the compiled \lean{HCN/Main.olean} are byte-identical to those of an earlier run of the same chain, made on the same tree before the comment-only docstring correction of \cref{sec:shape}.
+\end{itemize}
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{lrp{7.6cm}}
+\toprule
+root & constants & \\
+\midrule
+\lean{Mathlib} & $92{,}533$ & \\
+\lean{OAI} & $26{,}740$ & openai/math's $7/8$ development, all under \lean{OAI.NumberTheory.DirichletL}\\
+\lean{Init} & $8{,}106$ & Lean core\\
+\lean{HCN} & $6{,}238$ & the new code\\
+\lean{CN1} & $1{,}031$ & the vendored first project\\
+\lean{PrimeNumberTheoremAnd} & $375$ & imported by openai/math's proof \cite{PNT}\\
+\lean{Batteries} & $215$ & Mathlib's dependency\\
+\lean{RellichKondrachov} & $191$ & imported by openai/math's proof \cite{RK}\\
+\lean{Aesop} & $3$ & Mathlib's dependency\\
+\lean{Std}, \lean{Lean} & $2$, $1$ & Lean core\\
+\bottomrule
+\end{tabular}
+\caption{The closure of the two theorems, $135{,}435$ constants, by root.}
+\label{tab:roots}
+\end{table}
+
+\subsection{Controls}\label{sec:controls}
+
+A checker that accepts everything is worthless, so the run of record includes inputs that must fail, and records for each the line it is expected to print. Twelve checks were made: the real Comparator run and the real audit, which must pass, and ten controls, which must fail. The expected lines were fixed in a script before the run, and all twelve observed lines matched. The controls were generated from the challenge file by text substitution; no set was typed by hand.
+\begin{enumerate}[label=(\alph*),nosep]
+\item The challenge with $163$ moved from the nine into the eighteen, claiming $h(-163) = 2$: Comparator rejects it, ``Challenge and solution theorem statement do not match: \lean{HCN.classNumber_eq_two_iff}''.
+\item The challenge with \lean{Squarefree m} deleted from both statements: rejected, the same line for \lean{HCN.classNumber_le_two_iff}.
+\item The challenge with $427$ replaced by $431$, which has class number $21$: rejected, the same line.
+\item The real challenge against a proof routed through a postulated axiom ``every squarefree $m$ has \lean{dOf m} $< 4778$'', which is false at $m = 1198$ ($d = 4792$): ``Illegal axiom detected: \lean{HCNNegControls.fake_bound}''.
+\item The real challenge against a proof with the analytic threshold, $4778 \le d \Rightarrow h \ge 3$, postulated: ``Illegal axiom detected: \lean{HCNNegControls.threshold_ax}''.
+\item The real proof with one non-representation instance (in the certificate for $m = 14$) replaced by \lean{sorry}: ``Illegal axiom detected: \lean{sorryAx}''.
+\item[(g--i)] The closure audit of each of the three proofs (d)--(f): FAIL, ``non-standard axiom in closure'', naming the postulated axiom or \lean{sorryAx}.
+\item[(j)] The closure audit in an environment that imports \lean{HCN.Main} together with the challenge: FAIL, with nine failures, among them ``re-declaring modules for \lean{HCN.classNumber_le_two_iff}'', a forbidden import, \lean{sorryAx}, and an inconsistent environment at both roots.
+\end{enumerate}
+
+The last control tests a real hazard. When two imported modules declare the same name with the same type and the same universe parameters, so that one declaration subsumes the other, Lean merges them silently: it keeps one module's term but credits the other. (With different types the import fails.) In control (j), the term walked for both roots was the challenge's, which contains \lean{sorryAx} and has $35{,}680$ constants, while \lean{collectAxioms} printed the three standard axioms. So when a target name is declared, with the same type, in two imported modules, \lean{#print axioms} and \lean{collectAxioms} can report a clean list for a term that is not clean. The two target names are declared in \lean{HCN.Main}, in the challenge, in the three tampered challenges and in the solution-side controls. The checks of record follow one rule: every audit environment imports only the solution module, never the challenge or a control alongside it, and every module that declares a target name is its own Comparator or Lean root. The audit checks the rule directly, and the control shows what the rule prevents. A reader who checks the theorems should do the same, and import only \lean{HCN.Main}.
+
+The certificate controls of \cref{sec:lower,sec:classtwo} complement these: they show that the kernel rejects a corrupted certificate under a false claim and under a true one.
+
+\subsection{The independent replay}\label{sec:replay}
+
+A separate AI review session, under its own identity and not one of the sessions that wrote the proof, re-ran Comparator and the closure audit on the frozen artefact of the run of record, with its own build of the project's modules and its own nanoda, and ran five controls of its own; the dependencies were not rebuilt. This is an AI review, not a referee's report. It copied the frozen tree into its own workspace and checked all $89$ file entries of the source manifest of the run of record before the build, after the real run and at the end; there were no mismatches. It built the project itself: $75$ project modules were compiled from source, all $34$ new modules (the fifteen certificate chunks included, so their \lean{decide +kernel} checks ran again), $40$ vendored modules and the challenge. No module of openai/math or of the other packages was rebuilt. Its compiled \lean{HCN/Main.olean} is byte-identical to that of the run of record. Its second kernel was its own build of nanoda, not the binary used in the run of record.
+
+\begin{itemize}[nosep]
+\item \textbf{Comparator.} Against the same challenge and the same configuration, byte for byte, Comparator accepted the solution: ``nanoda kernel accepts the solution'', ``Lean default kernel accepts the solution'', ``Your solution is okay!'', in about $652$ seconds.
+\item \textbf{The closure.} Its own audit tool, importing \lean{HCN.Main} alone, passed: only the three standard axioms, consistent with the per-target records, and no \lean{sorryAx}. It found $135{,}433$ constants. The difference from the $135{,}435$ of the run of record is exactly two constants, \lean{Lean.Syntax.rec_1} and \lean{Lean.Syntax.rec_2}, the auxiliary recursors of the nested inductive type \lean{Lean.Syntax} in \lean{Init.Prelude}. The walk of the run of record follows them, and the review's tool does not; this is why \lean{Init} has $8{,}104$ constants in the replay and $8{,}106$ in \cref{tab:roots}. With those two removed, the sorted lists of constants are byte-identical. Its name scan found the same three constants. Its word list is longer, with \emph{siegel} and \emph{watkins} among the additions, and it also flagged \lean{Mathlib.NumberTheory.SiegelsLemma} (Siegel's lemma on small integer solutions of linear systems, unrelated to Siegel zeros), which is imported but contributes no constant to the closure.
+\item \textbf{Five further controls,} written by the review session from the challenge and solution sources by text substitution, and added only after the real run, each failed as required. They were: the challenge with $427$ removed from the eighteen only (statement mismatch); both statements ``proved'' by \lean{sorry} (illegal axiom \lean{sorryAx}); the real proof, with its helpers renamed so that it does not import \lean{HCN.Main}, carrying one \lean{native_decide} fact (illegal axiom \lean{HCN.classNumber_le_two_iff._native.native_decide.ax_1_1}); and, twice, a solution that adds a false lemma $4 = 5$ by switching off the elaborator's kernel check with \lean{debug.skipKernelTC} and derives both theorems from it. For that last module, \lean{#print axioms} reports only the three standard axioms, because the bad step is a false type and not an axiom, so neither the cached report nor an axiom walk can see it. Only a kernel re-check of the exported closure catches it, and both kernels did. With nanoda on, nanoda rejected the false lemma and so did Lean's kernel. With nanoda off, Lean's kernel alone rejected it, naming the false type. So the acceptance above is a re-check of the exported closure by both kernels, the openai/math and patched-package constants included, and not a reading of what the compiled files claim.
+\end{itemize}
+
+The replay's caveats are these. Comparator and lean4export were the same binaries as in the run of record, and the Lean kernel is the same toolchain, so the Lean-kernel half of the replay is not independent of the run of record. The independent kernel is nanoda, a separate implementation in a separate build, and the independent build covers the project's own compiled modules. The compiled files of openai/math and of the packages were the same as in the run of record, from the local copy of openai/math and its package directory, and were not rebuilt; their exported constants are re-checked by both kernels through Comparator's export. The review did not re-run the twelve checks of \cref{sec:controls}. It never imported \lean{HCN.Main} together with the challenge or a control.
+
+\subsection{The trust statement, point by point}\label{sec:trust}
+
+The independent review raised five points that belong with the trust statement. We record each.
+\begin{enumerate}[label=(\roman*),nosep]
+\item \textbf{The side condition of the monotonicity lemma} is $c(a') \ge 1/8$, not $c(a') \ge 3\pi/4$ (\cref{lem:mono}). \lean{HCN.CSAux.one_eighth_le_cst} proves $1/8 \le \pi\sqrt D/(2a')$, and \lean{HCN.CSAux.bg_core_mono} consumes only that. The checked docstring's $c' \ge 3\pi/4$ is true but is not what is formalized; the published docstring states $c \ge 1/8$.
+\item \textbf{The vendored first project}, in the checked tree, is byte-equal to the first project's checked tree, the one its run of record verified, before the comment cleanup that preceded its publication. It is code-identical to the published version~1.0.0, with comment-only differences, and not md5-identical to it (\cref{sec:cn1}). The published \lean{hcn/} vendors the published \lean{CN1} copies, which the export identity of \cref{sec:freshbuild} covers.
+\item \textbf{Two patched packages are in the closure}, and both enter through openai/math's $7/8$ development. \Cref{tab:patches} gives their revisions and openai/math's compatibility patches for Lean \lean{v4.34.1}.
+In each package the changed files are exactly the patch's file list. The hunks in the $19$ files that reach the closure add no \lean{sorry}, \lean{axiom}, \lean{native_decide}, \lean{unsafe} or \lean{extern}. The patch for \lean{PrimeNumberTheoremAnd} deletes $2{,}716$ lines of its Wiener file, two lemmas proved \lean{by sorry} among them. The walked closure has no axiom beyond the standard three, and the two-kernel replay re-checks the exported constants. The patch content was scanned for these tokens, not reviewed line by line.
+\item \textbf{openai/math comes from a local, unversioned copy} used as a path dependency, not from a versioned git pin. Against openai/math at commit \lean{adc7f124} it differs only by four additions made for replays, none of them in a Lean library. Its build configuration contains a configuration-time command and a post-update hook that apply its $23$ patches to the shared package directory. That is build-system code, not part of the proof's trust base, and it was a no-op here because the patches were already applied. A reproduction should state this setup, or use the public git pin together with the patch script of the first project (\lean{formalization/scripts/apply_oai_patches.sh} in this repository).
+\item \textbf{A name collision to watch.} The vendored module \lean{CN1.Assembly.Positivity} declares the root-level theorem \lean{MulChar.IsQuadratic.conj_apply}, as the published first project does. Mathlib at \lean{d13f23b} has no constant of that name, so nothing clashes now. A future Mathlib that added one would be merged silently if the types agree, or fail on import if they do not. This must be rechecked at every Mathlib update.
+\end{enumerate}
+
+\begin{table}[h]
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & \lean{PrimeNumberTheoremAnd} \cite{PNT} & \lean{rellich-kondrachov} \cite{RK}\\
+\midrule
+revision & \lean{c39a751132c88b6e8080b74c74023fd95b3d8be0} & \lean{70f85d4c1bf99c6e7d61e8be4daa6f3664d08d23}\\
+patch & \lean{PrimeNumberTheoremAnd-lean4341.patch} & \lean{rellich-kondrachov-lean4341.patch}\\
+patch md5 & \lean{2c0006d38407269b5978eda656db89ec} & \lean{f76118531c08035aa160c05bd9ed2567}\\
+files patched & $55$ & $15$\\
+closure constants & $375$ & $191$\\
+\bottomrule
+\end{tabular}
+\caption{The two patched packages in the closure.}
+\label{tab:patches}
+\end{table}
+
+\subsection{Caveats}\label{sec:caveats}
+
+The Comparator runs described here are local and unsandboxed. The sandboxing layer that Comparator normally uses was replaced by a pass-through \lean{landrun} shim, because the machine runs macOS, so the Comparator invocation, its build, the export, the statement comparison, the axiom check and both kernels ran without a sandbox, one after another, under the root account. The Comparator, lean4export and nanoda binaries are the ones used for the checks of the first project and of the determinant proof: Comparator \lean{57b65af9}, lean4export \lean{b8b81a76}, nanoda \lean{f6268f7a}, and the shim \lean{e9a9f8e2} (md5 prefixes). None of the dependencies was rebuilt for this run: openai/math's compiled files are the build products of its local copy, and those of Mathlib \lean{d13f23b} and the other packages come from that copy's package directory, which this project shares; the head and the local-change state of every package are recorded in the source manifest, and the packages with local changes are the ones carrying openai/math's patches. Comparator's export and its replay through both kernels re-check the full exported closure, the dependencies included. The logs, the source manifest and the tool hashes are available on request.
+
+\subsection{The published files and a fresh build}\label{sec:freshbuild}
+
+\paragraph{Published sources and checked sources.} The development is published as the directory \lean{hcn/} of the repository, with $79$ Lean modules: the $34$ new modules under \lean{HCN}, the $41$ vendored modules under \lean{CN1}, the challenge, and the three tampered statements of \cref{sec:controls}. In the challenge file, only the module docstring changes, and it keeps its line count, so that lines 19 to 41, the two theorem docstrings and the two statements, are byte-identical at the same line numbers. The checked challenge has md5 \lean{e0166de7111fd6b59764111e1b248f94}, the published one \lean{00b03da302cae50b565b0c80380f4afc}, and the lean4export export of its two statements is byte-identical in the two (md5 \lean{afd206cc51cd352c3dc004d14ab72410}; with \lean{--export-mdata} also identical). The three published tampered statements export identically to those of the run of record. In the new modules, the challenge and the tampered statements, the comments and docstrings change, and nothing else in them changes. Most of the changes remove internal references. Four are corrections, all to comments: (a) the docstring of \lean{HCN.Numerics.Threshold}, which credited the worst case $-6.7\cdot 10^{-5}$ to the Gamma enclosure alone, now gives the three cases of \cref{sec:yzero}; (b) the docstring of \lean{HCN.CS.Bg_mono} now states the side condition that is formalized, $c \ge 1/8$ (\cref{lem:mono}); (c) three stale remarks that still described proved statements as \lean{sorry}, in \lean{HCN.Assembly.LowerBound}, in \lean{HCN.Numerics.Threshold} and in a section heading of \lean{HCN.Statements.GeneralCS}, are rewritten; and (d) the challenge's module docstring points to \lean{formalization/CN1Challenges/ClassNumberOne.lean} as its template, with one line saying that the tampered statements are generated from it. The $41$ vendored \lean{CN1} modules are the copies already published with the first proof, in \lean{formalization/}, which differ from the copies checked in the run of record in comments only; the first proof's challenge library, which the run of record vendored only for a regression check, is not included. The three proof-side controls of \cref{sec:controls}, which use a postulated axiom or \lean{sorry}, are not published, because a file that declares a false axiom, or proves a theorem with \lean{sorry}, does not belong in a public library. The build configuration is replaced by a public one: openai/math is required from git at commit \lean{adc7f124}, with its patches applied by the first project's script, in place of the local copy and the shared package directory of the run of record, and the package manifest is the first proof's, with the project name changed: the same $43$ packages at the same revisions.
+
+\paragraph{The published files are the checked files.} The checked tree and the published tree were built side by side from source, the published one with the checked tree's build configuration, so that both used the same compiled packages and differed only in their module sources. In each, \lean{lake build HCN CN1} exited with code $0$ after $11{,}946$ jobs, with all $75$ modules of \lean{HCN} and \lean{CN1} compiled from source. Then, in each:
+\begin{itemize}[nosep]
+\item lean4export, version 3.1.0 and the binary that Comparator used in the run of record, exported both theorems with their entire dependency closure, starting from \lean{HCN.Main}. This is the export that Comparator's kernels replay. The two exports are byte-identical: md5 \lean{22a3868d30e60d350092b0029767a2eb}, $1{,}812{,}089{,}180$ bytes. Made again with \lean{--export-mdata}, which also keeps the metadata inside expressions, they are byte-identical too.
+\item A listing of all $7{,}567$ constants declared in the modules of \lean{HCN} and \lean{CN1}, with the kind, universe parameters and structural hashes of the type and value of each, is identical in the two trees.
+\item The export gives an independent count of the closure: $135{,}435$ constants, kind for kind the count of the closure audit of \cref{sec:audit}.
+\end{itemize}
+As a control on the method, one extra, unused \lean{have} in the proof of \lean{HCN.Finite.NotRep.sound} changes the export, and changes exactly one line of the constant listing, the value hash of that theorem. On the text, a comparison with comments and docstrings removed finds all $79$ published modules identical to the checked ones. So the published modules compile to the same declarations, term for term, as the modules of the run of record, and the closure that Comparator checked is the closure of the published theorems. These comparisons were re-run on the final published sources, after the four corrections, and are unchanged: the closure export is again \lean{22a3868d30e60d350092b0029767a2eb}, and the constant listing again has md5 \lean{a749bd965db0b34a7bc924a6aaf31f53}. Docstrings are in neither.
+
+Comparator was then run on the published pair twice, with the binaries of the run of record, locally and not sandboxed: first in a fresh copy with the public build configuration, then on the final published sources. Both times, on the published \lean{HCN.Main} against the published challenge, it reported ``nanoda kernel accepts the solution'', ``Lean default kernel accepts the solution'' and ``Your solution is okay!'', in about $670$ and $639$ seconds. Both times, against the three published tampered statements, it reported ``Challenge and solution theorem statement do not match'', naming \lean{HCN.classNumber_eq_two_iff} for the statement with $163$ moved into the eighteen and \lean{HCN.classNumber_le_two_iff} for the other two. Each line matches the run of record.
+
+\paragraph{A fresh build.} The compiled dependency files of the run of record, for openai/math, Mathlib \lean{d13f23b} and the other packages, were not rebuilt for that run (\cref{sec:caveats}), and the independent replay used the same files (\cref{sec:replay}). Their exported constants were re-checked by both kernels through Comparator's export, but the compiled files themselves were not produced from source in either run. So a copy of the published \lean{hcn/formalization/}, with no build state and an empty Mathlib cache directory, was built by following its README, on an Apple M3 Ultra (32 cores, 96\,GB) under macOS. The first project's patch script cloned the $43$ packages and applied and verified all $23$ patches ($238$ seconds). \lean{lake exe cache get} downloaded $8{,}908$ Mathlib files ($90$ seconds). Then \lean{lake build HCN CN1 HCNChallenges} reported ``Build completed successfully (11948 jobs)'' after $3{,}686$ seconds of wall time, about $61$ minutes, with openai/math and every package except Mathlib compiled from source, and a peak resident memory of about $26.6$\,GB; one generated module, \lean{HCN.Assembly.Range}, alone reached about $26.5$\,GB. In a file importing only \lean{HCN.Main}, \lean{#print axioms} printed the three standard axioms for both theorems. A rebuild from the final published sources, after the four corrections, also exited with code $0$ and printed the same axioms. Mathlib's compiled files came from its official cache and were not replayed through a kernel in this copy, and Comparator was not run in it. The package directory takes about $22$\,GB.
+
+\subsection{The author's check}\label{sec:authorcheck}
+
+The author read back the final paper and the verification record on 22 October 2026, and approved them.
+
+\subsection{Continuous integration}\label{sec:ci}
+
+\pending{CI}
+
+\subsection{Independent review}\label{sec:review}
+
+The review is by a separate AI session, as for the first paper. It is not a human referee, and it does not replace the author's own check. Before anything was built, it reviewed the plan. It derived the lower-bound lemma of \cref{sec:lower} independently, found that the plan's certificate counted hypotheses for primes that must be skipped, and found that the pair test gives only cross-distinctness; both were corrected before any certificate was generated. It found that the class partition must name the class, $[J]^{-1}$ and not $[J]$, and must fix the basis, since an arbitrary basis leaves the leading coefficient unbounded. It located the source of the gap between the threshold $4164$ posted in the thread and the plan's $4777$: mostly the halved exponent of the first paper's kernel bound, with the rest from the Minkowski constant $\frac23\sqrt d$ in place of $\sqrt{d/3}$. It reconstructed LemmaLab's $4164$ from the $K$-Bessel bound, since their code was not available, and reproduced every count and threshold of the plan with its own code. It then reviewed the statements, the analytic parts and the finite part as they were delivered, re-checked every rational bracket of \cref{tab:brackets} in exact arithmetic, and found that two lower bounds in an internal report of the development had been rounded up (they now read $0.98050$ and $0.06742$). Last, it re-ran Comparator and the closure audit on the artefact of the run of record (\cref{sec:replay}). The duplicate-declaration hazard of \cref{sec:controls} was found by the same review during its work on the determinant proof; here it confirmed the cause in Lean's own source. It also raised the five points of \cref{sec:trust}. These are the findings of an AI review session, not a referee's report.
+
+%=====================================================================================================
+\section{What is not claimed}\label{sec:notclaimed}
+%=====================================================================================================
+
+We do not claim the theorem, which is classical \cite{Baker1971,Stark1971,MontgomeryWeinberger1974,Stark1975}, and we do not claim the route, which is the thread's (\cref{sec:credit}). We do not claim priority among Lean formalizations of results of this kind; we claim a kernel-checked proof by this route.
+
+The bound $d \le 4777$ is proved in Lean, but it rests on openai/math's theorem that Dirichlet $L$-functions do not vanish for $\re s > 7/8$. As far as we know its manuscript \cite{OAIqrh} is not refereed. Its Lean proof is inside the checked closure, so its correctness is not in question in the sense that matters for the kernel; what a human reader may want, and does not yet have, is a refereed understanding of why it is true.
+
+Nothing here bears on the Riemann hypothesis. Nor does anything here bear on Siegel zeros beyond what the $7/8$ theorem itself gives: the proof uses that theorem as a black box, through $L(7/8,\chi) \ge 0$, and this development proves nothing new about real zeros of $L$-functions.
+
+The proof is not optimal and does not try to be. The threshold $4777$ comes from the first paper's kernel bound with its halved exponent, from the Minkowski constant $\frac23\sqrt d$ in place of the reduced-form bound $\sqrt{d/3}$, and from a range fixed before the $y = 0$ term was kept; LemmaLab's $4164$, or $4345$ with the present bounds and the kept term, would leave a smaller finite range. These choices made the Lean shorter, not the mathematics sharper. The finite half certifies $h \ge 3$ field by field, and does not compute class numbers.
+
+The development builds no theory of binary quadratic forms: no reduction, no composition, no genus theory, and no correspondence between forms and ideal classes. It proves nothing about class numbers above two.
+
+Finally, this paper describes the mathematics and the checking. It is not itself checked by anything. Where it says what a Lean lemma states, the lemma is the authority.
+
+%=====================================================================================================
+\section*{Acknowledgments and AI disclosure}
+%=====================================================================================================
+
+The challenge is Terence Tao's. The quasi-Riemann hypothesis at $7/8$ for all Dirichlet $L$-functions, with its Lean proof, is OpenAI's (openai/math, family 003, Apache-2.0). The Chowla--Selberg formula is S.~Chowla's and A.~Selberg's; in the comments of Tao's post, michaelmross gave the expansion of the principal form by Poisson summation (comment 698466), Tao observed that together with the $7/8$ theorem it gives $d < 655$, and LemmaLab evaluated it at the fixed point $s = 7/8$ and certified $d \le 653$ in ball arithmetic. LemmaLab then extended the argument to all class numbers, through the Epstein zeta functions of all $h$ classes, and certified $d \le 4164$ for $h \le 2$ (comment 698478); \cref{sec:analytic} is that extension, in the form that Mathlib and the first project make provable. The commenters state their own use of AI, which we record as they give it: michaelmross developed his lemma, its proof and his scripts with Claude Opus (Anthropic); Tao's observation came from playing with the SAIR open model; LemmaLab worked with Claude (Anthropic), and had the class-number-one bound re-checked independently with ChatGPT (comment 698472) and the extension to all class numbers with Codex (comment 698478), both OpenAI's; and Nielsen's Lean proof was produced by Codex. The classical solution of the class number two problem is due to Baker and to Stark, who made it effective, and to Montgomery and Weinberger, and to Stark again, who completed the list. We thank Mathlib and its contributors for the number-field, class-group, ideal-norm, $L$-series, Gamma, Mellin and Poisson-summation infrastructure that the development leans on throughout, and the authors of the packages OpenAI's proof builds on, including PrimeNumberTheoremAnd and RellichKondrachov; Chris Bailey for nanoda, the second kernel; and the authors of Comparator and lean4export, the checking pipeline.
+
+The formalization, the numerics, the certificates and this paper were produced with extensive use of an AI assistant (Claude, Anthropic) under the direction of the author, in separate sessions. Several sessions did the work, one for each part of the plan. Another, independent session reviewed the plan, the statements and the delivered parts, as described in \cref{sec:review}, and re-ran Comparator and the closure audit with its own build of the project's modules and of nanoda, with five controls of its own; the dependencies were not rebuilt (\cref{sec:replay}). The class-number data behind the two statements were computed by scripts and by PARI, and cross-checked by independent code; the proof does not rely on them. The mathematical route is due to the people credited above. The Lean kernel is the trusted component. The mathematical claims about the theorem are kernel-checked. The history, the attributions and the account of how the work was checked are ours, and we have tried to say how each was obtained.
+
+\bibliographystyle{amsplain}
+\bibliography{refs}
+
+\end{document}
