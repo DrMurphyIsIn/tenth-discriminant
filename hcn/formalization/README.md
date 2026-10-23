@@ -100,8 +100,10 @@ were on macOS, with a pass-through shim in its place, so they were **not sandbox
 ## The published files and the checked files
 
 The run of record was made on a tree whose comments still carried internal references (plan section numbers, the names of work
-tracks and review items, private paths). We removed those from the comments and docstrings, and corrected one docstring figure
-in `HCN.Numerics.Threshold`; nothing else in the Lean sources changed. The generators were changed in the same way, so that
+tracks and review items, private paths). We removed those from the comments and docstrings; we also corrected the worst-case
+figures in the docstring of `HCN.Numerics.Threshold`, added one true sentence to the docstring of `Bg_mono` (that the
+formalised side condition is `c ≥ 1/8` at the larger point), and rewrote three stale remarks about `sorry`ed statement
+files. Nothing else in the Lean sources changed. The generators were changed in the same way, so that
 they now produce the published files. The build configuration (`lakefile.lean`, `lake-manifest.json`) is replaced by the
 public one, which takes openai/math from git instead of a local checkout. The vendored first-proof modules are the
 already-published copies, which differ from the copies in the run of record only in comments. [`VERIFICATION.md`](VERIFICATION.md)

@@ -341,7 +341,7 @@ theorem Bg_mono {a' D : ℝ} (hD : 0 < D) (ha : 0 < a) (haa' : a ≤ a') (ha' : 
   rw [e, e]
   exact mul_le_mul_of_nonneg_left hcore hK
 
-/-! ### Consequences proved here from the statements above (no further `sorry`) -/
+/-! ### Consequences of the theorems above -/
 
 /-- **Continuation to `s = 7/8`** (as CN-1's `CS_seven_eighths`): if `F` is holomorphic on `{re s > 1/2} \ {1}` and
 equals `½ Z_Q` on `re s > 1`, then `F(7/8) = mainTermg(7/8) + E_Q(7/8)`. -/

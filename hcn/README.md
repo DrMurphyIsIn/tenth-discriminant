@@ -150,12 +150,13 @@ The details are in the paper's verification section. In brief:
   into the class-number-two set, `Squarefree m` dropped, and 427 replaced by 431 (whose class number is 21). It also rejected
   three tampered proofs, through a postulated false bound, a postulated threshold, and one certificate step replaced by `sorry`,
   and the closure audit rejected the same three. As in the other entries, those three files are not published: a file that
-  declares a false axiom, or proves a theorem with `sorry`, does not belong in a public library.
+  declares a false axiom, or replaces a step of a proof by `sorry`, does not belong in a public library (the challenge and the
+  tampered statements are statements left as `sorry` by design, as Comparator requires).
 - **Independent replay.** A separate AI review session rebuilt the project, re-ran Comparator with its own build of nanoda, and
   ran five controls of its own; both kernels accepted the theorems again. It is an AI review, not a referee's report.
 - **The published files are the checked files.** Before publishing we removed internal references from the Lean comments and
-  docstrings, and corrected one docstring figure (the worst cases at d = 4778 in `HCN.Numerics.Threshold`); nothing else in
-  the Lean sources changed. The build configuration is replaced by a public one, with openai/math from git at the pinned
+  docstrings, corrected the worst-case figures at d = 4778 in the docstring of `HCN.Numerics.Threshold`, added one sentence
+  to the docstring of `Bg_mono`, and rewrote three stale remarks; nothing else in the Lean sources changed. The build configuration is replaced by a public one, with openai/math from git at the pinned
   commit. [`formalization/VERIFICATION.md`](formalization/VERIFICATION.md) records how we checked that the published modules
   compile to exactly the same declarations as the checked ones, the build of a fresh copy, and a fresh Comparator run on the
   published challenge and tampered statements.

@@ -20,18 +20,32 @@ build configuration is replaced by a public one. In detail:
   Twenty-four of them are generated (the statement, the 15 certificate chunks, `Certs`, `ClassTwo`, `Range`, `Assembly`, `Main`
   and the three tampered statements); for those the change was made in the generators' templates, and the generators were
   re-run (section 2). The other fourteen were edited by hand.
-- **One docstring correction.** Every comment change but one is a removal of an internal reference. The exception is the module
-  docstring of `HCN.Numerics.Threshold`, which credited the worst case `-6.7e-5` at `D = 4778` to the Gamma enclosure alone.
-  These are three different cases, and the docstring now gives all three: the proved enclosure 2.1753 ≤ Γ(3/8)/Γ(7/8) ≤ 2.1755
-  alone, with every other constant exact, gives about `-6.437e-5`; with the first proof's zeta enclosures as well
-  (ζ(7/4) ≥ 1.96232, ζ(3/4) ≥ −3.44129) about `-6.697e-5`; and with the full chain of rational brackets about `-1.30e-3`.
-  The mathematics of the module, and the margin `0.0687` it proves, are unchanged.
-- **In the challenge, only the module docstring changed**, and it kept its length in lines, so lines 19 to 41 (the two
-  theorem docstrings, the two statements and their `sorry`s) are byte-identical to the checked challenge's, at the same line
-  numbers. This matters more than it might seem: Lean v4.34.1 labels each `sorry` with its source position, inside the proof
-  term, so a challenge whose `sorry` moves by one line exports a different term (we saw this with a first version of the
-  scrub, one line shorter: same types, different values). The checked challenge's md5 was
-  `e0166de7111fd6b59764111e1b248f94`; the published one's is `2e627a6e3393937e638b586fa90ca51c`.
+- **Comment changes that are not removals of internal references.** Almost every comment change removes an internal
+  reference. These do more, and we list them all:
+  - *One docstring correction.* The module docstring of `HCN.Numerics.Threshold` credited the worst case `-6.7e-5` at
+    `D = 4778` to the Gamma enclosure alone. These are three different cases, and the docstring now gives all three: the
+    proved enclosure 2.1753 ≤ Γ(3/8)/Γ(7/8) ≤ 2.1755 alone, with every other constant exact, gives about `-6.437e-5`; with
+    the first proof's zeta enclosures as well (ζ(7/4) ≥ 1.96232, ζ(3/4) ≥ −3.44129) about `-6.697e-5`; and with the full
+    chain of rational brackets about `-1.30e-3`. The mathematics of the module, and the margin `0.0687` it proves, are
+    unchanged.
+  - *One added sentence.* The docstring of `HCN.Statements.GeneralCS.Bg_mono` gained a sentence saying what is formalised:
+    the weaker side condition `c ≥ 1/8` at the larger point, `HCN.CSAux.one_eighth_le_cst`.
+  - *Three stale remarks rewritten.* The docstrings of `HCN.Assembly.LowerBound`, `HCN.Numerics.Threshold` and a section
+    heading of `HCN.Statements.GeneralCS` still spoke of `sorry`ed statement files, from before those files were proved.
+    They now say only which definitions and theorems are used.
+  - *The challenge's module docstring* points to the first proof's challenge by its place in the repository, and has one
+    added line saying that the tampered statements are made from it (below).
+- **In the challenge, only the module docstring changed.** The checked challenge's md5 is `e0166de7111fd6b59764111e1b248f94`;
+  the published one's is `00b03da302cae50b565b0c80380f4afc`. The two differ in the module docstring (lines 1 to 18) only. The
+  docstring kept its length in lines, so lines 19 to 41 (the two theorem docstrings, the two statements and their `sorry`s)
+  are byte-identical to the checked challenge's, at the same line numbers. This matters more than it might seem: Lean
+  v4.34.1 labels each `sorry` with its source position, inside the proof term, so a challenge whose `sorry`s move export a
+  different term. A first version of the scrub (md5 `1ab2d193ad095872fa23a3ab767c005e`), one line shorter, did exactly that:
+  its statement export differed from the checked one by 29 bytes. We compared the two exports structurally, replacing every
+  name, level and expression by a hash of its structure so that the numbering of entries does not matter: of their 34,119
+  declarations, 34,117 were identical in every field, and the other two, the two theorems, had identical types and
+  differing values, the difference being the line numbers in their `sorry` labels (31 and 39 against 30 and 38). With the
+  line count kept, the export of the published challenge is byte-identical to the checked one's (section 1, statements).
 - **The 41 vendored `CN1` modules are the already-published copies**, byte-identical to `../../formalization/CN1/`; no vendored
   file differs from those at all. The run of record used the first proof's verified copies, which differ from the published
   ones in comments only, and the export identity below is the proof that the closure is unchanged by the substitution. The
@@ -42,7 +56,8 @@ build configuration is replaced by a public one. In detail:
   byte for byte, and so are their exports (section 1, statement closures).
 - **Three checked files are not published:** the proof-side controls that prove the theorems through a postulated false bound,
   through a postulated threshold, and with one certificate step replaced by `sorry`. As for the other entries, a file that
-  declares a false axiom, or proves a theorem with `sorry`, does not belong in a public library. Nothing else imports them.
+  declares a false axiom, or replaces a step of a proof by `sorry`, does not belong in a public library (the challenge and the
+  tampered statements are statements left as `sorry` by design, as Comparator requires). Nothing else imports them.
 - **The build configuration is replaced by a public one.** The checked tree's `lakefile.lean` required openai/math as a path
   dependency on a local checkout of commit `adc7f124`, with a shared `packagesDir`, and its manifest recorded openai/math as a
   path package. The public `lakefile.lean` requires openai/math from git at that commit, as `../../formalization/` does, has
@@ -85,9 +100,10 @@ The results:
 | constant hashes, all 7,567 `HCN` and `CN1` constants | md5 `a749bd965db0b34a7bc924a6aaf31f53`, 658,904 bytes | md5 `a749bd965db0b34a7bc924a6aaf31f53`, 658,904 bytes | byte-identical |
 
 So the published modules compile to the same declarations, term for term, as the modules of the run of record, and the closure
-that Comparator checked is the closure of the published theorems. Tree B was built and compared twice: first, and again from
-the final sources after the `Threshold` docstring correction (which rebuilt `HCN.Numerics.Threshold`, `HCN.Assembly.LowerBound`,
-`HCN.Assembly` and `HCN.Main`); all three results were the same both times. Docstrings enter neither export: the two
+that Comparator checked is the closure of the published theorems. Tree B was built and compared three times: first, again after
+the `Threshold` docstring correction (which rebuilt `HCN.Numerics.Threshold`, `HCN.Assembly.LowerBound`, `HCN.Assembly` and
+`HCN.Main`), and a third time, rebuilt from scratch from the final sources (`lake build HCN CN1 HCNChallenges HCNNegControls`,
+exit 0, 11,952 jobs); all three results were the same every time. Docstrings enter neither export: the two
 `--export-mdata` exports are identical although the docstrings of A and B differ.
 
 The export also gives an independent count of that closure: 108,547 theorems, 22,281 definitions, 1,473 inductive types (with
@@ -112,7 +128,8 @@ gives the statements, their `sorry` proofs and their whole Mathlib closure.
 | `HCNNegControls.Tamper.DropSquarefree` | md5 `4d6ae9edff18501b0b9e241f6a0ba6b8`, 213,974,919 bytes | md5 `0899b873eeefd71f5939b30ecff7e07b`, 214,631,174 bytes | byte-identical |
 | `HCNNegControls.Tamper.Swap431` | md5 `ce637c0b557791e3f14af91ece9e9b1d`, 213,976,133 bytes | md5 `8d98a4eb0aed5dc3f663bd8be9d45e74`, 214,632,368 bytes | byte-identical |
 
-In A, the challenge and the tampered statements are the run of record's files; in B they are the published ones, the tampered
+These are the results for the final sources; the tampered statements gave the same md5s in two rebuilds of B. In A, the
+challenge and the tampered statements are the run of record's files; in B they are the published ones, the tampered
 statements as regenerated by the published `../certificates/gen_controls.py`. In the sources, too, the tampered statements are
 byte-identical to the run of record's from their first `theorem` on; only their header comments differ.
 
@@ -137,8 +154,9 @@ We copied this directory, without any build state, into an empty scratch directo
 the final wording of the challenge's module docstring (one line longer than in this copy, which is why the warnings below sit
 one line higher than in the published file), and the new comments of `lakefile.lean`. Its other files are the published ones,
 except `VERIFICATION.md` itself, the sorry fixtures (made afterwards, from this build's logs) and the one-line fix to
-`scripts/check_no_sorry.sh` described in section 5. After those changes we synced the copy to the final sources and built
-it again (table below, last rows), which recompiled exactly the changed modules and their dependents.
+`scripts/check_no_sorry.sh` described in section 5. After those changes we synced the copy to the sources and built it
+again (table below, last rows), which recompiled exactly the changed modules and their dependents. The last comment-only edits
+(section 4, run 1) came after that; the final sources were rebuilt from scratch in tree B of section 1.
 
 | Step | Result |
 |---|---|
@@ -150,7 +168,7 @@ it again (table below, last rows), which recompiled exactly the changed modules 
 | the axiom check of the README, importing `HCN.Main` only | exit 0; Lean's output was exactly the two lines below, and Lake's 23 "local changes" warnings went to standard error |
 | `scripts/check_axioms.sh` on that output | "OK: HCN.classNumber_le_two_iff and HCN.classNumber_eq_two_iff depend only on standard axioms" |
 | `scripts/apply_oai_patches.sh --check` afterwards | exit 0, all 23 patches still verified |
-| the final sources: `lake build HCN CN1 HCNChallenges` again | exit 0, 11,948 jobs; recompiled `HCN.Numerics.Threshold`, `HCN.Assembly.LowerBound`, `HCN.Assembly`, `HCN.Main` and `HCNChallenges.ClassNumberLeTwo` |
+| after the docstring changes: `lake build HCN CN1 HCNChallenges` again | exit 0, 11,948 jobs; recompiled `HCN.Numerics.Threshold`, `HCN.Assembly.LowerBound`, `HCN.Assembly`, `HCN.Main` and `HCNChallenges.ClassNumberLeTwo` |
 | `scripts/check_no_sorry.sh` on that log | OK: `HCNChallenges/ClassNumberLeTwo.lean:27:8` and `:35:8` |
 | the axiom check and `scripts/check_axioms.sh` again | the same two lines; OK |
 
@@ -163,28 +181,37 @@ Two things matter for anyone repeating this on a smaller machine. The package di
 14.5 GB openai/math's compiled files), and the project's own build adds 0.6 GB. And one generated module needs a lot of memory:
 `HCN.Assembly.Range` reached a peak resident set of 26.5 GB when compiled on its own (124 s), against about 5.9 GB for a
 certificate chunk; it was also the slowest module of the build. The workflow in `.github/workflows/hcn.yml` therefore frees
-disk space and adds a swap file before it builds.
+disk space and adds a swap file before it builds. **The workflow has not yet run on GitHub**: whether a standard runner
+builds `HCN.Assembly.Range` in time is untested, and the first run, with its date, runner, wall time and that module's peak
+memory, will be recorded here.
 
 ## 4. Comparator on the published files
 
 After the equivalence builds we ran Comparator again, on the published files themselves: the published challenge against the
-published `HCN.Main`, and the three published tampered statements against it, from a copy of this directory with the public
-lakefile (the fresh copy of section 3, synced to the final sources). The setup was the run of record's: Comparator built at
-tag v4.34.0 (md5 `57b65af925cc7119b47a5622ff66fe3e`), its `lean4export` 3.1.0 (`b8b81a76f7622ddc89d0c55ebe1382cc`), nanoda
-(`f6268f7adadedf28d3bb66bef7cc1810`), and a pass-through shim in place of landrun (`e9a9f8e2aef39eba07cd02705570e48f`), so
-these runs, too, were **not sandboxed**. Each ran `lake env comparator comparator/<config>.json` with the configurations in
+published `HCN.Main`, and the three published tampered statements against it. The setup was the run of record's: Comparator
+built at tag v4.34.0 (md5 `57b65af925cc7119b47a5622ff66fe3e`), its `lean4export` 3.1.0 (`b8b81a76f7622ddc89d0c55ebe1382cc`),
+nanoda (`f6268f7adadedf28d3bb66bef7cc1810`), and a pass-through shim in place of landrun (`e9a9f8e2aef39eba07cd02705570e48f`),
+so these runs, too, were **not sandboxed**. Each ran `lake env comparator comparator/<config>.json` with the configurations in
 [`comparator/`](comparator), which permit only `propext`, `Quot.sound` and `Classical.choice`, with nanoda switched on.
 
-| Configuration | Expected (the run of record's line) | Observed | Exit | Wall time |
-|---|---|---|---|---|
-| `ClassNumberLeTwo.json` | "nanoda kernel accepts the solution", "Lean default kernel accepts the solution", "Your solution is okay!" | the same three lines | 0 | 670 s |
-| `Tamper_Move163.json` | "Challenge and solution theorem statement do not match: 'HCN.classNumber_eq_two_iff'" | the same | 1 | 204 s |
-| `Tamper_DropSquarefree.json` | "Challenge and solution theorem statement do not match: 'HCN.classNumber_le_two_iff'" | the same | 1 | 204 s |
-| `Tamper_Swap431.json` | "Challenge and solution theorem statement do not match: 'HCN.classNumber_le_two_iff'" | the same | 1 | 207 s |
+We ran the set twice:
+- **Run 1**, in the fresh copy of section 3, with the public lakefile, synced to the sources as they were before the last
+  comment-only edits (the challenge's pointer to the first proof's challenge, and the three stale remarks of section 1).
+- **Run 2**, on the final sources (challenge md5 `00b03da302cae50b565b0c80380f4afc`, `HCN/Main.lean` md5
+  `866ee907b7c129a24c09a198977937b4`), in tree B of section 1, that is with the checked tree's build configuration.
 
-The accepting run used the final published challenge (md5 `2e627a6e3393937e638b586fa90ca51c`). An earlier accepting run, on
-the version of the challenge whose docstring was one line shorter, gave the same three lines (664 s). The tampered statements
-and `HCN.Main` were the final ones in all four runs.
+Between them, the two runs cover the public build configuration and the final sources. Comparator's view of a challenge is
+its export, and the final challenge's export is byte-identical to the checked challenge's (section 1).
+
+| Configuration | Expected (the run of record's line) | Observed, both runs | Exit | Wall time, run 1 / run 2 |
+|---|---|---|---|---|
+| `ClassNumberLeTwo.json` | "nanoda kernel accepts the solution", "Lean default kernel accepts the solution", "Your solution is okay!" | the same three lines | 0 | 670 s / 639 s |
+| `Tamper_Move163.json` | "Challenge and solution theorem statement do not match: 'HCN.classNumber_eq_two_iff'" | the same | 1 | 204 s / 192 s |
+| `Tamper_DropSquarefree.json` | "Challenge and solution theorem statement do not match: 'HCN.classNumber_le_two_iff'" | the same | 1 | 204 s / 186 s |
+| `Tamper_Swap431.json` | "Challenge and solution theorem statement do not match: 'HCN.classNumber_le_two_iff'" | the same | 1 | 207 s / 197 s |
+
+An earlier accepting run in the fresh copy, on the version of the challenge whose docstring was one line shorter, gave the same
+three lines (664 s).
 
 ## 5. The check scripts
 
@@ -193,8 +220,11 @@ determinant route's strict checks, adapted to two theorems. The axiom check requ
 whitespace removed, to be the two reports, in order, in which every entry is one of `propext`, `Classical.choice` and
 `Quot.sound`; the sorry check requires a successful build with exactly the two challenge warnings. [`scripts/test_checks.sh`](scripts/test_checks.sh)
 runs both over the fixtures in [`scripts/fixtures/`](scripts/fixtures), and over a missing file.
-All 59 cases behave as expected: 33 for the axiom check (5 accept, 27 reject and a missing file) and 26 for the sorry check
-(3 accept, 22 reject and a missing file). The sorry fixtures whose names begin with `real_` are the log of the fresh build
+All 61 cases behave as expected: 35 for the axiom check (5 accept, 29 reject and a missing file) and 26 for the sorry check
+(3 accept, 22 reject and a missing file). The axiom check is slightly stricter than the determinant route's: the file name in
+the optional `info:` prefix may contain neither a quote nor a colon, so the prefix cannot swallow an `error:` line. Two
+fixtures, made by the independent review, show the difference: with an `error:` line before or between the reports, behind an
+`info:` prefix, the looser pattern accepts and this one rejects. Plain `lake env lean` never prints that prefix. The sorry fixtures whose names begin with `real_` are the log of the fresh build
 above, the log of its rebuild from the final sources, and the log of the build of the three tampered statements, with Lake's progress lines and its "local changes" warnings (which
 name the scratch directory) removed; the others are made from the fresh log by adding, removing or changing lines. Writing them
 found one gap in our first version of `check_no_sorry.sh`: a log in which one challenge warning was printed twice, once with a

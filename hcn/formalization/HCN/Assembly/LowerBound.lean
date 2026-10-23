@@ -16,8 +16,8 @@ packed as two propositions:
   `norm_Eg_seven_eighths_le`, `Bg_mono` (each field is the statement verbatim, with its binders made explicit);
 * `EFacts hα`: `IsHermite.absNorm_eq`, `IsHermite.C_dvd_A`, `exists_classReps`, for the given field.
 
-Only the DEFINITIONS of the two statement files are used; no `sorry`ed theorem of theirs is referenced, so nothing
-here depends on `sorryAx`. `HCN.Main` discharges the two propositions from their proofs.
+Only the DEFINITIONS of the two statement modules are used here; none of their theorems is referenced. `HCN.Main`
+discharges the two propositions from the theorems proved in those modules.
 
 **The argument** (with the choice of bound explained in `HCN.Numerics.Threshold`):
 1. `ζ(s) L(s, χ) = ζ_K(s) = Σ_Cl ½ Z_{Q_Cl}(s) = Σ_Cl (mainTermg + Eg)` on `re s > 1` (CN-1's factorisation,

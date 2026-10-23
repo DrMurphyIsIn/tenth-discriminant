@@ -8,7 +8,7 @@ Inputs (all COMPUTED, in data/ next to this script):
   * class numbers: classno_340000_forms.csv.gz (the reduced-form count, column h_forms), cross-checked against
     the independent count classno_340000_independent.csv and against a third reduced-form count done here, for every
     fundamental d <= DMAX;
-  * for comparison only: cert_norm_A_4777.csv (the per-d chosen primes of an earlier, separate implementation). The
+  * for comparison only: cert_norm_4777.csv (the per-d chosen primes of an earlier, separate implementation). The
     certificates are RE-DERIVED here, never copied, and must agree with that file exactly;
   * gen_sets.py's radicand list <out>/radicands_ge3_4777.txt (must agree exactly).
 
@@ -383,15 +383,15 @@ def main():
         dist[len(ch)] = dist.get(len(ch), 0) + 1
     # the comparison file (re-derived here; must agree exactly)
     ref = {}
-    for row in csv.reader(open(f"{DATA}/cert_norm_A_4777.csv")):
+    for row in csv.reader(open(f"{DATA}/cert_norm_4777.csv")):
         if row[0].isdigit():
             ref[int(row[0])] = row[3].split()
     mine = {tcd(m)[2]: [f"{p}{'+' if f else ''}" for p, _, f in certs[m]] for m in ms}
-    assert mine == ref, "re-derived certificates differ from cert_norm_A_4777.csv"
+    assert mine == ref, "re-derived certificates differ from cert_norm_4777.csv"
     got = dict(certs=len(certs), hyps=hyps, witnesses=wit, pmax=pmax)
     print(f"certificates {len(certs)}; chosen-prime distribution {sorted(dist.items())}; "
           f"NotRep/NotRepYNonzero hypotheses {hyps}; split witnesses {wit}; largest prime {pmax}")
-    print("agrees with cert_norm_A_4777.csv on every d: True")
+    print("agrees with cert_norm_4777.csv on every d: True")
     assert got == EXPECT, (got, EXPECT)
     print(f"matches the recorded counts {EXPECT}: True")
     # emission

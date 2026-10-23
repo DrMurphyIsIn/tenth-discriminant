@@ -8,7 +8,7 @@ import Mathlib.Analysis.Complex.ExponentialBounds
 # HCN.Numerics.Threshold: the numerics of the threshold `h ≤ 2 ⇒ d ≤ 4777`
 
 Pinned environment: Lean v4.34.1, Mathlib d13f23b. Imports only the DEFINITIONS of `HCN.Statements.GeneralCS`
-(`Bg`, `cstg`); no theorem of that file is used here, so nothing below depends on a `sorry`.
+(`Bg`, `cstg`); no theorem of that module is used here.
 
 At `s = 7/8` a class with leading coefficient `a ∈ [1, aₘ]`, `aₘ = (2/3)√D`, contributes (from
 `mainTermg_seven_eighths`, `norm_Eg_seven_eighths_le`, `Bg_mono`; assembled in `HCN.Assembly.LowerBound`)
