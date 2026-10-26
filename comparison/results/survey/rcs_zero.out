@@ -1,0 +1,17 @@
+6/pi = [1.90985931710 +/- 2.75e-12]
+d1 = 1e+04, kappa = 1.92: margin [-0.30933616 +/- 2.27e-10]  OK: False
+d1 = 1e+04, kappa = 1.95: margin [-0.28463766 +/- 3.99e-9]  OK: False
+d1 = 1e+04, kappa = 2: margin [-0.24515387 +/- 3.86e-9]  OK: False
+d1 = 1e+04, kappa = 2.5: margin [0.060922346 +/- 1.91e-10]  OK: True
+d1 = 1e+06, kappa = 1.92: margin [-0.035331333 +/- 2.04e-10]  OK: False
+d1 = 1e+06, kappa = 1.95: margin [-0.010167647 +/- 4.47e-10]  OK: False
+d1 = 1e+06, kappa = 2: margin [0.030093622 +/- 3.05e-11]  OK: True
+d1 = 1e+06, kappa = 2.5: margin [0.34409689 +/- 4.17e-9]  OK: True
+d1 = 1e+10, kappa = 1.92: margin [0.0079641055 +/- 2.66e-11]  OK: True
+d1 = 1e+10, kappa = 1.95: margin [0.033137121 +/- 6.77e-11]  OK: True
+d1 = 1e+10, kappa = 2: margin [0.073413946 +/- 2.35e-10]  OK: True
+d1 = 1e+10, kappa = 2.5: margin [0.38757317 +/- 8.21e-10]  OK: True
+Banks Thm 1.1: c = [0.00300000 +/- 3e-13], q0 = 1.0000000e+10: kappa log q0/sqrt q0 = [0.000449004 +/- 9.32e-11] < c: True  => D0 = q0 (d < q0); margin c/value = [6.681 +/- 4.54e-4]
+Kimura Thm 1, second part: c = [0.00596500 +/- 3e-13], q0 = [1.6069269e+15 +/- 1.27e+7]: kappa log q0/sqrt q0 = [1.70321e-6 +/- 4.26e-12] < c: True  => D0 = q0 (d < q0); margin c/value = [3.502e+3 +/- 0.220]
+Kimura Thm 1, first part: c = [0.000581100 +/- 3e-14]: certified at d1 = 5.5000e+09, kappa = 1.911 (lemma margin [3.1178e-5 +/- 1.47e-10]), kappa log d1/sqrt d1 = [0.000577923 +/- 2.41e-10] < c  => D0: d < 5.5000e+09
+Z1 check, d1 = 1e4 with the subdivided enclosure: [('2.1', '[-0.17195 +/- 1.64e-6]'), ('2.3', '[-0.045084 +/- 4.08e-7]'), ('2.5', '[0.060922 +/- 3.47e-7]')]

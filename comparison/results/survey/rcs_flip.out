@@ -1,0 +1,28 @@
+(1) equivalent zero-free abscissa sigma_eq(D0): the CS route reaches D0 IF no real zero in (sigma_eq, 1) for every conductor >= D0
+   (BMOR Prop 1.10 removed: classification-based via Watkins 2004, bb D3, like Weber)
+   Weber/historical q < 196 [Heegner-type, excluded]    D0 =          196   below the family floor 199.12
+   GRH (conditional)                                    D0 =       199.12   below the family floor 199.12
+   v6.1 light determinant (twinheterodox)               D0 =          570   sigma_eq = [0.8610073 +/- 4.17e-8]   1 - sigma_eq = [0.1390 +/- 7.35e-6]
+   7/8 half-plane                                       D0 =       653.99   sigma_eq = [0.8750003 +/- 4.31e-8]   1 - sigma_eq = [0.1250 +/- 3.46e-7]
+   11/12 half-plane                                     D0 =      1151.66   sigma_eq = [0.9166665 +/- 1.35e-8]   1 - sigma_eq = [0.08333 +/- 3.52e-6]
+   v5 light determinant                                 D0 =         2000   sigma_eq = [0.9420064 +/- 7.69e-9]   1 - sigma_eq = [0.05799 +/- 3.61e-6]
+   Bryce/Kerr + LZZ + CS                                D0 =        11000   sigma_eq = [0.9788901 +/- 9.15e-9]   1 - sigma_eq = [0.02111 +/- 1.10e-7]
+   elementary determinant 2^15                          D0 =        32768   sigma_eq = [0.9884115 +/- 2.01e-9]   1 - sigma_eq = [0.01159 +/- 1.50e-6]
+   Larsson Banks+LZZ                                    D0 =        50000   sigma_eq = [0.9907591 +/- 3.87e-8]   1 - sigma_eq = [0.009241 +/- 1.39e-7]
+   Kimi repaired (Pratt)                                D0 =       160000   sigma_eq = [0.9949878 +/- 3.23e-8]   1 - sigma_eq = [0.005012 +/- 1.68e-7]
+   Kimura chain_58                                      D0 =   6.4668e+07   sigma_eq = [0.9997616 +/- 1.39e-8]   1 - sigma_eq = [0.0002384 +/- 1.39e-8]
+   Kimura chain_59                                      D0 =   1.2321e+08   sigma_eq = [0.9998275 +/- 4.51e-8]   1 - sigma_eq = [0.0001725 +/- 4.51e-8]
+   Rudolph Prop 9                                       D0 =   1.8935e+08   sigma_eq = [0.9998609 +/- 1.75e-8]   1 - sigma_eq = [0.0001391 +/- 1.75e-8]
+   Kimura Thm1 first part                               D0 =      5.5e+09   sigma_eq = [0.9999742 +/- 3.42e-8]   1 - sigma_eq = [2.577e-5 +/- 4.10e-9]
+   van Dijk v2                                          D0 =        8e+09   sigma_eq = [0.9999786 +/- 3.78e-8]   1 - sigma_eq = [2.136e-5 +/- 2.24e-9]
+   Banks                                                D0 =        1e+10   sigma_eq = [0.9999809 +/- 6.17e-9]   1 - sigma_eq = [1.911e-5 +/- 3.85e-9]
+   Kimura Thm1 second part                              D0 =   1.6069e+15   sigma_eq = [1.000000 +/- 4.77e-8]   1 - sigma_eq = [4.764e-8 +/- 3.94e-12]
+
+(2) v6.1 band certificates (exact rationals from certificate_*.json; relative gap = (lower - upper)/upper)
+   band [570, 580]: relative gap 0.00095
+   band [580, 600]: relative gap 0.00230
+   band [600, 700]: relative gap 0.00747
+   band [700, 1050]: relative gap 0.04031
+   band [1050, 2000]: relative gap 0.13136
+   HEURISTIC (unknown bias; bb D7) extrapolation of the first two bands, linear in q: relative gap -> 0 at q ~ 563.0
+   HEURISTIC (unknown bias; bb D7) extrapolation of the first two bands, linear in log q: relative gap -> 0 at q ~ 563.1

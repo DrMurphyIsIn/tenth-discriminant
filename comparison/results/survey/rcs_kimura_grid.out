@@ -1,0 +1,7 @@
+grid md5 38017689 (313 intervals + tail). CERTIFIED BOUND (not the least): h = 1 implies d < 64671603 (log D = [17.984833 +/- 2.40e-7]), kappa = 1.92;
+   tightest interval i = 58, c_i/value = [1.00003 +/- 4.17e-6]
+F2 control (every c_i halved): least certified D = 287275472 (log [19.475952 +/- 1.47e-7]), which must exceed 64671603: True
+chain_58: grid-derived (c, l0) == the Lean statement in B4Certificates.lean (1bca4c25)
+chain_58 = GapFrom(2147/500000, 88711/5000) [l0 = [17.742200 +/- 3e-11]]: Lemma Z at kappa 1.92; c-bound; CERTIFIED BOUND: d < 64668273 (log [17.984781 +/- 2.69e-7])
+chain_59: grid-derived (c, l0) == the Lean statement in B4Certificates.lean (1bca4c25)
+chain_59 = GapFrom(4401/1000000, 93147/5000) [l0 = [18.629400 +/- 3e-11]]: Lemma Z at kappa 1.95; q0-bound; CERTIFIED BOUND: d < 123209905 (log [18.629400 +/- 3.57e-9])

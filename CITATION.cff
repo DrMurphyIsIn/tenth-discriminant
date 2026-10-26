@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this work, please cite it as below."
-title: "Kernel-checked Lean 4 proofs of the class number one theorem (two routes) and of the class number two list, without Heegner's method"
+title: "Kernel-checked Lean 4 proofs of the class number one theorem (two routes) and of the class number two list, without Heegner's method, and a verified comparison of tenth-discriminant bounds"
 authors:
   - family-names: Murphy
     given-names: Peter W.
@@ -9,13 +9,16 @@ license:
   - Apache-2.0
   - CC-BY-4.0
   - BUSL-1.1
-version: v1.2.0
-date-released: 2026-10-23
-doi: 10.5281/zenodo.23578359
+version: v1.3.0
+date-released: 2026-10-26
+doi: 10.5281/zenodo.23665245
 identifiers:
   - type: doi
+    value: 10.5281/zenodo.23665245
+    description: "Zenodo archive of release v1.3.0 (all four entries and their papers)"
+  - type: doi
     value: 10.5281/zenodo.23578359
-    description: "Zenodo archive of release v1.2.0 (all three entries and their papers)"
+    description: "Zenodo archive of release v1.2.0 (the three Lean entries and their papers)"
   - type: doi
     value: 10.5281/zenodo.23563656
     description: "Zenodo archive of release v1.1.0 (both proofs and both papers)"
@@ -39,6 +42,9 @@ keywords:
   - Lean 4
   - formal verification
   - Comparator
+  - tenth discriminant
+  - Rosser-Schoenfeld
+  - ball arithmetic
 abstract: >-
   Two Lean 4 proofs of the class number one theorem for imaginary quadratic fields, each accepted by two independent kernels
   (Lean's and nanoda) through Comparator in local, unsandboxed runs: for squarefree m >= 1, the field Q(sqrt(-m)) has class
@@ -63,7 +69,13 @@ abstract: >-
   1,429 other fields, certificates built on a non-principal ramified prime show class number two for the eighteen, and the first
   proof gives the nine. The route is LemmaLab's extension of the Chowla-Selberg argument to all class numbers, from the comments
   of Tao's post. The theorem is classical: Baker and Stark (1971) made the problem effectively solvable, and Montgomery and
-  Weinberger (1974) and Stark (1975) completed the list. Written for T. Tao's tenth-discriminant challenge (20 October 2026).
+  Weinberger (1974) and Stark (1975) completed the list. A fourth entry, which is NOT a Lean proof and is NOT kernel-checked,
+  surveys the tenth-discriminant bounds posted for the challenge by 25 October 2026, each quoted at source and labelled by what could be checked,
+  on one strength scale; rebuilds twinheterodox's determinant bound q < 570 (after Green, van Dijk, Pratt and Kerr) from its
+  own derivation; and improves it, with
+  four bands certified in Arb ball arithmetic and reproduced by a separately written implementation, to the analytic cutoff
+  h(Q(sqrt(D))) = 1 => |D| < 565 for fundamental D < 0 (with the first entry's d <= 652 above 652, and a direct count below
+  565). Written for T. Tao's tenth-discriminant challenge (20 October 2026).
 references:
   - type: generic
     title: "The class number one theorem without Heegner, kernel-checked: d <= 652 from the 7/8 quasi-Riemann hypothesis in Lean 4"
@@ -87,3 +99,11 @@ references:
     year: 2026
     doi: 10.5281/zenodo.23578359
     notes: "The paper of the third entry, hcn/paper/paper.pdf (new in v1.2.0)."
+  - type: generic
+    title: "Tenth-discriminant bounds compared: a verified survey of the methods in Tao's challenge, and an analytic cutoff q < 565 from the determinant method"
+    authors:
+      - family-names: Murphy
+        given-names: Peter W.
+    year: 2026
+    doi: 10.5281/zenodo.23665245
+    notes: "The paper of the fourth entry, comparison/paper/paper.pdf (new in v1.3.0). Not kernel-checked."
