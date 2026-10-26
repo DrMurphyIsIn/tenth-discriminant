@@ -41,11 +41,26 @@ eighteen:
 Its analytic half proves that class number at most two forces d ≤ 4777, from the 7/8 theorem; its finite half certifies class
 number at least three for the 1,429 other fields below that bound, from the principal norm form alone.
 
+The fourth entry, in [`comparison/`](comparison/README.md), is **not a Lean proof**, and it says so first. It answers the question
+the challenge asks directly: what bound does each posted argument give on a tenth discriminant? It has three parts.
+
+- **A survey.** It sets the thread's extractions side by side, quoted at source, each labelled by what we could check, and puts
+  them on one strength scale.
+- **A reproduction.** It rebuilds from our own derivation the strongest light-machinery bound, twinheterodox's determinant
+  bound q < 570.
+- **An improvement** of that bound to an analytic cutoff:
+
+> If h(ℚ(√D)) = 1 for a fundamental discriminant D < 0, then |D| < 565.
+
+The computations behind it are certified in ball arithmetic, and a separately written implementation reproduces them. They are
+not kernel-checked.
+
 There are several ways in, depending on what you want:
 
 - **The papers**: [`paper/paper.pdf`](paper/paper.pdf) for the first proof, about twenty pages,
   [`determinant/paper/paper.pdf`](determinant/paper/paper.pdf) for the determinant route and the comparison, 28 pages, and
-  [`hcn/paper/paper.pdf`](hcn/paper/paper.pdf) for class number two.
+  [`hcn/paper/paper.pdf`](hcn/paper/paper.pdf) for class number two, and
+  [`comparison/paper/paper.pdf`](comparison/paper/paper.pdf), 10 pages, for the survey and the cutoff q < 565.
 - **The readable proof** of the first route, [`notes/proof.md`](notes/proof.md): the argument step by step, with the Lean lemma for
   each step and a link to its file and line. It takes about an hour.
 - **The Lean**: [`formalization/`](formalization/README.md), [`determinant/formalization/`](determinant/formalization/README.md)
@@ -208,6 +223,32 @@ checks, ten of them controls that must fail, behaved as expected. A separate AI 
 closure audit with its own build of the project's modules and of nanoda, and ran five controls of its own (the dependencies
 were not rebuilt); both kernels accepted the theorems again.
 
+## The fourth entry: tenth-discriminant bounds compared
+
+The full story is in [`comparison/README.md`](comparison/README.md) and its paper. This entry is **NOT kernel-checked**. Its
+computations are certified in Arb ball arithmetic, and a separately written AI implementation in high-precision floating point
+reproduces them band by band.
+
+- **The survey.** Every posted extraction is quoted at source, with its author and comment number, and labelled. R means reproduced
+  independently by us; R\* a kernel-checked formalisation, not a recomputation; C cited as posted; NR not reproducible from what
+  was posted. Every zero-free input goes through one reduction, the Chowla–Selberg expansion of the principal form. Read
+  backwards, that reduction gives a single scale: the zero-free abscissa each method is "worth" on this problem.
+  twinheterodox's q < 570 is worth 0.861 on it, ahead of the 7/8 half-plane.
+- **The reproduction.** twinheterodox's determinant bound (v0.6.1, after Green, van Dijk, Pratt and Kerr) is rebuilt from our
+  own derivation. In its own configuration it agrees row by row.
+- **The improvement.** This entry adds:
+  - an exact treatment of the Poisson modes in the norm series;
+  - Rosser–Schoenfeld's sharper constant;
+  - our own rows, γ and kernels;
+  - a Taylor-model check of uniformity across each band.
+
+  Four certified bands exclude [565, 652], and the first entry's kernel-checked d ≤ 652 excludes the rest. That gives the
+  analytic cutoff q < 565. A direct count of reduced forms covers the range below.
+- **What the gain amounts to.** The gain is about 0.9%, and it changes no candidate. The margin is small (0.0023), and the
+  README says how fragile it is.
+- **Why it is not kernel-checked.** The argument needs explicit prime estimates of Rosser–Schoenfeld quality, and these do not yet
+  exist in Lean without trusted numerical inputs.
+
 ## Building and checking it yourself
 
 You need [elan](https://github.com/leanprover/elan), git and Python 3. For the first proof, from [`formalization/`](formalization/README.md):
@@ -252,6 +293,11 @@ the certificates and the other generated files, and checks them byte for byte. A
 axioms of both theorems. It passed on GitHub-hosted runners on 22-23 October 2026; a standard runner takes about three hours,
 most of it compiling one generated module ([`hcn/formalization/VERIFICATION.md`](hcn/formalization/VERIFICATION.md), section 3).
 
+For the fourth entry you need only Python 3, `python-flint` and `mpmath`. The commands, one per claim with its expected output,
+are in [`comparison/REPRODUCE.md`](comparison/REPRODUCE.md). The four band certificates take about 30 seconds. A third workflow,
+[`.github/workflows/comparison.yml`](.github/workflows/comparison.yml), reruns the band certificates, the finite range and the
+survey's Arb rows from a clean checkout, and compares every output with the recorded one byte for byte.
+
 ## Repository layout
 
 - [`paper/`](paper/README.md): the paper.
@@ -277,7 +323,13 @@ most of it compiling one generated module ([`hcn/formalization/VERIFICATION.md`]
   - [`hcn/certificates/`](hcn/certificates/README.md): the generators, the computed class-number data with the programs that
     produced it, and a script that regenerates every generated Lean file and checks it byte for byte.
   - [`hcn/paper/`](hcn/paper/): its paper.
-- [`.github/workflows/`](.github/workflows/): continuous integration for the determinant route and for class number two.
+- [`comparison/`](comparison/README.md): the fourth entry, the survey and the cutoff q < 565. It is not kernel-checked.
+  - [`comparison/code/`](comparison/code/): the certificate code (Arb via python-flint, with outward rounding), and
+    [`comparison/data/`](comparison/data/) its band data and Rosser–Schoenfeld's Table I as transcribed.
+  - [`comparison/survey/`](comparison/survey/): the scripts behind the survey's reproduced rows and the strength scale.
+  - [`comparison/results/`](comparison/results/): the recorded outputs, and [`comparison/paper/`](comparison/paper/) its paper.
+- [`.github/workflows/`](.github/workflows/): continuous integration for the determinant route, class number two and the
+  fourth entry.
 
 ## The method, and Telperion
 
@@ -349,16 +401,36 @@ For class number two (as its paper gives them; [`hcn/README.md`](hcn/README.md) 
 - **Tools:** Mathlib and its contributors; the authors of the packages OpenAI's proof builds on, including PrimeNumberTheoremAnd
   and RellichKondrachov; Chris Bailey for nanoda; the authors of Comparator and lean4export.
 
+For the fourth entry (as its paper gives them; [`comparison/README.md`](comparison/README.md) has more):
+
+- **The challenge:** T. Tao.
+- **The determinant method and the bound q < 570:** twinheterodox (twinheterodox/tenth-discriminant, v0.6.1, commit 44c7d6fc), with
+  the credits given there to B. Green, R. van Dijk, K. Pratt and B. Kerr. That repository has no licence, so nothing of it is
+  copied here.
+- **The thread's routes and values.** The zero-forcing route is twinheterodox's and michaelmross's. The evaluation at the edge,
+  and the 11/12 value 1151, are LemmaLab's. The Kimura extraction route is Rudolph's. The inert-prime facts are classical, as
+  L. Silberman and K. Pratt emphasised. Every surveyed value is credited to its author, at source, in the paper's table.
+- **The explicit prime estimates:** J. B. Rosser and L. Schoenfeld (1962), read at source.
+- **Tools:** Arb (F. Johansson) through python-flint; mpmath.
+
 ## Citing
 
 Please cite the archived release: [doi:10.5281/zenodo.23550257](https://doi.org/10.5281/zenodo.23550257) for all versions,
-which resolves to the latest. Version 1.2.0, [doi:10.5281/zenodo.23578359](https://doi.org/10.5281/zenodo.23578359), is the
-first to contain all three entries and their three papers; version 1.1.0,
+which resolves to the latest. Version 1.3.0, [doi:10.5281/zenodo.23665245](https://doi.org/10.5281/zenodo.23665245), is the
+first to contain all four entries and their four papers. Version 1.2.0,
+[doi:10.5281/zenodo.23578359](https://doi.org/10.5281/zenodo.23578359), was the first to contain all three Lean entries; version 1.1.0,
 [doi:10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656), was the first to contain both proofs of class number one.
 See [`CITATION.cff`](CITATION.cff).
 
 ## Versions
 
+- **v1.3.0** (2026-10-26, [doi:10.5281/zenodo.23665245](https://doi.org/10.5281/zenodo.23665245)):
+  - adds the fourth entry, in [`comparison/`](comparison/README.md): the survey of tenth-discriminant bounds, the reproduction
+    of the determinant bound q < 570, and the analytic cutoff q < 565, with their code, data, recorded outputs and paper.
+    This entry is NOT kernel-checked;
+  - adds a GitHub Actions workflow that reruns its computations and compares their outputs with the recorded ones.
+
+  The first three entries, their certificates and their papers are unchanged.
 - **v1.2.0** (2026-10-23, [doi:10.5281/zenodo.23578359](https://doi.org/10.5281/zenodo.23578359)):
   - adds the third entry, class number two, in [`hcn/`](hcn/README.md): its Lean project, its certificate generators and
     class-number data, and its paper;
@@ -388,12 +460,16 @@ did the work, one per step of the argument, and an independent session reviewed 
 and then re-ran Comparator and the closure audit with its own build of the project and of nanoda, and ran five controls of its
 own. For class number two, several sessions did the work, one for each part of the plan, and an independent session reviewed the
 plan, the statements and the delivered parts, and re-ran Comparator and the closure audit with its own build of the
-project's modules and of nanoda, with five controls of its own; the dependencies were not rebuilt. The mathematical routes are due to the people credited
-above. The mathematical claims are kernel-checked; the history, the attributions and the account of how the work was checked are
+project's modules and of nanoda, with five controls of its own; the dependencies were not rebuilt. For the fourth entry, one session derived and wrote the code. An independent session reviewed each derivation and wrote its
+own implementation, in high-precision floating point. That implementation reproduced every band certificate, and the review
+session also replayed the release from a fresh copy. The mathematical routes are due to the people credited above. The
+mathematical claims of the first three entries are kernel-checked; those of the fourth are certified in ball arithmetic and
+reproduced by a second AI-written implementation, but they are not kernel-checked, and no human has checked either
+implementation; the history, the attributions and the account of how the work was checked are
 ours, and we say how each was obtained.
 
 ## Licensing
 
-The mathematics (Lean, generators, frozen certificates, data, scripts, in all three entries) is Apache-2.0, and the documents
-(including the three papers) are CC-BY-4.0. `telperion/` is under the Business Source License 1.1, which permits research, teaching, review and evaluation
+The mathematics (Lean, generators, frozen certificates, data, scripts and code, in all four entries) is Apache-2.0, and the
+documents (including the four papers) are CC-BY-4.0. `telperion/` is under the Business Source License 1.1, which permits research, teaching, review and evaluation
 outright. See [LICENSING.md](LICENSING.md).
