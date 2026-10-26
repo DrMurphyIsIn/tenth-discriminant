@@ -70,8 +70,9 @@ abstract: >-
   proof gives the nine. The route is LemmaLab's extension of the Chowla-Selberg argument to all class numbers, from the comments
   of Tao's post. The theorem is classical: Baker and Stark (1971) made the problem effectively solvable, and Montgomery and
   Weinberger (1974) and Stark (1975) completed the list. A fourth entry, which is NOT a Lean proof and is NOT kernel-checked,
-  surveys the tenth-discriminant bounds posted for the challenge, each quoted at source and labelled by what could be checked,
-  on one strength scale; rebuilds twinheterodox's determinant bound q < 570 from its own derivation; and improves it, with
+  surveys the tenth-discriminant bounds posted for the challenge by 25 October 2026, each quoted at source and labelled by what could be checked,
+  on one strength scale; rebuilds twinheterodox's determinant bound q < 570 (after Green, van Dijk, Pratt and Kerr) from its
+  own derivation; and improves it, with
   four bands certified in Arb ball arithmetic and reproduced by a separately written implementation, to the analytic cutoff
   h(Q(sqrt(D))) = 1 => |D| < 565 for fundamental D < 0 (with the first entry's d <= 652 above 652, and a direct count below
   565). Written for T. Tao's tenth-discriminant challenge (20 October 2026).

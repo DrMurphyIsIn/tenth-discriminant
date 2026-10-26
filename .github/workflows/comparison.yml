@@ -1,6 +1,6 @@
 # Re-run the fourth entry's computations (comparison/) from a clean checkout and compare every output with the recorded one
 # in comparison/results/, byte for byte: the four band certificates of the theorem (Arb ball arithmetic), the finite range
-# below 565, and the survey scripts that need no third-party files. NOT a kernel check: see comparison/README.md.
+# below 565, and the survey's Arb scripts (edge form, zero forcing, GRH, the sigma0 curve). NOT a kernel check: see comparison/README.md.
 name: comparison
 
 on:
@@ -51,5 +51,6 @@ jobs:
         run: |
           for s in rcs_edge rcs_zero rcs_grh rcs_curve; do
             python3 "survey/$s.py" > "$RUNNER_TEMP/$s.out"
-            cmp "$RUNNER_TEMP/$s.out" "results/survey/$s.out" && echo "$s: identical"
+            cmp "$RUNNER_TEMP/$s.out" "results/survey/$s.out"
+            echo "$s: identical"
           done

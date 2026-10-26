@@ -46,7 +46,7 @@ the challenge asks directly: what bound does each posted argument give on a tent
 
 - **A survey.** It sets the thread's extractions side by side, quoted at source, each labelled by what we could check, and puts
   them on one strength scale.
-- **A reproduction.** It rebuilds from our own derivation the strongest light-machinery bound, twinheterodox's determinant
+- **A reproduction.** It rebuilds from our own derivation the strongest posted light-machinery bound, twinheterodox's determinant
   bound q < 570.
 - **An improvement** of that bound to an analytic cutoff:
 
@@ -229,7 +229,7 @@ The full story is in [`comparison/README.md`](comparison/README.md) and its pape
 computations are certified in Arb ball arithmetic, and a separately written AI implementation in high-precision floating point
 reproduces them band by band.
 
-- **The survey.** Every posted extraction is quoted at source, with its author and comment number, and labelled. R means reproduced
+- **The survey.** Every extraction posted by 25 October 2026 (the thread as read that day, 74 comments) is quoted at source, with its author and comment number, and labelled. R means reproduced
   independently by us; R\* a kernel-checked formalisation, not a recomputation; C cited as posted; NR not reproducible from what
   was posted. Every zero-free input goes through one reduction, the Chowla–Selberg expansion of the principal form. Read
   backwards, that reduction gives a single scale: the zero-free abscissa each method is "worth" on this problem.
@@ -247,7 +247,7 @@ reproduces them band by band.
 - **What the gain amounts to.** The gain is about 0.9%, and it changes no candidate. The margin is small (0.0023), and the
   README says how fragile it is.
 - **Why it is not kernel-checked.** The argument needs explicit prime estimates of Rosser–Schoenfeld quality, and these do not yet
-  exist in Lean without trusted numerical inputs.
+  exist in Lean without trusted numerical inputs or `sorry`.
 
 ## Building and checking it yourself
 
