@@ -1,6 +1,7 @@
 # Re-run the fourth entry's computations (comparison/) from a clean checkout and compare every output with the recorded one
-# in comparison/results/, byte for byte: the four band certificates of the theorem (Arb ball arithmetic), the finite range
-# below 565, and the survey's Arb scripts (edge form, zero forcing, GRH, the sigma0 curve). NOT a kernel check: see comparison/README.md.
+# in comparison/results/, byte for byte: the nine band certificates of the theorem (Arb ball arithmetic), the truth test of the
+# modern theta bounds against exact prime sums to 1e9, the finite range below 565, and the survey's Arb scripts (edge form, zero
+# forcing, GRH, the sigma0 curve). NOT a kernel check: see comparison/README.md.
 name: comparison
 
 on:
@@ -35,14 +36,20 @@ jobs:
       - name: Check every file against MANIFEST.md5
         run: md5sum -c --quiet MANIFEST.md5
 
-      - name: Install python-flint 0.6.0 and mpmath 1.3.0
+      - name: Install python-flint 0.6.0, mpmath 1.3.0 and numpy 1.26.4
         run: |
           python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" install --quiet python-flint==0.6.0 mpmath==1.3.0
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet python-flint==0.6.0 mpmath==1.3.0 numpy==1.26.4
           echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
 
-      - name: The four bands [565, 652]
+      - name: The four bands [565, 652] (1962 estimates)
         run: python3 code/own_cert_all.py | tee "$RUNNER_TEMP/own_cert_all.out" && cmp "$RUNNER_TEMP/own_cert_all.out" results/own_cert_all.out
+
+      - name: The five modern bands [548, 565]
+        run: python3 code/cert_modern.py | tee "$RUNNER_TEMP/cert_modern.out" && cmp "$RUNNER_TEMP/cert_modern.out" results/cert_modern.out
+
+      - name: Truth test of the modern theta bounds against exact prime sums to 1e9
+        run: python3 controls/c9_truth.py 1e9 > "$RUNNER_TEMP/c9.out" && cmp "$RUNNER_TEMP/c9.out" results/controls/c9_truth_1e9.out
 
       - name: The finite range below 565
         run: python3 code/finite_below_565.py | tee "$RUNNER_TEMP/finite.out" && cmp "$RUNNER_TEMP/finite.out" results/finite_below_565.out

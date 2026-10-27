@@ -1,0 +1,42 @@
+q = 163: first noninert prime 41 (> q/4 = 40.75); aux inert primes VERIFIED for 8/8 rows with kappa 2^b <= 1e8; rest ASSUMED
+   (i) stage 0: min (T - L) = +2.00785 at x = 12.72 (L 1.9621, T 3.9700); L first positive at x = 12.72
+   (i) stage 1: min (T - L) = +1.75858 at x = 18.08 (L 4.8927, T 6.6513); L first positive at x = 12.72
+   (i) stage 2: min (T - L) = +1.73289 at x = 18.08 (L 4.9184, T 6.6513); L first positive at x = 12.72
+   (i) stage 3: min (T - L) = +1.73289 at x = 18.08 (L 4.9184, T 6.6513); L first positive at x = 12.72
+   (i) stage 4: min (T - L) = +1.73289 at x = 18.08 (L 4.9184, T 6.6513); L first positive at x = 12.72
+   (i) stage 5: min (T - L) = +1.73289 at x = 18.08 (L 4.9184, T 6.6513); L first positive at x = 12.72
+   (i) stage 6: min (T - L) = +1.73289 at x = 18.08 (L 4.9184, T 6.6513); L first positive at x = 12.72
+   (i) stage 7: min (T - L) = +1.73289 at x = 18.08 (L 4.9184, T 6.6513); L first positive at x = 12.72
+   (i) stage 8: min (T - L) = +1.73289 at x = 18.08 (L 4.9184, T 6.6513); L first positive at x = 12.72
+   (ii) lower = [11.05555319 +/- 3.48e-9] <= partial sum (p <= 1e8, W-monotone lower) [7.019593832 +/- 4.01e-11]: False; margin [-4.03596 +/- 6.39e-7]
+   (iii) full sum <= [20.27846277 +/- 9.28e-10] <= U = [1.520947337e+12 +/- 2.94e+2]: True; margin [1.52095e+12 +/- 2.67e+6]
+   C1b gap (lower - U) = [-1.5209473e+12 +/- 3.73e+4]; NOTE C1b is impossible by this route (sieve hypothesis fails), reported for information
+   (iv) identity check deferred (the float kernel h cancels catastrophically; needs Arb quadrature) -- TODO
+q = 67: first noninert prime 17 (> q/4 = 16.75); aux inert primes VERIFIED for 8/8 rows with kappa 2^b <= 1e8; rest ASSUMED
+   (i) stage 0: min (T - L) = +2.37619 at x = 12.72 (L 2.3687, T 4.7449); L first positive at x = 12.72
+   (i) stage 1: min (T - L) = +2.07259 at x = 17.38 (L 4.9987, T 7.0713); L first positive at x = 12.72
+   (i) stage 2: min (T - L) = +2.04238 at x = 18.08 (L 5.3790, T 7.4213); L first positive at x = 12.72
+   (i) stage 3: min (T - L) = +2.04238 at x = 18.08 (L 5.3790, T 7.4213); L first positive at x = 12.72
+   (i) stage 4: min (T - L) = +2.04238 at x = 18.08 (L 5.3790, T 7.4213); L first positive at x = 12.72
+   (i) stage 5: min (T - L) = +2.04238 at x = 18.08 (L 5.3790, T 7.4213); L first positive at x = 12.72
+   (i) stage 6: min (T - L) = +2.04238 at x = 18.08 (L 5.3790, T 7.4213); L first positive at x = 12.72
+   (i) stage 7: min (T - L) = +2.04238 at x = 18.08 (L 5.3790, T 7.4213); L first positive at x = 12.72
+   (i) stage 8: min (T - L) = +2.04238 at x = 18.08 (L 5.3790, T 7.4213); L first positive at x = 12.72
+   (ii) lower = [11.50403626 +/- 4.78e-9] <= partial sum (p <= 1e8, W-monotone lower) [7.764946623 +/- 2.06e-10]: False; margin [-3.73909 +/- 3.69e-7]
+   (iii) full sum <= [21.02381940 +/- 2.26e-9] <= U = [5.646637910e+18 +/- 4.45e+8]: True; margin [5.64664e+18 +/- 2.10e+12]
+   C1b gap (lower - U) = [-5.6466379e+18 +/- 9.56e+9]; NOTE C1b is impossible by this route (sieve hypothesis fails), reported for information
+   (iv) identity check deferred (the float kernel h cancels catastrophically; needs Arb quadrature) -- TODO
+q = 43: first noninert prime 11 (> q/4 = 10.75); aux inert primes VERIFIED for 8/8 rows with kappa 2^b <= 1e8; rest ASSUMED
+   (i) stage 0: min (T - L) = +2.30164 at x = 12.72 (L 2.6571, T 4.9588); L first positive at x = 12.72
+   (i) stage 1: min (T - L) = +1.95988 at x = 17.38 (L 5.3263, T 7.2862); L first positive at x = 12.72
+   (i) stage 2: min (T - L) = +1.92619 at x = 18.08 (L 5.7098, T 7.6360); L first positive at x = 12.72
+   (i) stage 3: min (T - L) = +1.92619 at x = 18.08 (L 5.7098, T 7.6360); L first positive at x = 12.72
+   (i) stage 4: min (T - L) = +1.92619 at x = 18.08 (L 5.7098, T 7.6360); L first positive at x = 12.72
+   (i) stage 5: min (T - L) = +1.92619 at x = 18.08 (L 5.7098, T 7.6360); L first positive at x = 12.72
+   (i) stage 6: min (T - L) = +1.92619 at x = 18.08 (L 5.7098, T 7.6360); L first positive at x = 12.72
+   (i) stage 7: min (T - L) = +1.92619 at x = 18.08 (L 5.7098, T 7.6360); L first positive at x = 12.72
+   (i) stage 8: min (T - L) = +1.92619 at x = 18.08 (L 5.7098, T 7.6360); L first positive at x = 12.72
+   (ii) lower = [11.82677688 +/- 3.98e-9] <= partial sum (p <= 1e8, W-monotone lower) [7.974364728 +/- 4.65e-10]: False; margin [-3.85241 +/- 2.16e-6]
+   (iii) full sum <= [21.23324177 +/- 4.45e-9] <= U = [1.328159507e+21 +/- 9.05e+10]: True; margin [1.32816e+21 +/- 4.94e+14]
+   C1b gap (lower - U) = [-1.3281595e+21 +/- 6.92e+12]; NOTE C1b is impossible by this route (sieve hypothesis fails), reported for information
+   (iv) identity check deferred (the float kernel h cancels catastrophically; needs Arb quadrature) -- TODO

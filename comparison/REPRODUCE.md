@@ -16,7 +16,7 @@ Run the commands from this directory (`comparison/`). Pin BLAS threads to one, b
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
 ```
 
-## The theorem: h = 1 implies |D| < 565
+## The theorem: h = 1 implies |D| < 548
 
 **1. The four bands [565, 652]**, from our band data in `data/`. This takes about 30 seconds.
 
@@ -27,17 +27,39 @@ python3 code/own_cert_all.py
 The command prints one line per band. Each line gives the certified gap at Q₀ (it must be > 0), the worst upper bound for U′
 over eight Taylor cells (it must be < −γ = −0.2341), and the exact monotonicity criterion. The last line must be
 `ALL FOUR BANDS CERTIFIED: True`. Expected output: [`results/own_cert_all.out`](results/own_cert_all.out), md5
-`02b85c93aefc3e9dc2ff0b2600e0f6a2`.
+`96ff412a58940291003e5ec929af2790`.
 
 | Band | gap at Q₀ | U′ (worst cell) |
 |---|---|---|
-| [565, 570] | 0.00227502121066 | −2.256 ± 0.0009 |
+| [565, 570] | 0.00227502121065 | −2.256 ± 0.0009 |
 | [570, 580] | 0.0200891981736 | −2.35 ± 0.002 |
 | [580, 600] | 0.0558097548413 | −2.39 ± 0.002 |
 | [600, 652] | 0.124424072587 | −2.43 ± 0.005 |
 
 `own_cert_all.py` also takes another directory of band files as its only argument. That lets you certify data that you made
 yourself (step 2).
+
+**1b. The five modern bands [548, 565]**, from `data/modern_*.json`. This takes about 40 seconds.
+
+```sh
+python3 code/cert_modern.py
+```
+
+The last line must be `ALL FIVE MODERN BANDS CERTIFIED: True`. Expected output: [`results/cert_modern.out`](results/cert_modern.out).
+The prime inputs are the modern explicit bounds for θ(x) in `data/transcription_theta_bounds.json`. Each printed value is
+raised by one unit in its last digit; the two printed statements that fail against exact prime sums are corrected or excluded
+(paper, §5).
+
+**1c. Controls for the modern inputs** (numpy needed):
+
+```sh
+python3 controls/c9_truth.py 1e9          # every transcribed θ bound against exact θ(x) to 1e9 (about 10 s, 1 GB of memory)
+python3 controls/c1a_modern.py 163 67 43  # truth sandwich at three class-number-one fields (about 90 s)
+for m in base eps mertens cup kappa; do python3 controls/c3_degrade.py $m; done   # each input 1% worse lowers the gap
+```
+
+Expected outputs: [`results/controls/`](results/controls/). In c9, the two FAILURES listed are the two source misprints that the
+paper describes; they are not used.
 
 **2. (Optional) Make the band data again from nothing.** This step chooses the rows: the minimal κ for each, certified by the
 sieve inequality. It also chooses γ, and the kernel by the generalised eigenproblem. It writes `own_<Q0>_<Q1>.json` into the
@@ -48,13 +70,15 @@ mkdir -p /tmp/regen && cd /tmp/regen
 for b in "565 570" "570 580" "580 600" "600 652"; do python3 <path to comparison>/code/own_params.py $b; done
 ```
 
-(In zsh, write `${=b}` for `$b`.) Each band takes about five minutes. The files it writes are byte-for-byte equal to the
-ones in `data/`; we checked this from a clean directory. Only the choice of data depends on this
-search. The certificate in step 1 checks whatever data it is given.
+(In zsh, write `${=b}` for `$b`.) Each band takes about five minutes. The rows, κ, sieve sizes and γ it writes are equal to the
+ones in `data/`. The integer kernel coefficients can differ from `data/` in roughly their 15th significant digit. The kernel is a
+rounded eigenvector, and v1.4.0's corrected Mertens constant (paper, Limits) moved E's midpoint by about 1.3e-16; the
+v1.3.0 data were made with the old value. Both kernels certify (checked for all four bands). Only the choice of data depends on this search, and the
+certificate in step 1 checks whatever data it is given.
 
 **3. Above 652.** Here we rely on the first entry's kernel-checked theorem d ≤ 652; see [`../formalization/`](../formalization/).
 
-**4. Below 565: the finite range.** This counts reduced forms for all 173 fundamental discriminants with 3 ≤ q < 565:
+**4. The finite range.** This counts reduced forms for all 173 fundamental discriminants with 3 ≤ q < 565 (166 of them lie below 548):
 
 ```sh
 python3 code/finite_below_565.py

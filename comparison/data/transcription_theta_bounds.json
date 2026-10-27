@@ -1,0 +1,471 @@
+{
+ "reader": "lead (reader 1), 2026-10-26; read from the rendered PDF pages, not only the text layer",
+ "status": "READER 1 ONLY. KT-CMP3 item 1 requires a second independent transcription before use in any certified band.",
+ "rounding": "BKLNW p. 26 (Appendix B preamble; bb C1 corrected the page) (Appendix B): printed values are rounded by printf, compiler-dependent, LAST DIGIT ONLY. Rule: every value used is bumped UP by one unit in its last printed digit (conservative).",
+ "sources": {
+  "BKLNW": {
+   "cite": "Broadbent, Kadiri, Lumley, Ng, Wilk, Sharper bounds for the Chebyshev function theta(x), Math. Comp. 90 (2021); arXiv:2002.11068 (arXiv v2; the Math. Comp. version was not checked)",
+   "pdf_md5": "2c694ce690956fdc9191136988b93a5c"
+  },
+  "Buthe2018": {
+   "cite": "J. B\u00fcthe, An analytic method for bounding psi(x), Math. Comp. 87 (2018); arXiv:1511.02032v2 (22 Oct 2017) (the Math. Comp. version was not checked)",
+   "pdf_md5": "20a7c222ab46af299224555889e2dba3"
+  },
+  "PT2016": {
+   "cite": "Platt, Trudgian, On the first sign change of theta(x) - x, Math. Comp. 85 (2016); arXiv:1407.1914 (arXiv v1; the Math. Comp. version was not checked)",
+   "pdf_md5": "1306ff05105cb073ffef72de5f10d0db"
+  }
+ },
+ "statements": [
+  {
+   "id": "Buthe(1.5)",
+   "src": "Buthe2018 Thm 2 (1.5), p. 2",
+   "text": "|x - psi(x)| <= 0.94 sqrt(x) for 11 < x <= 1e19"
+  },
+  {
+   "id": "Buthe(1.6)",
+   "src": "Buthe2018 Thm 2 (1.6), p. 2",
+   "text": "x - theta(x) <= 1.95 sqrt(x) for 1423 <= x <= 1e19"
+  },
+  {
+   "id": "Buthe(1.7)",
+   "src": "Buthe2018 Thm 2 (1.7), p. 2",
+   "text": "x - theta(x) > 0.05 sqrt(x) for 1 <= x <= 1e19 (so theta(x) < x there)"
+  },
+  {
+   "id": "Buthe-input",
+   "src": "Buthe2018 p. 2",
+   "text": "uses the zeros with imaginary part up to 1e11 (reported in its ref [5])"
+  },
+  {
+   "id": "PT2016-Thm1",
+   "src": "PT2016 Thm 1, p. 2 (text line 72)",
+   "text": "for 0 < x <= 1.39e17, theta(x) < x (superseded in range by Buthe (1.7))"
+  },
+  {
+   "id": "BKLNW-Cor2.1",
+   "src": "BKLNW Cor 2.1, p. 4",
+   "text": "theta(x) <= (1 + 1.93378e-8) x for all x >= 0"
+  },
+  {
+   "id": "BKLNW-p3-tail",
+   "src": "BKLNW Table 15, p. 32, row 19 log 10 (k = 2); cf. p. 3",
+   "text": "|theta(x) - x|/x < M2/(log x)^2 for all x >= 1e19, with M2 = 3.7979e-5 from BKLNW's own Table 15 (p. 32), row 19 log 10 (READ; bb C2). p. 3 quotes 3.79e-5 from the external ref [2], a TRUNCATION that is non-conservative by 0.2%. Bumped value used: 3.7980e-5."
+  },
+  {
+   "id": "BKLNW-p3-typo",
+   "src": "BKLNW p. 3",
+   "text": "printed '1.9338e-8 < (theta-x)/x < 1.9667e-8' for x >= 1e19 is a typesetting slip (signs/order); Table 14 row 19 log 10 gives the correct (1 - 1.9667e-8) x < theta(x) < (1 + 1.9338e-8) x. NOT USED."
+  }
+ ],
+ "BKLNW_Table13": {
+  "src": "BKLNW Table 13, pp. 30-31: theta(x) - x > -D_k(a,b) x/(log x)^k for x in [a, b); k = 0..5",
+  "rows": [
+   {
+    "a": "1",
+    "b": "1e5",
+    "D": [
+     "1.00000e0",
+     "1.23228e0",
+     "3.96481e0",
+     "2.08282e1",
+     "1.51224e2",
+     "1.30475e3"
+    ]
+   },
+   {
+    "a": "1e5",
+    "b": "5e5",
+    "D": [
+     "4.73131e-3",
+     "5.53160e-2",
+     "6.46725e-1",
+     "7.56118e0",
+     "8.93458e1",
+     "1.07895e3"
+    ]
+   },
+   {
+    "a": "5e5",
+    "b": "1e6",
+    "D": [
+     "1.99799e-3",
+     "2.67236e-2",
+     "3.57434e-1",
+     "4.78076e0",
+     "6.39437e1",
+     "8.55260e2"
+    ]
+   },
+   {
+    "a": "1e6",
+    "b": "5e6",
+    "D": [
+     "1.67162e-3",
+     "2.32393e-2",
+     "3.23081e-1",
+     "4.49158e0",
+     "6.24434e1",
+     "8.68209e2"
+    ]
+   },
+   {
+    "a": "5e6",
+    "b": "1e7",
+    "D": [
+     "6.56794e-4",
+     "1.02357e-2",
+     "1.59515e-1",
+     "2.48592e0",
+     "3.87413e1",
+     "6.03754e2"
+    ]
+   },
+   {
+    "a": "1e7",
+    "b": "5e7",
+    "D": [
+     "5.24943e-4",
+     "8.47248e-3",
+     "1.36744e-1",
+     "2.20703e0",
+     "3.56210e1",
+     "5.74917e2"
+    ]
+   },
+   {
+    "a": "5e7",
+    "b": "1e8",
+    "D": [
+     "2.16306e-4",
+     "3.85492e-3",
+     "6.87010e-2",
+     "1.22436e0",
+     "2.18201e1",
+     "3.88870e2"
+    ]
+   },
+   {
+    "a": "1e8",
+    "b": "1e9",
+    "D": [
+     "1.48989e-4",
+     "2.74568e-3",
+     "5.06111e-2",
+     "9.4259e-1",
+     "1.74450e1",
+     "3.26946e2"
+    ]
+   },
+   {
+    "a": "1e9",
+    "b": "1e10",
+    "D": [
+     "4.57993e-5",
+     "9.59129e-4",
+     "2.00861e-2",
+     "4.20644e-1",
+     "8.80913e0",
+     "1.84481e2"
+    ]
+   },
+   {
+    "a": "1e10",
+    "b": "2e10",
+    "D": [
+     "1.63137e-5",
+     "3.77870e-4",
+     "8.75253e-3",
+     "2.02733e-1",
+     "4.69587e0",
+     "1.08770e2"
+    ]
+   },
+   {
+    "a": "19035709163",
+    "b": "2e10",
+    "D": [
+     "1.13110e-5",
+     "2.67726e-4",
+     "6.33697e-3",
+     "1.49993e-1",
+     "3.55028e0",
+     "8.40336e1"
+    ]
+   },
+   {
+    "a": "2e10",
+    "b": "5e10",
+    "D": [
+     "1.03687e-5",
+     "2.46002e-4",
+     "5.83648e-3",
+     "1.38472e-1",
+     "3.28531e0",
+     "7.79452e1"
+    ]
+   },
+   {
+    "a": "5e10",
+    "b": "10e10",
+    "D": [
+     "7.53086e-6",
+     "1.85559e-4",
+     "4.57216e-3",
+     "1.12657e-1",
+     "2.77586e0",
+     "6.83969e1"
+    ]
+   },
+   {
+    "a": "10e10",
+    "b": "20e10",
+    "D": [
+     "5.26640e-6",
+     "1.33915e-4",
+     "3.40521e-3",
+     "8.65882e-2",
+     "2.20178e0",
+     "5.59872e1"
+    ]
+   },
+   {
+    "a": "20e10",
+    "b": "30e10",
+    "D": [
+     "3.00664e-6",
+     "7.86826e-5",
+     "2.05910e-3",
+     "5.38859e-2",
+     "1.41018e0",
+     "3.69038e1"
+    ]
+   },
+   {
+    "a": "30e10",
+    "b": "40e10",
+    "D": [
+     "2.41963e-6",
+     "6.39936e-5",
+     "1.69249e-3",
+     "4.47624e-2",
+     "1.18386e0",
+     "3.16250e1"
+    ]
+   },
+   {
+    "a": "40e10",
+    "b": "50e10",
+    "D": [
+     "2.62662e-6",
+     "7.01926e-5",
+     "1.87579e-3",
+     "5.01279e-2",
+     "1.33959e0",
+     "3.57987e1"
+    ]
+   },
+   {
+    "a": "50e10",
+    "b": "60e10",
+    "D": [
+     "1.89356e-6",
+     "5.10206e-5",
+     "1.37472e-3",
+     "3.70409e-2",
+     "9.98044e-1",
+     "2.68917e1"
+    ]
+   },
+   {
+    "a": "60e10",
+    "b": "70e10",
+    "D": [
+     "1.75478e-6",
+     "4.78305e-5",
+     "1.30373e-3",
+     "3.55359e-2",
+     "9.68610e-1",
+     "2.64016e1"
+    ]
+   }
+  ]
+ },
+ "BKLNW_Table14_k0": {
+  "src": "BKLNW Table 14, p. 31: (1 - m0) x < theta(x) < (1 + M0) x for all x > X0",
+  "rows": [
+   {
+    "logX0": "20",
+    "M0": "4.2676e-5",
+    "m0": "9.1639e-5"
+   },
+   {
+    "logX0": "25",
+    "M0": "3.5031e-6",
+    "m0": "7.4366e-6"
+   },
+   {
+    "logX0": "30",
+    "M0": "2.8755e-7",
+    "m0": "6.0751e-7"
+   },
+   {
+    "logX0": "35",
+    "M0": "2.3603e-8",
+    "m0": "4.9766e-8"
+   },
+   {
+    "logX0": "40",
+    "M0": "1.9338e-8",
+    "m0": "2.1482e-8"
+   },
+   {
+    "logX0": "19*log(10)",
+    "M0": "1.9338e-8",
+    "m0": "1.9667e-8"
+   },
+   {
+    "logX0": "45",
+    "M0": "1.0907e-8",
+    "m0": "1.1084e-8"
+   },
+   {
+    "logX0": "50",
+    "M0": "1.1199e-9",
+    "m0": "1.1344e-9"
+   },
+   {
+    "logX0": "60",
+    "M0": "1.2215e-11",
+    "m0": "1.2312e-11"
+   },
+   {
+    "logX0": "70",
+    "M0": "2.7923e-12",
+    "m0": "2.7930e-12"
+   },
+   {
+    "logX0": "80",
+    "M0": "2.6108e-12",
+    "m0": "2.6108e-12"
+   },
+   {
+    "logX0": "90",
+    "M0": "2.5213e-12",
+    "m0": "2.5213e-12"
+   },
+   {
+    "logX0": "100",
+    "M0": "2.4530e-12",
+    "m0": "2.4530e-12"
+   },
+   {
+    "logX0": "200",
+    "M0": "2.1815e-12",
+    "m0": "2.1816e-12"
+   },
+   {
+    "logX0": "300",
+    "M0": "2.0902e-12",
+    "m0": "2.0903e-12"
+   },
+   {
+    "logX0": "400",
+    "M0": "2.0398e-12",
+    "m0": "2.0399e-12"
+   },
+   {
+    "logX0": "500",
+    "M0": "1.9999e-12",
+    "m0": "1.9999e-12"
+   },
+   {
+    "logX0": "700",
+    "M0": "1.9764e-12",
+    "m0": "1.9765e-12"
+   },
+   {
+    "logX0": "1000",
+    "M0": "1.9475e-12",
+    "m0": "1.9476e-12"
+   },
+   {
+    "logX0": "2000",
+    "M0": "1.9228e-12",
+    "m0": "1.9228e-12"
+   },
+   {
+    "logX0": "3000",
+    "M0": "4.5997e-14",
+    "m0": "4.5998e-14"
+   },
+   {
+    "logX0": "4000",
+    "M0": "1.4263e-16",
+    "m0": "1.4264e-16"
+   },
+   {
+    "logX0": "5000",
+    "M0": "5.6303e-19",
+    "m0": "5.6303e-19"
+   },
+   {
+    "logX0": "7000",
+    "M0": "2.0765e-23",
+    "m0": "2.0766e-23"
+   },
+   {
+    "logX0": "10000",
+    "M0": "3.7849e-29",
+    "m0": "3.7850e-29"
+   },
+   {
+    "logX0": "11000",
+    "M0": "7.1426e-31",
+    "m0": "7.1427e-31"
+   },
+   {
+    "logX0": "12000",
+    "M0": "1.5975e-32",
+    "m0": "1.5976e-32"
+   },
+   {
+    "logX0": "13000",
+    "M0": "4.1355e-34",
+    "m0": "4.1356e-34"
+   },
+   {
+    "logX0": "13800.7464",
+    "M0": "2.5423e-35",
+    "m0": "2.5424e-35"
+   },
+   {
+    "logX0": "15000",
+    "M0": "4.1070e-37",
+    "m0": "4.1070e-37"
+   },
+   {
+    "logX0": "17000",
+    "M0": "6.2040e-40",
+    "m0": "6.2040e-40"
+   },
+   {
+    "logX0": "20000",
+    "M0": "7.1621e-44",
+    "m0": "7.1621e-44"
+   },
+   {
+    "logX0": "22000",
+    "M0": "2.4392e-46",
+    "m0": "2.4392e-46"
+   },
+   {
+    "logX0": "25000",
+    "M0": "7.5724e-50",
+    "m0": "7.5724e-50"
+   }
+  ]
+ },
+ "double_transcription": "SATISFIED: bb's transcription_reader2.json (5ab55f8b) agrees on all 114 Table 13 entries, all 34 Table 14 rows and every statement (S2_READER2_bb.md 6a9943f5).",
+ "errata_versions": "The errata are recorded against THESE arXiv versions. (1) B\u00fcthe (1.6) fails on [1423, 1427). (2) BKLNW T13 D4(1e8,1e9) is printed too low (17.4450 against the true sup 17.55495). Harmless: D5(1e6,5e6) is printed too high (868.209 against 868.1085), which is conservative and kept."
+}

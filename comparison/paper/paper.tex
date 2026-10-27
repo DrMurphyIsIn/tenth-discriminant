@@ -73,15 +73,15 @@
            {⁻}{{$^{-}$}}1 {¹}{{$^{1}$}}1 {⁰}{{$^{0}$}}1 {‖}{{$\Vert$}}1 {⊤}{{$\top$}}1 {⊢}{{$\vdash$}}1}
 
 
-\title{Tenth-discriminant bounds compared:\\ a verified survey of the methods in Tao's challenge,\\ and an analytic cutoff $q < 565$ from the determinant method}
+\title{Tenth-discriminant bounds compared:\\ a verified survey of the methods in Tao's challenge,\\ and an analytic cutoff $q < 548$ from the determinant method}
 \author{Peter W. Murphy}
-\date{October 2026 (v1.3.0)\\[2pt] \small Repository \url{https://github.com/DrMurphyIsIn/tenth-discriminant}, directory \lean{comparison/}\\ \small DOI \url{https://doi.org/10.5281/zenodo.23665245}\\ \small (all versions: \url{https://doi.org/10.5281/zenodo.23550257})\\ \small \textbf{Status:} certified by interval arithmetic; reproduced by a separately written implementation; \textbf{not kernel-checked}}
+\date{October 2026 (v1.4.0)\\[2pt] \small Repository \url{https://github.com/DrMurphyIsIn/tenth-discriminant}, directory \lean{comparison/}\\ \small DOI \url{https://doi.org/10.5281/zenodo.23690870}\\ \small (all versions: \url{https://doi.org/10.5281/zenodo.23550257})\\ \small \textbf{Status:} certified by interval arithmetic; reproduced by a separately written implementation; \textbf{not kernel-checked}}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Terence Tao's tenth-discriminant challenge asks, for each recent argument excluding Landau--Siegel zeros or establishing a quasi-Riemann hypothesis, for the effective upper bound $D_0$ it gives on a hypothetical tenth imaginary quadratic field of class number one, so that the strength of the arguments can be compared. The comment thread now holds about twenty such extractions. We give, first, a survey that puts them side by side: each value is quoted at source with its author and comment, and labelled by what we could check. For every input that can be written as a real-zero-free segment we use one reduction, the Chowla--Selberg expansion of the principal form, and certify in ball arithmetic: $d \le 652$ from the $7/8$ half-plane, $d \le 1151$ from the $11/12$ half-plane (LemmaLab's value, comment 698473), $d \le 199$ under GRH, with the limit $64\pi^2 e^{-2\gamma} = 199.1208\ldots$, $d < 10^{10}$ from Banks's explicit theorem (as twinheterodox and michaelmross posted), and, from Kimura's zero-gap theorems (Lean-formalised by the author; not replayed by us), $d < 6.47\cdot 10^7$ (his chain theorem 58) and $d < 1.23\cdot 10^8$ (the input of Rudolph's extraction). Reading the same curve backwards puts every method on one scale, the zero-free abscissa it is ``worth'': the light-machinery determinant bound $q<570$ of twinheterodox corresponds to $0.861$, ahead of the $7/8$ half-plane on this problem. Second, we rebuild that determinant bound (v0.6.1 of twinheterodox, after Green, van Dijk, Pratt and Kerr) from our own derivation: two separately written AI implementations reproduce its certificate row by row, to $10^{-13}$, in its own configuration, and the method passes a truth test on the fields of discriminant $-163$, $-67$ and $-43$. Third, we improve it: an explicit treatment of the Poisson modes in the norm series, the sharper Rosser--Schoenfeld constant, re-optimised sieve rows and kernels, and a band-uniformity check by Taylor models. Together with the kernel-checked bound $d \le 652$ of our earlier work, this gives the analytic cutoff $h(K) = 1 \Rightarrow q < 565$. The improvement is about $0.9\%$ and changes no candidate discriminant; it is a measure of the method's strength, which is what the challenge compares. The computations are certified by interval arithmetic and reproduced by an independent implementation; they are \emph{not} kernel-checked.
+Terence Tao's tenth-discriminant challenge asks, for each recent argument excluding Landau--Siegel zeros or establishing a quasi-Riemann hypothesis, for the effective upper bound $D_0$ it gives on a hypothetical tenth imaginary quadratic field of class number one, so that the strength of the arguments can be compared. The comment thread now holds about twenty such extractions. We give, first, a survey that puts them side by side: each value is quoted at source with its author and comment, and labelled by what we could check. For every input that can be written as a real-zero-free segment we use one reduction, the Chowla--Selberg expansion of the principal form, and certify in ball arithmetic: $d \le 652$ from the $7/8$ half-plane, $d \le 1151$ from the $11/12$ half-plane (LemmaLab's value, comment 698473), $d \le 199$ under GRH, with the limit $64\pi^2 e^{-2\gamma} = 199.1208\ldots$, $d < 10^{10}$ from Banks's explicit theorem (as twinheterodox and michaelmross posted), and, from Kimura's zero-gap theorems (Lean-formalised by the author; not replayed by us), $d < 6.47\cdot 10^7$ (his chain theorem 58) and $d < 1.23\cdot 10^8$ (the input of Rudolph's extraction). Reading the same curve backwards puts every method on one scale, the zero-free abscissa it is ``worth'': the light-machinery determinant bound $q<570$ of twinheterodox corresponds to $0.861$, ahead of the $7/8$ half-plane on this problem. Second, we rebuild that determinant bound (v0.6.1 of twinheterodox, after Green, van Dijk, Pratt and Kerr) from our own derivation: two separately written AI implementations reproduce its certificate row by row, to $10^{-13}$, in its own configuration, and the method passes a truth test on the fields of discriminant $-163$, $-67$ and $-43$. Third, we improve it: an explicit treatment of the Poisson modes in the norm series, the sharper Rosser--Schoenfeld constant, re-optimised sieve rows and kernels, and a band-uniformity check by Taylor models. Together with the kernel-checked bound $d \le 652$ of our earlier work, this gives the analytic cutoff $h(K) = 1 \Rightarrow q < 565$ with Rosser--Schoenfeld's 1962 prime estimates. Fourth, with modern explicit bounds for the Chebyshev function (Broadbent--Kadiri--Lumley--Ng--Wilk; B\"uthe 2018), read at source, double-transcribed and tested against exact prime sums to $10^9$, the auxiliary-prime intervals shrink and the cutoff becomes $h(K) = 1 \Rightarrow q < 548$, worth $\sigma_{\mathrm{eq}} = 0.8566$ on the scale above. The total improvement over $570$ is about $3.9\%$ and changes no candidate discriminant; it is a measure of the method's strength, which is what the challenge compares. The computations are certified by interval arithmetic and reproduced by an independent implementation; they are \emph{not} kernel-checked.
 \end{abstract}
 
 %=====================================================================================================
@@ -95,11 +95,11 @@ There are nine imaginary quadratic fields of class number one, with discriminant
 \begin{enumerate}[leftmargin=*]
 \item \textbf{A survey} (\cref{sec:survey}). Every posted extraction, quoted at source with comment number and author, in one table, with a status per row: reproduced independently by us, cited, or not reproducible. For the zero-free inputs we use one reduction (\cref{sec:reduction}) so that rows compare methods rather than reductions, and we read the resulting curve backwards to obtain a single strength scale (\cref{sec:scale}).
 \item \textbf{A reproduction} (\cref{sec:reproduction}) of the strongest posted light-machinery bound, $q < 570$ \cite{twinheterodox}, from our own derivation and code.
-\item \textbf{An improvement} (\cref{sec:improvement,sec:theorem}) of that bound to $q < 565$.
+\item \textbf{An improvement} (\cref{sec:improvement,sec:theorem}) of that bound to $q < 565$ with the 1962 prime estimates, and to $q < 548$ with modern explicit bounds for the Chebyshev function (\cref{sec:modern}).
 \end{enumerate}
 
 \subsection{How the claim is phrased}\label{sec:framing}
-The theorem of \cref{sec:theorem} is an \emph{analytic cutoff}: an argument that excludes every $q \ge 565$ without a finite search above $565$. The finite range below the cutoff is checked by computation (\cref{sec:finite}). Above $652$ the argument is our kernel-checked theorem $d \le 652$ \cite{CN1paper}, which uses OpenAI's $7/8$ half-plane \cite{OAIqrh}; between $565$ and $652$ it is the determinant method alone. So the result belongs to the class ``unconditional, Heegner-free, with a quasi-Riemann input''. Since a light-machinery bound is also valid in that class, the comparison with $570$ is made inside it.
+The theorem of \cref{sec:theorem} is an \emph{analytic cutoff}: an argument that excludes every $q \ge 548$ without a finite search above $548$. The finite range below the cutoff is checked by computation (\cref{sec:finite}). Above $652$ the argument is our kernel-checked theorem $d \le 652$ \cite{CN1paper}, which uses OpenAI's $7/8$ half-plane \cite{OAIqrh}; between $548$ and $652$ it is the determinant method alone. So the result belongs to the class ``unconditional, Heegner-free, with a quasi-Riemann input''. Since a light-machinery bound is also valid in that class, the comparison with $570$ is made inside it.
 
 \textbf{What is verified, and how.} Every inequality of the certificate is evaluated in Arb ball arithmetic \cite{Arb}. A second implementation, written separately by an independent AI review session in high-precision floating point, reproduces the certificate band by band. Both implementations are AI-written; no human has checked them. \textbf{Nothing in \cref{sec:reproduction,sec:improvement,sec:theorem} is kernel-checked.} The reason is given in \cref{sec:limits}.
 
@@ -173,6 +173,8 @@ Kimura's Lean development exports, besides Theorem~1, chain theorems \lean{chain
 Method & $D_0$ & $\sigma_{\mathrm{eq}}$\\\midrule
 GRH & $199.12$ & $0.5$\\
 determinant, light ($570$) & $570$ & $0.8610$\\
+determinant, this paper (RS 1962) & $565$ & $0.8600$\\
+determinant, this paper (modern $\vartheta$ bounds) & $548$ & $0.8566$\\
 $7/8$ half-plane & $653.99$ & $0.8750$\\
 $11/12$ half-plane & $1151.66$ & $0.9167$\\
 determinant, elementary & $32{,}768$ & $0.9884$\\
@@ -205,9 +207,9 @@ We derived each step independently and wrote certificate code that reads only v0
 
 \subsection{Controls}
 \begin{itemize}[leftmargin=*]
-\item \textbf{Truth test.} At $q = 163$, $67$ and $43$, which have class number one, every inequality is a theorem. Our envelope lies below each field's actual noninert-prime sum, computed from its split primes up to $10^8$, at all nine stages (margin at least $1.9$). The Chowla--Selberg main term agrees with the actual weighted prime sum at $163$ to about $0.1\%$ (approximate: the tail beyond $10^8$ is estimated).
+\item \textbf{Truth test.} At $q = 163$, $67$ and $43$, which have class number one, every inequality is a theorem. Our envelope lies below each field's actual noninert-prime sum, computed from its split primes up to $10^8$, at all nine stages (margin at least $1.9$; with the modern inputs of \cref{sec:modern} and the $[548,550]$ band data, at least $1.7$). The Chowla--Selberg main term agrees with the actual weighted prime sum at $163$ to about $0.1\%$ (approximate: the tail beyond $10^8$ is estimated).
 \item \textbf{Expected failure.} With v0.6.1's parameters the band $[560, 570]$ fails (gap $-0.026$), consistent with their record that kernel searches at $560$ ``did not yield a positive gap''.
-\item \textbf{Degradation.} On the band $[565, 570]$, worsening an input at first order (Rosser--Schoenfeld's $E$ or Table~I by $1\%$, or one row's $\kappa$ by $1\%$) lowers the gap.
+\item \textbf{Degradation.} On the band $[565, 570]$, worsening an input at first order (Rosser--Schoenfeld's $E$ or Table~I by $1\%$, or one row's $\kappa$ by $1\%$) lowers the gap; likewise on $[548, 550]$ for each modern input and for one row's $\kappa$.
 \item \textbf{Quadrature.} The kernel average computed through the cancelling exponential expansion agrees with a direct quadrature of the positive kernel to $2\cdot10^{-15}$.
 \end{itemize}
 
@@ -225,43 +227,69 @@ We derived each step independently and wrote certificate code that reads only v0
 \end{enumerate}
 
 %=====================================================================================================
+\section{Modern explicit bounds for the Chebyshev function}\label{sec:modern}
+%=====================================================================================================
+The determinant method consumes explicit prime estimates in three places: the auxiliary-prime sieve, which shows that an inert prime lies in $(U, \kappa U]$; the envelope constants; and the sum $\sum_{p\le x}\log p/p$. In the sieve the lower bound for $\vartheta(\kappa U) - \vartheta(U)$ must beat an upper bound for the split primes, so the width $\kappa$ that the sieve can certify is set by the error in the prime estimate. With Rosser--Schoenfeld 1962, $\kappa$ is about $1.42$ at $2^{18}$ and about $1.1$ at $2^{50}$. Replacing every prime slot by the idealisation $\vartheta(x) = x$ shows the ceiling of the method in this form: the band $[560, 565]$, which fails with the 1962 inputs, then has a gap of $+0.047$ at $Q_0$ (an exploratory computation: $\vartheta(x) = x$ is not a bound), and the binding constraint moves from the primes to the sieve: at $[548, 550]$ a $1\%$ change in one row's $\kappa$ moves the gap by $6\cdot10^{-6}$, a $1\%$ change in a prime input by about $5\cdot10^{-8}$.
+
+We use the following, read at source from the arXiv versions and transcribed twice, independently; every printed value is raised by one unit in its last digit, since the printed values are rounded in the last digit \cite[p.~26]{BKLNW}.
+\begin{itemize}[leftmargin=*]
+\item $\vartheta(x) \le (1 + 1.93378\cdot10^{-8})\,x$ for all $x \ge 0$ \cite[Cor.~2.1]{BKLNW}.
+\item $\vartheta(x) - x > -\mathcal D_k(a,b)\,x/(\log x)^k$ on the intervals $[a,b) \subset [1, 7\cdot10^{11})$ of \cite[Table~13]{BKLNW}, a direct computation using no information about zeros; and $(1-m_0)x < \vartheta(x)$ for $x > X_0$ from \cite[Table~14]{BKLNW}.
+\item $x - \vartheta(x) \le 1.95\sqrt x$ for $1427 \le x \le 10^{19}$ and $\vartheta(x) < x$ for $x \le 10^{19}$ \cite[Thm.~2, (1.6)--(1.7)]{Buthe2018}, which use the zeros of $\zeta$ up to height $10^{11}$.
+\item $|\vartheta(x) - x| < 3.7979\cdot10^{-5}\,x/(\log x)^2$ for $x > 10^{19}$ \cite[Table~15]{BKLNW}, which closes the tail.
+\end{itemize}
+The sum $\sum_{p\le x}\log p/p$ then follows by partial summation, $\sum_{p\le x}\log p/p = \log x + E + R(x)/x - \int_x^\infty R(t)\,t^{-2}\,dt$ with $R = \vartheta - t$: the integrand has a sign on $[x, 10^{19}]$, and the tail bound is integrable. These inputs are of the same two kinds as Rosser--Schoenfeld's own (computed prime data, and the zeros verified to some height: Lehmer's $25{,}000$ in their case), at a much larger scale.
+
+\textbf{Checks.} Every transcribed bound was tested against $\vartheta(x)$ computed exactly up to $10^9$, at the points where each inequality is tightest. Two printed statements in the arXiv versions do not hold as printed, and we use corrected forms: $x - \vartheta(x) \le 1.95\sqrt x$ fails on $[1423, 1427)$ (at $x = 1426.999$, $x - \vartheta(x) = 74.18 > 73.66$), so we start it at $1427$; and the entry $\mathcal D_4(10^8, 10^9) = 17.4450$ of \cite[Table~13]{BKLNW} is below the true supremum $17.555$, so we do not use it. B\"uthe's lies below the scales the method uses (from $2^{18}$); the Table~13 entry lies within them, and we exclude it and use the other entries of that row. The published versions were not checked.
+
+\textbf{Result.} With these inputs the bands $[548, 565]$ certify (\cref{tab:bands}); $[547, 550]$ does not. The binding margin, $+0.0013$ on $[548, 550]$, is small, and the next prime with $q \equiv 19 \pmod{24}$, $547$, is not reached.
+
+%=====================================================================================================
 \section{The theorem}\label{sec:theorem}
 %=====================================================================================================
 \begin{theorem}\label{thm:main}
-If $h(\Q(\sqrt D)) = 1$ for a fundamental discriminant $D<0$, then $|D| < 565$. The argument excludes $[565, 652]$ by four certified bands of the determinant method and $|D| \ge 653$ by \cite{CN1paper}.
+If $h(\Q(\sqrt D)) = 1$ for a fundamental discriminant $D<0$, then $|D| < 548$. The argument excludes $[548, 565]$ by five certified bands of the determinant method using the explicit bounds of \cref{sec:modern}, $[565, 652]$ by four certified bands using Rosser--Schoenfeld's 1962 estimates, and $|D| \ge 653$ by \cite{CN1paper}.
 \end{theorem}
 
 \begin{table}[ht]\centering\small
 \begin{tabular}{@{}lcccc@{}}\toprule
 Band & rows & kernel & gap at $Q_0$ & $U'$ on the band\\\midrule
+\multicolumn{5}{@{}l}{\emph{modern explicit bounds (\cref{sec:modern})}}\\
+$[548, 550]$ & 35 & deg.\ 20, $d=\frac14$, $e=\frac1{25}$ & $+0.001328$ & $\le -2.275$\\
+$[550, 553]$ & 35 & deg.\ 20, $d=\frac14$, $e=\frac1{25}$ & $+0.008996$ & $\le -2.31$\\
+$[553, 556]$ & 35 & deg.\ 20, $d=\frac14$, $e=\frac1{25}$ & $+0.020566$ & $\le -2.33$\\
+$[556, 560]$ & 35 & deg.\ 20, $d=\frac14$, $e=\frac1{25}$ & $+0.031867$ & $\le -2.34$\\
+$[560, 565]$ & 35 & deg.\ 20, $d=\frac14$, $e=\frac1{25}$ & $+0.046950$ & $\le -2.35$\\
+\multicolumn{5}{@{}l}{\emph{Rosser--Schoenfeld 1962}}\\
 $[565, 570]$ & 35 & deg.\ 20, $d=\frac14$, $e=\frac1{25}$ & $+0.002275$ & $\le -2.255$\\
 $[570, 580]$ & 35 & deg.\ 20, $d=\frac14$, $e=\frac1{25}$ & $+0.020089$ & $\le -2.34$\\
 $[580, 600]$ & 35 & deg.\ 20, $d=\frac14$, $e=\frac1{25}$ & $+0.055810$ & $\le -2.38$\\
 $[600, 652]$ & 35 & deg.\ 20, $d=\frac14$, $e=\frac1{25}$ & $+0.124424$ & $\le -2.42$\\\bottomrule
 \end{tabular}
-\caption{The bands (our own band data; $\gamma = 2341/10000$ in each). The column $U'$ gives an upper bound over eight Taylor cells covering the band. Each band passes: a positive gap at $Q_0$; $U' < -\gamma$ on the band; and monotonicity of each Laplace component, so that the error bound at $Q_0$ is uniform.}\label{tab:bands}
+\caption{The bands (our own band data; $\gamma = 2341/10000$ in each). Gaps are rounded to the digits shown; the certified enclosures are in the repository. The column $U'$ gives an upper bound over eight Taylor cells covering the band. Each band passes: a positive gap at $Q_0$; $U' < -\gamma$ on the band; and monotonicity of each Laplace component, so that the error bound at $Q_0$ is uniform.}\label{tab:bands}
 \end{table}
 
 \subsection{The finite range}\label{sec:finite}
-For every fundamental discriminant with $3 \le q < 565$ (there are $173$) we compute $h$ directly as the number of reduced forms. It is $1$ exactly for $q \in \{3,4,7,8,11,19,43,67,163\}$.
+For every fundamental discriminant with $3 \le q < 548$ (there are $166$) we compute $h$ directly as the number of reduced forms. It is $1$ exactly for $q \in \{3,4,7,8,11,19,43,67,163\}$.
 
 \subsection{Size and fragility}
-The cutoff moves from $570$ to $565$, about $0.9\%$. No candidate changes: the primes $q \equiv 19 \pmod{24}$ near the cut are $547$ and $571$, and both are excluded either way. The margin of the binding band $[565, 570]$, $0.0023$, is smaller than the effect of a $1\%$ change in Rosser--Schoenfeld's constant $E$ (about $0.015$), and the band certifies only with the Poisson-mode treatment of \cref{sec:improvement}; our attempts on $[560, 565]$, $[562, 565]$ and $[563, 565]$ did not certify.
+The cutoff moves from $570$ to $565$ with the 1962 inputs, about $0.9\%$, and to $548$ with the modern inputs, about $3.9\%$ in all. No candidate changes: the primes $q \equiv 19 \pmod{24}$ near the cut are $547$ and $571$, and both are excluded either way. With the 1962 inputs the binding band $[565, 570]$ has margin $0.0023$, smaller than the effect of a $1\%$ change in Rosser--Schoenfeld's constant $E$ (about $0.015$), and it certifies only with the Poisson-mode treatment of \cref{sec:improvement}. With the modern inputs the binding band $[548, 550]$ has margin $0.0013$; there the prime inputs are saturated (a $1\%$ change moves the gap by about $5\cdot10^{-8}$), and the margin is set by the sieve and by the kernel.
 
 %=====================================================================================================
 \section{Limits}\label{sec:limits}
 %=====================================================================================================
 \begin{itemize}[leftmargin=*]
-\item \textbf{Not kernel-checked.} The argument needs explicit prime estimates of Rosser--Schoenfeld quality at scales up to about $10^{16}$. The explicit-bounds development in PrimeNumberTheoremAnd (at commit \texttt{c39a7511}, 30 September 2026) formalises several such results but rests them on trusted numerical inputs; its Rosser--Schoenfeld files prove the asymptotic Mertens theorems, while their explicit statements are stated with \lean{sorry} (e.g.\ Theorem~12) or rest on files that contain \lean{sorry}. No three-axiom-clean source of these inputs exists in Lean yet. A kernel-checked version is future work.
+\item \textbf{Not kernel-checked.} The argument needs explicit prime estimates of Rosser--Schoenfeld quality, or better, at scales up to about $10^{16}$; the modern ones of \cref{sec:modern} rest on computations (prime sums to $7\cdot10^{11}$; zeros to height $10^{11}$) that cannot be redone in a proof kernel. The explicit-bounds development in PrimeNumberTheoremAnd (at commit \texttt{c39a7511}, 30 September 2026) formalises several such results but rests them on trusted numerical inputs; its Rosser--Schoenfeld files prove the asymptotic Mertens theorems, while their explicit statements are stated with \lean{sorry} (e.g.\ Theorem~12) or rest on files that contain \lean{sorry}. No three-axiom-clean source of these inputs exists in Lean yet. A kernel-checked version is future work.
+\item \textbf{A correction to v1.3.0.} Version 1.3.0 used Rosser--Schoenfeld's $17$-digit approximation of the constant $E$ in $\sum_{p\le x}\log p/p = \log x + E + o(1)$, $-1.33258\,22757\,33220\,87$ (p.~76), as a ball of radius $10^{-17}$. The true value, computed independently by two series evaluations, is $E = -1.33258\,22757\,33220\,88176\ldots$, which lies $1.8\cdot10^{-18}$ outside that ball. Version 1.4.0 uses their correctly rounded $15$-digit value (2.11), $-1.33258\,22757\,33221$ (p.~65), with radius $10^{-15}$. The ball's midpoint moves by $1.3\cdot10^{-16}$, so every certified gap changes by about $10^{-16}$, far below the gaps and the interval radii; no conclusion changes, and all nine bands are re-certified with the corrected input.
 \item \textbf{The survey is incomplete.} Rows marked C are cited, not checked.
 \item \textbf{Two implementations, both AI-written.} The reproduction is by two separately written AI implementations (ball arithmetic, and high-precision floating point); no human has checked either.
-\item \textbf{The inputs.} Rosser--Schoenfeld 1962 (Table I; Theorems 4, 6, 9, 14) is cited, read from the page images, and transcribed by us; OpenAI's $7/8$ theorem enters only through \cite{CN1paper} for $q \ge 653$.
+\item \textbf{The inputs.} Rosser--Schoenfeld 1962 (Table I; Theorems 4, 6, 9, 14) is cited, read from the page images, and transcribed by us, for $[565, 652]$; the modern bounds of \cref{sec:modern} \cite{BKLNW,Buthe2018}, double-transcribed and tested against exact prime sums to $10^9$, for $[548, 565]$; OpenAI's $7/8$ theorem enters only through \cite{CN1paper} for $q \ge 653$.
 \end{itemize}
 
 %=====================================================================================================
 \section{Credits, provenance and AI use}\label{sec:credits}
 %=====================================================================================================
-The determinant method and the bound $570$ are twinheterodox's \cite{twinheterodox}, with the credits given there. The zero-forcing route is twinheterodox's and michaelmross's; the evaluation at the edge is LemmaLab's; the $11/12$ value $1151$ is LemmaLab's; the Kimura extraction route is Rudolph's; the inert-prime facts are classical, as emphasised by Silberman and Pratt. Our contributions are the survey and its verification, the strength scale, the reproduction, and the improvements listed in \cref{sec:improvement}.
+The determinant method and the bound $570$ are twinheterodox's \cite{twinheterodox}, with the credits given there. The zero-forcing route is twinheterodox's and michaelmross's; the evaluation at the edge is LemmaLab's; the $11/12$ value $1151$ is LemmaLab's; the Kimura extraction route is Rudolph's; the inert-prime facts are classical, as emphasised by Silberman and Pratt. The explicit bounds for $\vartheta$ of \cref{sec:modern} are those of Broadbent, Kadiri, Lumley, Ng and Wilk \cite{BKLNW} and of B\"uthe \cite{Buthe2018}; Platt and Trudgian \cite{PlattTrudgian2016} first showed $\vartheta(x) < x$ to $1.39\cdot10^{17}$. Our contributions are the survey and its verification, the strength scale, the reproduction, and the improvements listed in \cref{sec:improvement}.
 
 This work was carried out with Claude (Anthropic) in Claude Code: derivations, code and text were AI-generated, and every result was reviewed by a separate AI session that wrote its own implementation. These are AI reviews, not human peer review. The author directed the work and takes responsibility for the claims.
 

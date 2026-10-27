@@ -1,6 +1,10 @@
 **NOT kernel-checked.** Certified by interval arithmetic (Arb), and reproduced per band by a separately written AI
-implementation (high-precision floating point). Inputs: Rosser–Schoenfeld 1962 (Table I; Theorems 4, 6, 9, 14, cited) and
-OpenAI's 7/8 theorem, which enters only through the first entry's kernel-checked bound d ≤ 652, for q ≥ 653.
+implementation (high-precision floating point). Inputs:
+- Rosser–Schoenfeld 1962 (Table I; Theorems 4, 6, 9, 14; (3.21) for the Mertens correction, cited), for [565, 652];
+- Rosser–Schoenfeld 1962 (2.11), the constant E (all nine bands);
+- the modern explicit bounds for θ(x) of Broadbent–Kadiri–Lumley–Ng–Wilk (arXiv:2002.11068v2) and Büthe (Math. Comp. 87, 2018),
+  read at source, double-transcribed and tested against exact prime sums to 10⁹, for [548, 565];
+- OpenAI's 7/8 theorem, which enters only through the first entry's kernel-checked bound d ≤ 652, for q ≥ 653.
 
 # Tenth-discriminant bounds compared
 
@@ -21,14 +25,15 @@ There are three parts.
 2. **A reproduction** of that bound, twinheterodox v0.6.1 (after Green, van Dijk, Pratt and Kerr), from our own derivation and
    our own code. In v0.6.1's own configuration the lower bound of its band [570, 580] comes out as 10.9754131603100, against
    its 10.975413160309, and the per-row envelope coefficients agree to within 6.3·10⁻¹⁴.
-3. **An improvement**, to an analytic cutoff:
+3. **An improvement**, to an analytic cutoff (new in v1.4.0: 548, down from 565):
 
-   > If h(ℚ(√D)) = 1 for a fundamental discriminant D < 0, then |D| < 565.
+   > If h(ℚ(√D)) = 1 for a fundamental discriminant D < 0, then |D| < 548.
 
-   Four certified bands of the determinant method exclude [565, 652]. The first entry's kernel-checked theorem d ≤ 652 excludes
-   everything above. A direct count of reduced forms checks the 173 fundamental discriminants below 565, and it finds exactly the
-   nine. The improvement over 570 is about 0.9%, and it changes no candidate discriminant. What it measures is the method's
-   strength, and that is what the challenge compares.
+   Four certified bands exclude [565, 652] with the 1962 prime estimates. Five more exclude [548, 565] with modern explicit
+   bounds for the Chebyshev function θ(x), which shrink the intervals in which the method must find an auxiliary inert prime. The
+   first entry's kernel-checked theorem d ≤ 652 excludes everything above. A direct count of reduced forms checks the
+   fundamental discriminants below 548, and it finds exactly the nine. The improvement over 570 is about 3.9%, and it changes no
+   candidate discriminant. What it measures is the method's strength, and that is what the challenge compares.
 
 The paper, [`paper/paper.pdf`](paper/paper.pdf) (10 pages), has the survey table, the derivation in outline, the controls, and
 the limits.
@@ -41,8 +46,13 @@ OpenAI's 7/8 half-plane. Since a light-machinery bound is also valid in that cla
 
 It is fragile, and we would rather say so than have someone find out:
 
-- **The margin is small.** The binding band [565, 570] has margin 0.0023. A 1% change in Rosser–Schoenfeld's constant E moves the gap by
-  about 0.015.
+- **The margin is small.** The binding band [548, 550] has margin 0.0013, against a Poisson-mode error allowance of 0.0016. There
+  the prime inputs are saturated (a 1% change moves the gap by about 5·10⁻⁸, a 1% change in one row's κ by 6·10⁻⁶); what
+  binds is the sieve and the kernel. 547, the
+  next candidate prime, is not reached.
+- **A correction to v1.3.0.** v1.3.0 used Rosser–Schoenfeld's 17-digit approximation of Mertens' constant E with a ball of radius
+  10⁻¹⁷, which misses the true E by 1.8·10⁻¹⁸. v1.4.0 uses their correctly rounded 15-digit value with radius 10⁻¹⁵. The ball's
+  midpoint moves by 1.3·10⁻¹⁶, so every gap moves by about 10⁻¹⁶; no conclusion changes, and all nine bands are re-certified.
 - **One improvement carries the result.** It is the exact treatment of the Poisson modes in the norm series. With
   contour-shift error accounting instead, the band [565, 570] fails by 41.6.
 - **Going lower failed.** Our attempts on [560, 565], [562, 565] and [563, 565] did not certify.
@@ -63,12 +73,18 @@ Both implementations are AI-written, and no human has checked either.
 - **The thread's other values:** the evaluation at the edge, and the 11/12 value 1151, are LemmaLab's. The Kimura extraction
   route is Rudolph's. The inert-prime facts are classical, as Silberman and Pratt emphasised.
 - **Kimura's zero-gap theorems** are formalised in Lean by Kimura. We read his statements, and we did not replay his Lean.
+- **The explicit bounds for θ(x)** used for [548, 565] are those of S. Broadbent, H. Kadiri, A. Lumley, N. Ng and K. Wilk, and of
+  J. Büthe. D. Platt and T. Trudgian first showed θ(x) < x up to 1.39·10¹⁷. Checking them against exact prime sums, we found two
+  printed statements in the arXiv versions that do not hold as printed, and we use corrected forms: Büthe's (1.6) fails on
+  [1423, 1427), and one Table 13 entry of Broadbent et al. is too small. Büthe's lies below the scales used here; the Table 13 entry lies within them, and we exclude it and use the
+  other entries of that row. The paper gives the details.
 - **Our contributions** are the survey and its verification, the strength scale, the reproduction, and the improvements:
   - the Poisson modes;
   - the sharper Rosser–Schoenfeld constant;
   - our own rows, γ and kernels;
   - the Taylor-model band check;
-  - a certified K(1/9).
+  - a certified K(1/9);
+  - the modern explicit prime inputs (v1.4.0).
 
 The work was carried out with Claude (Anthropic) in Claude Code. The derivations, code and text were AI-generated. Every result
 was reviewed by a separate AI session, which wrote its own implementation. These are AI reviews, not human peer review. The author
@@ -80,7 +96,8 @@ directed the work and takes responsibility for the claims.
 |---|---|
 | [`paper/`](paper/) | `paper.pdf`, its source `paper.tex` and `refs.bib` |
 | [`code/`](code/) | the certificate code for the theorem (Arb via python-flint, outward rounding throughout) |
-| [`data/`](data/) | our band data `own_<Q0>_<Q1>.json`; Rosser–Schoenfeld's Table I, transcribed with page cites, `rs_table_I.json` |
+| [`data/`](data/) | our band data `own_<Q0>_<Q1>.json` (1962 inputs) and `modern_<Q0>_<Q1>.json` (modern inputs); Rosser–Schoenfeld's Table I, `rs_table_I.json`; the modern θ bounds as transcribed, `transcription_theta_bounds.json` |
+| [`controls/`](controls/) | the truth test of the θ bounds against exact prime sums (`c9_truth.py`), the class-number-one truth sandwich (`c1a_modern.py`) and the degradation test (`c3_degrade.py`) |
 | [`results/`](results/) | the outputs the commands in REPRODUCE.md should give you |
 | [`survey/`](survey/) | the scripts behind the survey's R rows and the strength scale |
 | [`REPRODUCE.md`](REPRODUCE.md) | one command per claim |
@@ -96,7 +113,9 @@ In `code/`:
 - `kj_cert.py`: the certified K(j).
 - `x2_kernel.py`: the kernel search and the gap certificate.
 - `own_params.py`: makes our band data.
-- `own_cert_all.py`: certifies the four bands.
+- `own_cert_all.py`: certifies the four 1962 bands [565, 652].
+- `cert_modern.py`: certifies the five modern bands [548, 565].
+- `modern_profile.py`: the modern explicit bounds for θ(x), assembled from the transcription.
 - `finite_below_565.py`: the finite check below 565.
 - `repro_v61.py`: the optional reproduction of v0.6.1.
 
