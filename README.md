@@ -48,9 +48,10 @@ the challenge asks directly: what bound does each posted argument give on a tent
   them on one strength scale.
 - **A reproduction.** It rebuilds from our own derivation the strongest posted light-machinery bound, twinheterodox's determinant
   bound q < 570.
-- **An improvement** of that bound to an analytic cutoff:
+- **An improvement** of that bound to an analytic cutoff, 565 with the 1962 prime estimates and, since v1.4.0, 548 with modern
+  explicit bounds for the Chebyshev function θ(x):
 
-> If h(ℚ(√D)) = 1 for a fundamental discriminant D < 0, then |D| < 565.
+> If h(ℚ(√D)) = 1 for a fundamental discriminant D < 0, then |D| < 548.
 
 The computations behind it are certified in ball arithmetic, and a separately written implementation reproduces them. They are
 not kernel-checked.
@@ -60,7 +61,7 @@ There are several ways in, depending on what you want:
 - **The papers**: [`paper/paper.pdf`](paper/paper.pdf) for the first proof, about twenty pages,
   [`determinant/paper/paper.pdf`](determinant/paper/paper.pdf) for the determinant route and the comparison, 28 pages, and
   [`hcn/paper/paper.pdf`](hcn/paper/paper.pdf) for class number two, and
-  [`comparison/paper/paper.pdf`](comparison/paper/paper.pdf), 10 pages, for the survey and the cutoff q < 565.
+  [`comparison/paper/paper.pdf`](comparison/paper/paper.pdf), 12 pages, for the survey and the cutoff q < 548.
 - **The readable proof** of the first route, [`notes/proof.md`](notes/proof.md): the argument step by step, with the Lean lemma for
   each step and a link to its file and line. It takes about an hour.
 - **The Lean**: [`formalization/`](formalization/README.md), [`determinant/formalization/`](determinant/formalization/README.md)
@@ -240,14 +241,23 @@ reproduces them band by band.
   - an exact treatment of the Poisson modes in the norm series;
   - Rosser–Schoenfeld's sharper constant;
   - our own rows, γ and kernels;
-  - a Taylor-model check of uniformity across each band.
+  - a Taylor-model check of uniformity across each band;
+  - (v1.4.0) modern explicit bounds for θ(x), by Broadbent, Kadiri, Lumley, Ng and Wilk and by Büthe. They are read at source,
+    transcribed twice independently by two AI sessions (no human check), and tested against exact prime sums to 10⁹. They shrink the intervals in which the method
+    must find an auxiliary inert prime.
 
-  Four certified bands exclude [565, 652], and the first entry's kernel-checked d ≤ 652 excludes the rest. That gives the
-  analytic cutoff q < 565. A direct count of reduced forms covers the range below.
-- **What the gain amounts to.** The gain is about 0.9%, and it changes no candidate. The margin is small (0.0023), and the
-  README says how fragile it is.
-- **Why it is not kernel-checked.** The argument needs explicit prime estimates of Rosser–Schoenfeld quality, and these do not yet
-  exist in Lean without trusted numerical inputs or `sorry`.
+  Four bands certified with the 1962 estimates exclude [565, 652]. Five more, with the modern bounds, exclude [548, 565]. The
+  first entry's kernel-checked d ≤ 652 excludes the rest. That gives the analytic cutoff q < 548. A direct count of reduced
+  forms covers the range below.
+- **What the gain amounts to.** The gain over 570 is about 3.9%, and it changes no candidate: 547 is not reached. The binding
+  margin is small (0.0013 on [548, 550]), and the README says how fragile it is.
+- **Two corrections, both recorded in the paper.**
+  - v1.4.0 corrects an input of v1.3.0: Mertens' constant E is now taken with a ball that contains its true value. The change is
+    about 10⁻¹⁶, and no conclusion changes.
+  - Two printed statements in the arXiv versions of the modern sources do not hold as printed, and are corrected or excluded.
+- **Why it is not kernel-checked.** The argument needs explicit prime estimates of at least Rosser–Schoenfeld quality. These do
+  not yet exist in Lean without trusted numerical inputs or `sorry`, and the modern ones rest on large computations. A
+  kernel-checked version, conditional on the published prime bounds stated as explicit hypotheses, is planned.
 
 ## Building and checking it yourself
 
@@ -294,9 +304,14 @@ axioms of both theorems. It passed on GitHub-hosted runners on 22-23 October 202
 most of it compiling one generated module ([`hcn/formalization/VERIFICATION.md`](hcn/formalization/VERIFICATION.md), section 3).
 
 For the fourth entry you need only Python 3, `python-flint` and `mpmath`. The commands, one per claim with its expected output,
-are in [`comparison/REPRODUCE.md`](comparison/REPRODUCE.md). The four band certificates take about 30 seconds. A third workflow,
-[`.github/workflows/comparison.yml`](.github/workflows/comparison.yml), reruns the band certificates, the finite range and the
-survey's Arb rows from a clean checkout, and compares every output with the recorded one byte for byte.
+are in [`comparison/REPRODUCE.md`](comparison/REPRODUCE.md). The nine band certificates take about 70 seconds. A third
+workflow, [`.github/workflows/comparison.yml`](.github/workflows/comparison.yml), works from a clean checkout. It reruns:
+- the band certificates;
+- the truth test of the θ bounds;
+- the finite range;
+- the survey's Arb rows.
+
+It compares every output with the recorded one, byte for byte.
 
 ## Repository layout
 
@@ -323,9 +338,10 @@ survey's Arb rows from a clean checkout, and compares every output with the reco
   - [`hcn/certificates/`](hcn/certificates/README.md): the generators, the computed class-number data with the programs that
     produced it, and a script that regenerates every generated Lean file and checks it byte for byte.
   - [`hcn/paper/`](hcn/paper/): its paper.
-- [`comparison/`](comparison/README.md): the fourth entry, the survey and the cutoff q < 565. It is not kernel-checked.
+- [`comparison/`](comparison/README.md): the fourth entry, the survey and the cutoff q < 548. It is not kernel-checked.
   - [`comparison/code/`](comparison/code/): the certificate code (Arb via python-flint, with outward rounding), and
-    [`comparison/data/`](comparison/data/) its band data and Rosser–Schoenfeld's Table I as transcribed.
+    [`comparison/data/`](comparison/data/) its band data, Rosser–Schoenfeld's Table I and the modern θ bounds as transcribed;
+    [`comparison/controls/`](comparison/controls/) the truth tests and the degradation test.
   - [`comparison/survey/`](comparison/survey/): the scripts behind the survey's reproduced rows and the strength scale.
   - [`comparison/results/`](comparison/results/): the recorded outputs, and [`comparison/paper/`](comparison/paper/) its paper.
 - [`.github/workflows/`](.github/workflows/): continuous integration for the determinant route, class number two and the
@@ -410,20 +426,32 @@ For the fourth entry (as its paper gives them; [`comparison/README.md`](comparis
 - **The thread's routes and values.** The zero-forcing route is twinheterodox's and michaelmross's. The evaluation at the edge,
   and the 11/12 value 1151, are LemmaLab's. The Kimura extraction route is Rudolph's. The inert-prime facts are classical, as
   L. Silberman and K. Pratt emphasised. Every surveyed value is credited to its author, at source, in the paper's table.
-- **The explicit prime estimates:** J. B. Rosser and L. Schoenfeld (1962), read at source.
+- **The explicit prime estimates:** J. B. Rosser and L. Schoenfeld (1962), read at source. Since v1.4.0 also S. Broadbent,
+  H. Kadiri, A. Lumley, N. Ng and K. Wilk (arXiv:2002.11068) and J. Büthe (Math. Comp. 87, 2018), read at source. D. Platt and
+  T. Trudgian first showed θ(x) < x up to 1.39·10¹⁷.
 - **Tools:** Arb (F. Johansson) through python-flint; mpmath.
 
 ## Citing
 
 Please cite the archived release: [doi:10.5281/zenodo.23550257](https://doi.org/10.5281/zenodo.23550257) for all versions,
-which resolves to the latest. Version 1.3.0, [doi:10.5281/zenodo.23665245](https://doi.org/10.5281/zenodo.23665245), is the
-first to contain all four entries and their four papers. Version 1.2.0,
+which resolves to the latest. Version 1.4.0, [doi:10.5281/zenodo.23690870](https://doi.org/10.5281/zenodo.23690870), carries the cutoff q < 548.
+Version 1.3.0, [doi:10.5281/zenodo.23665245](https://doi.org/10.5281/zenodo.23665245), was the first to contain all four
+entries and their four papers. Version 1.2.0,
 [doi:10.5281/zenodo.23578359](https://doi.org/10.5281/zenodo.23578359), was the first to contain all three Lean entries; version 1.1.0,
 [doi:10.5281/zenodo.23563656](https://doi.org/10.5281/zenodo.23563656), was the first to contain both proofs of class number one.
 See [`CITATION.cff`](CITATION.cff).
 
 ## Versions
 
+- **v1.4.0** (2026-10-27, [doi:10.5281/zenodo.23690870](https://doi.org/10.5281/zenodo.23690870)):
+  - the fourth entry's cutoff improves from q < 565 to q < 548. Five new bands [548, 565] are certified with modern explicit
+    bounds for θ(x) (Broadbent–Kadiri–Lumley–Ng–Wilk; Büthe), read at source, transcribed twice independently by two AI sessions (no
+    human check), and tested against exact prime sums to 10⁹;
+  - corrects the v1.3.0 input for Mertens' constant E, whose ball now contains its true value. Every gap moves by about
+    10⁻¹⁶, no conclusion changes, and all nine bands are re-certified;
+  - adds the controls for the new inputs, and extends the workflow to the new bands and the truth test.
+
+  The first three entries are unchanged. The fourth entry remains NOT kernel-checked.
 - **v1.3.0** (2026-10-26, [doi:10.5281/zenodo.23665245](https://doi.org/10.5281/zenodo.23665245)):
   - adds the fourth entry, in [`comparison/`](comparison/README.md): the survey of tenth-discriminant bounds, the reproduction
     of the determinant bound q < 570, and the analytic cutoff q < 565, with their code, data, recorded outputs and paper.
@@ -462,7 +490,7 @@ own. For class number two, several sessions did the work, one for each part of t
 plan, the statements and the delivered parts, and re-ran Comparator and the closure audit with its own build of the
 project's modules and of nanoda, with five controls of its own; the dependencies were not rebuilt. For the fourth entry, one session derived and wrote the code. An independent session reviewed each derivation and wrote its
 own implementation, in high-precision floating point. That implementation reproduced every band certificate, and the review
-session also replayed the release from a fresh copy. The mathematical routes are due to the people credited above. The
+session also replayed the release from a fresh copy. For v1.4.0, two AI sessions transcribed the modern θ bounds independently, and the two transcriptions agreed entry for entry. The review session replayed the five new bands with its own code and its own reading of the bounds, and regenerated the release from a fresh copy. No human checked either transcription. The mathematical routes are due to the people credited above. The
 mathematical claims of the first three entries are kernel-checked; those of the fourth are certified in ball arithmetic and
 reproduced by a second AI-written implementation, but they are not kernel-checked, and no human has checked either
 implementation; the history, the attributions and the account of how the work was checked are
