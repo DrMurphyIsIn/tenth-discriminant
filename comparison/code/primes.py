@@ -11,7 +11,9 @@ assert hashlib.md5(_raw).hexdigest() == '2fc5051eabfbb43df7fea0b63dfd7101'
 _rows = [(fmpq(*map(int, (r['b'] + '/1').split('/')[:2])) if '.' not in r['b'] else fmpq(int(r['b'].replace('.', '')), 10 ** len(r['b'].split('.')[1])),
           fmpq(int(r['mant'].replace('.', '')), 10 ** (len(r['mant'].split('.')[1]) + r['n']))) for r in json.loads(_raw)['rows']]
 _rows.sort(key=lambda t: t[0])
-E_RS = arb('-1.33258227573322087') + arb(0, fmpq(1, 10 ** 17))   # RS (2.11), l.590: -1.33258 22757 33220 87 (ball covers the last digit)
+E_RS = arb('-1.332582275733221') + arb(0, fmpq(1, 10 ** 15))   # RS 1962 (2.11), p. 65: -1.33258 22757 33221 (15 decimals). v1.4.0 FIX: v1.3.0 used the p. 76
+# 'approximation' -1.33258 22757 33220 87 with a +/-1e-17 ball, which EXCLUDES the true E = -1.33258227573322088176... by 1.77e-18
+# (computed independently by bb and the lead). The effect on every gap is about 1e-17, far below the gaps and the Arb radii.
 C0 = arb(fmpq(101624, 100000))                                   # RS Thm 9 (3.32): theta(x) < 1.01624 x for x > 0
 def eps_table(m):
     """Table I: (1 - eps) x < psi(x) < (1 + eps) x for x >= e^b; returns eps for the largest b <= m, or None."""

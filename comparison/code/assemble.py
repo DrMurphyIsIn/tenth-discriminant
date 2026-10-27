@@ -20,6 +20,7 @@ def Kfun(j):
     return (j * 2 * tau ** 2 / (2 * tau + 1) - (1 - tau) * (j ** 2 / (2 * A) - j ** 3 / (3 * (A - 1)) + j ** 4 / (12 * (A - 2))
             - 2 * j ** (A + 2) / (A * (A - 1) * (A - 2) * (A + 1) * (A + 2))) + j / 2 - 3 * j ** 2 / 4 + (1 - j) ** 2 / 2 * (1 - j).log() + j ** 3 / 6 - j ** 4 / 24)
 USE_KCERT = True
+def A_CORR(L): return 1 / (2 * L)      # the RS (3.21) correction; cert_modern.py replaces it by the modern bound (paper §sec:modern)
 # Certified K(j) (lead 2026-10-25; bb G2 ACTION): I(k) = int 2a psi(k,a) da is DECREASING in k (envelope theorem: d psi/dk = log((u-k)/a) <= 0),
 # so K(1/9) <= right... the left Riemann sum: K(1/9) <= (j/N) sum_{i<N} I(i j/N) with certified I (kj_cert.py, N = 3000) = K_HI below, and
 # K(j) <= K(1/9) + (j - 1/9) I(0) for j >= 1/9.
@@ -68,7 +69,7 @@ def row_constants(Q0, Q1, a2, OURS_A=True, OURS_GS=True):
         v = (1 - arb(1) / p) * (Ap(p, t) - (1 + arb(1) / p ** 2) * eps - jst) - eps; Gcoup += 2 * lp * v if v > 0 else 0
     Aconst = (-P.E_RS) if OURS_A else arb(fmpq(1334, 1000))
     Kbase = (aH - WH + c + (BH - K2) / (3 * (t - eps)) + beta * g + Dst + 2 * logM / M - Gs + 2 * thH / M + logM / ((t - eps) * M)
-             + 2 * (t * M * M).log() / M + Aconst + 1 / (2 * logM) - Gfloor - Gsmall - Gres - Gcoup)
+             + 2 * (t * M * M).log() / M + Aconst + A_CORR(logM) - Gfloor - Gsmall - Gres - Gcoup)
     assert beta / 4 < gam
     return dict(M=M, eps=eps, b0=b0, alpha=alpha, beta=beta, Kbase=Kbase)
 def envelope_eval(segs, x):
